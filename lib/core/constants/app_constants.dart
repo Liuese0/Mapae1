@@ -1,12 +1,14 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class AppConstants {
   AppConstants._();
 
   // Supabase
-  static const String supabaseUrl = 'YOUR_SUPABASE_URL';
-  static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
   // OCR.space API
-  static const String ocrApiKey = 'YOUR_OCR_SPACE_API_KEY';
+  static String get ocrApiKey => dotenv.env['OCR_API_KEY'] ?? '';
   static const String ocrApiUrl = 'https://api.ocr.space/parse/image';
 
   // App

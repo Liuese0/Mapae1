@@ -61,6 +61,9 @@ dependencies:
   # Internationalization
   intl: ^0.19.0
 
+  # Environment
+  flutter_dotenv: ^5.1.0
+
   # Utils
   uuid: ^4.3.3
   path_provider: ^2.1.2
@@ -81,6 +84,7 @@ flutter:
   generate: true
 
   assets:
+    - .env
     - assets/images/
     - assets/fonts/
 
