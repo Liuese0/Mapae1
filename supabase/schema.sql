@@ -102,13 +102,6 @@ CREATE TABLE IF NOT EXISTS teams (
 );
 
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members can view team" ON teams FOR SELECT USING (
-  EXISTS (
-    SELECT 1 FROM team_members
-    WHERE team_members.team_id = teams.id
-    AND team_members.user_id = auth.uid()
-  )
-);
 CREATE POLICY "Team owner can manage team" ON teams FOR ALL USING (auth.uid() = owner_id);
 
 -- ──────────────── Team Members ────────────────
@@ -136,6 +129,15 @@ CREATE POLICY "Team admins can manage members" ON team_members FOR ALL USING (
     WHERE tm.team_id = team_members.team_id
     AND tm.user_id = auth.uid()
     AND tm.role IN ('owner', 'admin')
+  )
+);
+
+-- Add teams RLS policy that depends on team_members (created above)
+CREATE POLICY "Team members can view team" ON teams FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = teams.id
+    AND team_members.user_id = auth.uid()
   )
 );
 
