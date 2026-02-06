@@ -81,6 +81,9 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
       final user = service.currentUser;
       if (user == null) return;
 
+      // users 테이블에 프로필이 없으면 자동 생성 (FK 제약조건 충족)
+      await service.ensureUserProfile();
+
       // Upload image if new
       String? imageUrl = _imageUrl;
       if (_newImage != null) {
@@ -158,10 +161,10 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
             onPressed: _isLoading ? null : _save,
             child: _isLoading
                 ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
                 : const Text('저장'),
           ),
         ],
@@ -193,7 +196,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                             ),
                             ListTile(
                               leading:
-                                  const Icon(Icons.photo_library_outlined),
+                              const Icon(Icons.photo_library_outlined),
                               title: const Text('갤러리에서 선택'),
                               onTap: () {
                                 Navigator.pop(context);
@@ -218,37 +221,37 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                     ),
                     child: _newImage != null
                         ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(_newImage!, fit: BoxFit.cover),
-                          )
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(_newImage!, fit: BoxFit.cover),
+                    )
                         : _imageUrl != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  _imageUrl!,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.add_a_photo_outlined,
-                                    size: 32,
-                                    color: theme.colorScheme.onSurface
-                                        .withOpacity(0.3),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    '명함 이미지 추가',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: theme.colorScheme.onSurface
-                                          .withOpacity(0.4),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        _imageUrl!,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                        : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_a_photo_outlined,
+                          size: 32,
+                          color: theme.colorScheme.onSurface
+                              .withOpacity(0.3),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '명함 이미지 추가',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: theme.colorScheme.onSurface
+                                .withOpacity(0.4),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -276,11 +279,11 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
   }
 
   Widget _buildField(
-    String label,
-    TextEditingController controller, {
-    TextInputType keyboard = TextInputType.text,
-    bool required = false,
-  }) {
+      String label,
+      TextEditingController controller, {
+        TextInputType keyboard = TextInputType.text,
+        bool required = false,
+      }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(

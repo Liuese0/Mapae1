@@ -27,9 +27,6 @@ class SupabaseService {
       password: password,
       data: {'name': name},
     );
-    if (response.user != null) {
-      await _createUserProfile(response.user!.id, name, email);
-    }
     return response;
   }
 
@@ -58,19 +55,29 @@ class SupabaseService {
     await _client.auth.resetPasswordForEmail(email);
   }
 
-  Future<void> _createUserProfile(
-    String userId,
-    String name,
-    String email,
-  ) async {
+  /// 로그인 후 프로필이 없으면 자동 생성
+  Future<AppUser> ensureUserProfile() async {
+    final user = currentUser;
+    if (user == null) throw Exception('로그인이 필요합니다.');
+
+    final existing = await getUserProfile(user.id);
+    if (existing != null) return existing;
+
+    final name = user.userMetadata?['name'] as String? ??
+        user.userMetadata?['full_name'] as String? ??
+        '';
+    final email = user.email ?? '';
+
     await _client.from(SupabaseConstants.usersTable).upsert({
-      'id': userId,
+      'id': user.id,
       'name': name,
       'email': email,
       'locale': 'ko',
       'is_dark_mode': false,
       'created_at': DateTime.now().toIso8601String(),
     });
+
+    return (await getUserProfile(user.id))!;
   }
 
   // ──────────────── User Profile ────────────────
@@ -132,11 +139,11 @@ class SupabaseService {
   // ──────────────── Collected Cards ────────────────
 
   Future<List<CollectedCard>> getCollectedCards(
-    String userId, {
-    String? categoryId,
-    String sortBy = 'created_at',
-    bool ascending = false,
-  }) async {
+      String userId, {
+        String? categoryId,
+        String sortBy = 'created_at',
+        bool ascending = false,
+      }) async {
     var query = _client
         .from(SupabaseConstants.collectedCardsTable)
         .select()
@@ -221,7 +228,7 @@ class SupabaseService {
         .eq('user_id', userId);
 
     final teamIds =
-        memberData.map((m) => m['team_id'] as String).toList();
+    memberData.map((m) => m['team_id'] as String).toList();
 
     if (teamIds.isEmpty) return [];
 
@@ -284,7 +291,7 @@ class SupabaseService {
     return data
         .where((item) => item['collected_cards'] != null)
         .map((item) =>
-            CollectedCard.fromJson(item['collected_cards'] as Map<String, dynamic>))
+        CollectedCard.fromJson(item['collected_cards'] as Map<String, dynamic>))
         .toList();
   }
 
@@ -348,7 +355,10 @@ class SupabaseService {
   // ──────────────── Storage ────────────────
 
   Future<String> uploadCardImage(String fileName, Uint8List bytes) async {
-    final path = 'cards/$fileName';
+    final userId = currentUser?.id;
+    if (userId == null) throw Exception('로그인이 필요합니다.');
+
+    final path = '$userId/$fileName';
     await _client.storage
         .from(SupabaseConstants.cardImagesBucket)
         .uploadBinary(path, bytes);

@@ -33,7 +33,7 @@ final currentUserProvider = Provider<User?>((ref) {
 // ──────────────── User Profile ────────────────
 
 final userProfileProvider =
-    StateNotifierProvider<UserProfileNotifier, AsyncValue<AppUser?>>((ref) {
+StateNotifierProvider<UserProfileNotifier, AsyncValue<AppUser?>>((ref) {
   return UserProfileNotifier(ref);
 });
 
@@ -45,15 +45,16 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<AppUser?>> {
   }
 
   Future<void> _loadProfile() async {
-    final user = _ref.read(supabaseServiceProvider).currentUser;
+    final service = _ref.read(supabaseServiceProvider);
+    final user = service.currentUser;
     if (user == null) {
       state = const AsyncValue.data(null);
       return;
     }
 
     try {
-      final profile =
-          await _ref.read(supabaseServiceProvider).getUserProfile(user.id);
+      // 프로필이 없으면 자동 생성 (회원가입 후 첫 로그인, Google 로그인 등)
+      final profile = await service.ensureUserProfile();
       state = AsyncValue.data(profile);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

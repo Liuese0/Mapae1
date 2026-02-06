@@ -49,6 +49,9 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
       final user = supabaseService.currentUser;
       if (user == null) return;
 
+      // users 테이블에 프로필이 없으면 자동 생성 (FK 제약조건 충족)
+      await supabaseService.ensureUserProfile();
+
       // Get locale for OCR language
       final locale = ref.read(localeProvider).languageCode;
 
