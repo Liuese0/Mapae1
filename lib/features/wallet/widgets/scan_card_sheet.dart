@@ -47,7 +47,9 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
       final ocrService = ref.read(ocrServiceProvider);
       final supabaseService = ref.read(supabaseServiceProvider);
       final user = supabaseService.currentUser;
-      if (user == null) return;
+      if (user == null) {
+        throw Exception('로그인이 필요합니다');
+      }
 
       // users 테이블에 프로필이 없으면 자동 생성 (FK 제약조건 충족)
       await supabaseService.ensureUserProfile();
