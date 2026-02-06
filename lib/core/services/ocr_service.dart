@@ -39,6 +39,10 @@ class OcrService {
   Future<OcrResult> scanBusinessCard(File imageFile, {String language = 'kor'}) async {
     final String ocrLang = _mapLanguage(language);
 
+    // Engine 1 supports all languages including Korean, Chinese, etc.
+    // Engine 2 only supports limited languages (mainly Latin-based).
+    final String ocrEngine = (ocrLang == 'eng') ? '2' : '1';
+
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(
         imageFile.path,
@@ -48,7 +52,7 @@ class OcrService {
       'isOverlayRequired': 'false',
       'detectOrientation': 'true',
       'scale': 'true',
-      'OCREngine': '2', // Engine 2 is better for Asian languages
+      'OCREngine': ocrEngine,
     });
 
     final response = await _dio.post(
@@ -63,15 +67,33 @@ class OcrService {
 
     if (response.statusCode == 200) {
       final data = response.data;
+
+      // Check for API-level errors
+      final isErrored = data['IsErroredOnProcessing'] as bool? ?? false;
+      if (isErrored) {
+        final errorMessage = data['ErrorMessage'] as String? ?? 'OCR processing failed';
+        throw Exception(errorMessage);
+      }
+
       final results = data['ParsedResults'] as List?;
 
       if (results != null && results.isNotEmpty) {
+        // Check for individual result errors
+        final exitCode = results[0]['FileParseExitCode'] as int?;
+        if (exitCode != null && exitCode != 1) {
+          final errorMsg = results[0]['ErrorMessage'] as String? ?? 'Failed to parse image';
+          throw Exception(errorMsg);
+        }
+
         final rawText = results[0]['ParsedText'] as String? ?? '';
+        if (rawText.trim().isEmpty) {
+          throw Exception('No text detected in image');
+        }
         return _parseBusinessCardText(rawText);
       }
     }
 
-    return const OcrResult(rawText: '');
+    throw Exception('OCR request failed');
   }
 
   String _mapLanguage(String locale) {
