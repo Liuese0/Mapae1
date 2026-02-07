@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
@@ -28,7 +29,10 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
       imageQuality: 70,
     );
     if (image != null) {
-      await _processImage(File(image.path));
+      final cropped = await _cropImage(image.path);
+      if (cropped != null) {
+        await _processImage(File(cropped.path));
+      }
     }
   }
 
@@ -40,8 +44,36 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
       imageQuality: 70,
     );
     if (image != null) {
-      await _processImage(File(image.path));
+      final cropped = await _cropImage(image.path);
+      if (cropped != null) {
+        await _processImage(File(cropped.path));
+      }
     }
+  }
+
+  Future<CroppedFile?> _cropImage(String sourcePath) async {
+    final theme = Theme.of(context);
+    return ImageCropper().cropImage(
+      sourcePath: sourcePath,
+      aspectRatio: const CropAspectRatio(ratioX: 9, ratioY: 5),
+      compressQuality: 80,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: '명함 영역 선택',
+          toolbarColor: theme.colorScheme.primary,
+          toolbarWidgetColor: theme.colorScheme.onPrimary,
+          activeControlsWidgetColor: theme.colorScheme.primary,
+          initAspectRatio: CropAspectRatioPreset.ratio16x9,
+          lockAspectRatio: false,
+        ),
+        IOSUiSettings(
+          title: '명함 영역 선택',
+          cancelButtonTitle: '취소',
+          doneButtonTitle: '완료',
+          aspectRatioLockEnabled: false,
+        ),
+      ],
+    );
   }
 
   Future<void> _processImage(File imageFile) async {
