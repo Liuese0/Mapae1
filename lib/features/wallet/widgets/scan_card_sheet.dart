@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/collected_card.dart';
+import '../screens/card_camera_screen.dart';
+import '../screens/card_crop_screen.dart';
 
 class ScanCardSheet extends ConsumerStatefulWidget {
   final VoidCallback? onScanComplete;
@@ -21,23 +23,36 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickFromCamera() async {
-    final image = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 90,
+    final File? photo = await Navigator.of(context).push<File>(
+      MaterialPageRoute(builder: (_) => const CardCameraScreen()),
     );
-    if (image != null) {
-      await _processImage(File(image.path));
+    if (photo != null && mounted) {
+      final cropped = await _cropImage(photo);
+      await _processImage(cropped);
     }
   }
 
   Future<void> _pickFromGallery() async {
     final image = await _picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 90,
+      maxWidth: 1500,
+      maxHeight: 1500,
+      imageQuality: 70,
     );
-    if (image != null) {
-      await _processImage(File(image.path));
+    if (image != null && mounted) {
+      final file = File(image.path);
+      final cropped = await _cropImage(file);
+      await _processImage(cropped);
     }
+  }
+
+  /// Opens the in-app crop screen. Returns the cropped file, or the
+  /// original file if the user skips cropping.
+  Future<File> _cropImage(File imageFile) async {
+    final File? cropped = await Navigator.of(context).push<File>(
+      MaterialPageRoute(builder: (_) => CardCropScreen(imageFile: imageFile)),
+    );
+    return cropped ?? imageFile;
   }
 
   Future<void> _processImage(File imageFile) async {

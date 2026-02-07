@@ -39,6 +39,7 @@ dependencies:
   camera: ^0.10.5+9
   image_picker: ^1.0.7
   image_cropper: ^5.0.1
+  flutter_image_compress: ^2.1.0
 
   # OCR
   http: ^1.2.0
@@ -89,13 +90,13 @@ flutter:
     - assets/fonts/
 
   fonts:
-     - family: Pretendard
-       fonts:
-         - asset: assets/fonts/Pretendard-Regular.otf
-           weight: 400
-         - asset: assets/fonts/Pretendard-Medium.otf
-           weight: 500
-         - asset: assets/fonts/Pretendard-SemiBold.otf
-           weight: 600
-         - asset: assets/fonts/Pretendard-Bold.otf
-           weight: 700
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.otf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.otf
+          weight: 700

@@ -1,6 +1,7 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
 import '../constants/app_constants.dart';
 
 class OcrResult {
@@ -36,6 +37,35 @@ class OcrService {
 
   /// Scan a business card image and extract text using OCR.space API.
   /// Supports Korean, English, and Chinese.
+  static const int _maxFileSizeBytes = 1024 * 1024; // 1MB OCR.space limit
+
+  /// Compress the image file until it fits within the OCR.space size limit.
+  Future<File> _compressIfNeeded(File imageFile) async {
+    var fileSize = await imageFile.length();
+    if (fileSize <= _maxFileSizeBytes) return imageFile;
+
+    final tempDir = await getTemporaryDirectory();
+    final targetPath = '${tempDir.path}/ocr_compressed_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    // Progressively lower quality until under 1MB
+    for (final quality in [70, 50, 30, 15]) {
+      final result = await FlutterImageCompress.compressAndGetFile(
+        imageFile.absolute.path,
+        targetPath,
+        quality: quality,
+        minWidth: 1200,
+        minHeight: 1200,
+      );
+      if (result != null) {
+        final compressed = File(result.path);
+        fileSize = await compressed.length();
+        if (fileSize <= _maxFileSizeBytes) return compressed;
+      }
+    }
+
+    throw Exception('이미지 크기를 줄일 수 없습니다. 더 작은 이미지를 사용해주세요.');
+  }
+
   Future<OcrResult> scanBusinessCard(File imageFile, {String language = 'kor'}) async {
     final String ocrLang = _mapLanguage(language);
 
@@ -43,10 +73,13 @@ class OcrService {
     // Engine 2 only supports limited languages (mainly Latin-based).
     final String ocrEngine = (ocrLang == 'eng') ? '2' : '1';
 
+    // Compress image if it exceeds OCR.space 1MB limit
+    final processedFile = await _compressIfNeeded(imageFile);
+
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(
-        imageFile.path,
-        filename: imageFile.path.split('/').last,
+        processedFile.path,
+        filename: processedFile.path.split('/').last,
       ),
       'language': ocrLang,
       'isOverlayRequired': 'false',
@@ -71,7 +104,10 @@ class OcrService {
       // Check for API-level errors
       final isErrored = data['IsErroredOnProcessing'] as bool? ?? false;
       if (isErrored) {
-        final errorMessage = data['ErrorMessage'] as String? ?? 'OCR processing failed';
+        final rawError = data['ErrorMessage'];
+        final errorMessage = rawError is List
+            ? rawError.join(', ')
+            : (rawError?.toString() ?? 'OCR processing failed');
         throw Exception(errorMessage);
       }
 
@@ -81,7 +117,10 @@ class OcrService {
         // Check for individual result errors
         final exitCode = results[0]['FileParseExitCode'] as int?;
         if (exitCode != null && exitCode != 1) {
-          final errorMsg = results[0]['ErrorMessage'] as String? ?? 'Failed to parse image';
+          final rawErrMsg = results[0]['ErrorMessage'];
+          final errorMsg = rawErrMsg is List
+              ? rawErrMsg.join(', ')
+              : (rawErrMsg?.toString() ?? 'Failed to parse image');
           throw Exception(errorMsg);
         }
 
