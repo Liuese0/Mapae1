@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/collected_card.dart';
+import '../screens/card_camera_screen.dart';
 
 class ScanCardSheet extends ConsumerStatefulWidget {
   final VoidCallback? onScanComplete;
@@ -22,14 +23,11 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickFromCamera() async {
-    final image = await _picker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1500,
-      maxHeight: 1500,
-      imageQuality: 70,
+    final File? photo = await Navigator.of(context).push<File>(
+      MaterialPageRoute(builder: (_) => const CardCameraScreen()),
     );
-    if (image != null) {
-      final cropped = await _cropImage(image.path);
+    if (photo != null && mounted) {
+      final cropped = await _cropImage(photo.path);
       if (cropped != null) {
         await _processImage(File(cropped.path));
       }
