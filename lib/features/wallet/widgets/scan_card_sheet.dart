@@ -23,7 +23,9 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   Future<void> _pickFromCamera() async {
     final image = await _picker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 90,
+      maxWidth: 1500,
+      maxHeight: 1500,
+      imageQuality: 70,
     );
     if (image != null) {
       await _processImage(File(image.path));
@@ -33,7 +35,9 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   Future<void> _pickFromGallery() async {
     final image = await _picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 90,
+      maxWidth: 1500,
+      maxHeight: 1500,
+      imageQuality: 70,
     );
     if (image != null) {
       await _processImage(File(image.path));
