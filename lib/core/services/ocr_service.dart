@@ -168,7 +168,8 @@ class OcrService {
 
     final List<String> unmatched = [];
 
-    for (final line in lines) {
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
       // Email
       final emailRegex = RegExp(r'[\w.+-]+@[\w-]+\.[\w.]+');
       final emailMatch = emailRegex.firstMatch(line);
@@ -185,8 +186,8 @@ class OcrService {
         continue;
       }
 
-      // Phone patterns
-      final phoneRegex = RegExp(r'[\d\-\(\)\+\s]{7,}');
+      // Phone patterns (include dot as separator for formats like 010.1234.5678)
+      final phoneRegex = RegExp(r'[\d\-\.\(\)\+\s]{7,}');
       if (phoneRegex.hasMatch(line)) {
         final cleaned = line.toLowerCase();
         if (cleaned.contains('fax') || cleaned.contains('팩스') || cleaned.contains('传真')) {
@@ -213,28 +214,84 @@ class OcrService {
         continue;
       }
 
-      // Address indicators
-      if (_isAddressLine(line) && address == null) {
-        address = line;
+      // Address indicators (merge consecutive address lines)
+      if (_isAddressLine(line)) {
+        if (address == null) {
+          address = line;
+          // Look ahead for continuation lines
+          while (i + 1 < lines.length && _isAddressLine(lines[i + 1])) {
+            i++;
+            address = '$address ${lines[i]}';
+          }
+        } else {
+          // Append to existing address if already found
+          address = '$address $line';
+        }
         continue;
       }
 
       unmatched.add(line);
     }
 
-    // Heuristic: first unmatched line is likely the name,
-    // second could be company, third could be position
-    if (unmatched.isNotEmpty) {
-      name = unmatched[0];
+    // Classify unmatched lines using heuristics instead of relying on order
+    final List<String> remaining = [];
+    for (final line in unmatched) {
+      if (company == null && _isCompanyName(line)) {
+        company = line;
+      } else if (_isPositionTitle(line)) {
+        // Line may contain both position and name (e.g. "대리 홍길동")
+        final split = _splitPositionAndName(line);
+        if (split != null) {
+          if (position == null) position = split['position'];
+          if (name == null) name = split['name'];
+        } else if (position == null) {
+          position = line;
+        } else {
+          remaining.add(line);
+        }
+      } else if (department == null && _isDepartmentName(line)) {
+        department = line;
+      } else {
+        remaining.add(line);
+      }
     }
-    if (unmatched.length > 1) {
-      company = unmatched[1];
-    }
-    if (unmatched.length > 2) {
-      position = unmatched[2];
-    }
-    if (unmatched.length > 3) {
-      department = unmatched[3];
+
+    // Among remaining lines, find the one that looks like a person name
+    if (remaining.isNotEmpty) {
+      int nameIdx = -1;
+      for (int i = 0; i < remaining.length; i++) {
+        if (_isLikelyPersonName(remaining[i])) {
+          nameIdx = i;
+          break;
+        }
+      }
+
+      if (nameIdx >= 0 && name == null) {
+        name = remaining[nameIdx];
+        final leftover = [...remaining]..removeAt(nameIdx);
+        for (final line in leftover) {
+          if (company == null) {
+            company = line;
+          } else if (position == null) {
+            position = line;
+          } else if (department == null) {
+            department = line;
+          }
+        }
+      } else if (name == null) {
+        // No clear name found — assign remaining to unfilled fields in order
+        for (final line in remaining) {
+          if (name == null) {
+            name = line;
+          } else if (company == null) {
+            company = line;
+          } else if (position == null) {
+            position = line;
+          } else if (department == null) {
+            department = line;
+          }
+        }
+      }
     }
 
     return OcrResult(
@@ -243,13 +300,123 @@ class OcrService {
       position: position,
       department: department,
       email: email,
-      phone: phone,
-      mobile: mobile,
-      fax: fax,
+      phone: phone != null ? _cleanPhoneNumber(phone) : null,
+      mobile: mobile != null ? _cleanPhoneNumber(mobile) : null,
+      fax: fax != null ? _cleanPhoneNumber(fax) : null,
       address: address,
       website: website,
       rawText: rawText,
     );
+  }
+
+  /// Strip separators from phone numbers, keeping only digits and leading +.
+  String _cleanPhoneNumber(String number) {
+    final trimmed = number.trim();
+    final prefix = trimmed.startsWith('+') ? '+' : '';
+    return prefix + trimmed.replaceAll(RegExp(r'[^\d]'), '');
+  }
+
+  /// Try to split a line that contains both a position title and a person name.
+  /// Returns {'position': ..., 'name': ...} or null if it can't be split.
+  Map<String, String>? _splitPositionAndName(String line) {
+    final allPositionKeywords = [
+      // Longer keywords first to match greedily (대표이사 before 대표)
+      '대표이사', '본부장', '센터장',
+      '대표', '이사', '부장', '차장', '과장', '대리', '사원',
+      '팀장', '실장', '원장', '소장', '교수', '박사',
+      '매니저', '디렉터', '엔지니어',
+      'president', 'director', 'manager', 'engineer', 'developer',
+      'designer', 'analyst', 'consultant', 'specialist', 'officer',
+      'ceo', 'cto', 'cfo', 'coo', 'vp', 'head',
+      '总裁', '总经理', '经理', '主任', '工程师',
+    ];
+
+    final lower = line.toLowerCase().trim();
+    for (final kw in allPositionKeywords) {
+      if (!lower.contains(kw.toLowerCase())) continue;
+      // Remove the keyword and see if there's a remainder
+      final remainder = line
+          .replaceAll(RegExp(RegExp.escape(kw), caseSensitive: false), '')
+          .trim();
+      // If removing the keyword leaves something behind, treat it as the name
+      if (remainder.isNotEmpty && remainder != line.trim()) {
+        return {'position': kw, 'name': remainder};
+      }
+    }
+    return null;
+  }
+
+  /// Check if a line looks like a company/organization name.
+  bool _isCompanyName(String line) {
+    final companyIndicators = [
+      // Korean
+      '주식회사', '(주)', '㈜', '법인', '재단', '협회', '그룹', '홀딩스',
+      // English
+      'inc', 'corp', 'ltd', 'llc', 'co.', 'company', 'group', 'holdings',
+      'enterprise', 'associates', 'partners', 'foundation',
+      // Chinese
+      '公司', '集团', '有限', '股份',
+    ];
+    final lower = line.toLowerCase();
+    return companyIndicators.any((kw) => lower.contains(kw));
+  }
+
+  /// Check if a line looks like a job title / position.
+  bool _isPositionTitle(String line) {
+    final positionIndicators = [
+      // Korean
+      '대표', '이사', '부장', '차장', '과장', '대리', '사원', '팀장',
+      '실장', '본부장', '센터장', '원장', '소장', '교수', '박사',
+      '매니저', '디렉터', '엔지니어',
+      // English
+      'ceo', 'cto', 'cfo', 'coo', 'vp', 'president', 'director',
+      'manager', 'engineer', 'developer', 'designer', 'analyst',
+      'consultant', 'specialist', 'officer', 'head',
+      // Chinese
+      '总裁', '总经理', '经理', '主任', '工程师',
+    ];
+    final lower = line.toLowerCase();
+    return positionIndicators.any((kw) => lower.contains(kw));
+  }
+
+  /// Check if a line looks like a department name.
+  bool _isDepartmentName(String line) {
+    final deptIndicators = [
+      // Korean
+      '부', '팀', '실', '과', '본부', '센터', '사업부', '연구소', '지점',
+      // English
+      'department', 'division', 'team', 'unit', 'branch', 'office',
+      // Chinese
+      '部门', '部', '处', '科', '办公室',
+    ];
+    final lower = line.toLowerCase();
+    // For short Korean suffixes (부, 팀, 실, 과), check they appear at the end
+    if (RegExp(r'[부팀실과]$').hasMatch(line.trim()) && line.trim().length >= 2) {
+      return true;
+    }
+    return deptIndicators
+        .where((kw) => kw.length > 1)
+        .any((kw) => lower.contains(kw));
+  }
+
+  /// Check if a line is likely a person's name rather than an organization.
+  bool _isLikelyPersonName(String line) {
+    final trimmed = line.trim();
+    // Korean names are typically 2-4 characters (syllables)
+    final koreanOnly = trimmed.replaceAll(RegExp(r'[^가-힣]'), '');
+    if (koreanOnly.length >= 2 && koreanOnly.length <= 4 && trimmed.length <= 5) {
+      return true;
+    }
+    // English names: 2-3 words, each starting with uppercase
+    final words = trimmed.split(RegExp(r'\s+'));
+    if (words.length >= 2 &&
+        words.length <= 3 &&
+        words.every((w) => w.isNotEmpty && w[0] == w[0].toUpperCase()) &&
+        !_isCompanyName(trimmed) &&
+        !_isPositionTitle(trimmed)) {
+      return true;
+    }
+    return false;
   }
 
   bool _isAddressLine(String line) {
