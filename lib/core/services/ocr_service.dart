@@ -71,7 +71,10 @@ class OcrService {
       // Check for API-level errors
       final isErrored = data['IsErroredOnProcessing'] as bool? ?? false;
       if (isErrored) {
-        final errorMessage = data['ErrorMessage'] as String? ?? 'OCR processing failed';
+        final rawError = data['ErrorMessage'];
+        final errorMessage = rawError is List
+            ? rawError.join(', ')
+            : (rawError?.toString() ?? 'OCR processing failed');
         throw Exception(errorMessage);
       }
 
@@ -81,7 +84,10 @@ class OcrService {
         // Check for individual result errors
         final exitCode = results[0]['FileParseExitCode'] as int?;
         if (exitCode != null && exitCode != 1) {
-          final errorMsg = results[0]['ErrorMessage'] as String? ?? 'Failed to parse image';
+          final rawErrMsg = results[0]['ErrorMessage'];
+          final errorMsg = rawErrMsg is List
+              ? rawErrMsg.join(', ')
+              : (rawErrMsg?.toString() ?? 'Failed to parse image');
           throw Exception(errorMsg);
         }
 
