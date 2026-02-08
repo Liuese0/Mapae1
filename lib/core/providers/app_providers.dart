@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../services/ocr_service.dart';
 import '../services/nfc_service.dart';
+import '../services/auto_login_service.dart';
 import '../../features/shared/models/app_user.dart';
 
 // ──────────────── Services ────────────────
@@ -18,6 +19,10 @@ final ocrServiceProvider = Provider<OcrService>((ref) {
 
 final nfcServiceProvider = Provider<NfcService>((ref) {
   return NfcService();
+});
+
+final autoLoginServiceProvider = Provider<AutoLoginService>((ref) {
+  return AutoLoginService();
 });
 
 // ──────────────── Auth State ────────────────

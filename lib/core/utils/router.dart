@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/signup_screen.dart';
 import '../../features/home/screens/home_screen.dart';
@@ -11,6 +12,7 @@ import '../../features/management/screens/my_card_edit_screen.dart';
 import '../../features/management/screens/team_management_screen.dart';
 import '../../features/management/screens/tag_template_screen.dart';
 import '../../features/shared/widgets/main_shell.dart';
+import '../services/auto_login_service.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -18,9 +20,20 @@ class AppRouter {
 
   static GoRouter get router => _router;
 
+  /// 자동 로그인 여부에 따라 초기 경로를 결정
+  static String get _initialLocation {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      // 세션이 존재하면 자동 로그인 설정과 관계없이 홈으로
+      // (세션은 자동 로그인이 켜져 있을 때만 유지됨)
+      return '/home';
+    }
+    return '/login';
+  }
+
   static final _router = GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/login',
+    initialLocation: _initialLocation,
     routes: [
       // Auth routes
       GoRoute(

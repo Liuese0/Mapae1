@@ -16,6 +16,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _autoLogin = false;
 
   @override
   void dispose() {
@@ -30,9 +31,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await ref.read(supabaseServiceProvider).signInWithEmail(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      await ref.read(autoLoginServiceProvider).setEnabled(_autoLogin);
       if (mounted) context.go('/home');
     } catch (e) {
       if (mounted) {
@@ -49,6 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await ref.read(supabaseServiceProvider).signInWithGoogle();
+      await ref.read(autoLoginServiceProvider).setEnabled(_autoLogin);
       if (mounted) context.go('/home');
     } catch (e) {
       if (mounted) {
@@ -144,21 +147,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // Forgot password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      // TODO: implement password reset flow
-                    },
-                    child: Text(
-                      '비밀번호 찾기',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                // Auto-login & Forgot password row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => setState(() => _autoLogin = !_autoLogin),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: _autoLogin,
+                              onChanged: (v) =>
+                                  setState(() => _autoLogin = v ?? false),
+                              materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '자동 로그인',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: theme.colorScheme.onSurface
+                                  .withOpacity(0.6),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+                    TextButton(
+                      onPressed: () {
+                        // TODO: implement password reset flow
+                      },
+                      child: Text(
+                        '비밀번호 찾기',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
@@ -169,10 +202,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: _isLoading ? null : _signInWithEmail,
                     child: _isLoading
                         ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                         : const Text('로그인'),
                   ),
                 ),

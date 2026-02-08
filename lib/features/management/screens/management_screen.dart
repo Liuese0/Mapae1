@@ -6,7 +6,7 @@ import '../../shared/models/business_card.dart';
 import '../../shared/models/team.dart';
 
 final myCardsManageProvider =
-    FutureProvider.autoDispose<List<BusinessCard>>((ref) async {
+FutureProvider.autoDispose<List<BusinessCard>>((ref) async {
   final service = ref.read(supabaseServiceProvider);
   final user = service.currentUser;
   if (user == null) return [];
@@ -163,7 +163,7 @@ class ManagementScreen extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 13,
                             color:
-                                theme.colorScheme.onSurface.withOpacity(0.6),
+                            theme.colorScheme.onSurface.withOpacity(0.6),
                           ),
                         ),
                       ),
@@ -209,7 +209,7 @@ class ManagementScreen extends ConsumerWidget {
                     value: themeMode == ThemeMode.dark,
                     onChanged: (value) {
                       ref.read(themeModeProvider.notifier).state =
-                          value ? ThemeMode.dark : ThemeMode.light;
+                      value ? ThemeMode.dark : ThemeMode.light;
                     },
                   );
                 },
@@ -239,6 +239,7 @@ class ManagementScreen extends ConsumerWidget {
                     ),
                   );
                   if (confirm == true) {
+                    await ref.read(autoLoginServiceProvider).clear();
                     await ref.read(supabaseServiceProvider).signOut();
                     if (context.mounted) context.go('/login');
                   }
@@ -458,7 +459,7 @@ class _MyCardTile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           color:
-                              theme.colorScheme.onSurface.withOpacity(0.5),
+                          theme.colorScheme.onSurface.withOpacity(0.5),
                         ),
                       ),
                   ],
