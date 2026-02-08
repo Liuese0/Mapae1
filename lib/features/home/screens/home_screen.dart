@@ -9,7 +9,7 @@ import '../widgets/share_bottom_sheet.dart';
 
 // Provider for my cards list on home screen
 final myCardsHomeProvider =
-    FutureProvider.autoDispose<List<BusinessCard>>((ref) async {
+FutureProvider.autoDispose<List<BusinessCard>>((ref) async {
   final service = ref.read(supabaseServiceProvider);
   final user = service.currentUser;
   if (user == null) return [];
@@ -91,9 +91,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     .clamp(0.0, 1.0);
                               }
                               return Center(
-                                child: SizedBox(
-                                  height:
-                                      Curves.easeOut.transform(value) * 280,
+                                child: Transform.scale(
+                                  scale: Curves.easeOut.transform(value),
                                   child: child,
                                 ),
                               );
@@ -110,7 +109,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
                           cards.length,
-                          (index) => AnimatedContainer(
+                              (index) => AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
                             margin: const EdgeInsets.symmetric(horizontal: 3),
                             width: _currentPage == index ? 20 : 6,
@@ -119,7 +118,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               color: _currentPage == index
                                   ? theme.colorScheme.primary
                                   : theme.colorScheme.primary
-                                      .withOpacity(0.2),
+                                  .withOpacity(0.2),
                               borderRadius: BorderRadius.circular(3),
                             ),
                           ),
@@ -209,29 +208,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Wrapper that passes animation to builder
-class AnimatedBuilder extends StatelessWidget {
-  final Listenable animation;
-  final TransitionBuilder builder;
-  final Widget? child;
-
-  const AnimatedBuilder({
-    super.key,
-    required this.animation,
-    required this.builder,
-    this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: builder,
-      child: child,
     );
   }
 }

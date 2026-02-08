@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/business_card.dart';
+import '../../wallet/screens/card_camera_screen.dart';
+import '../../wallet/screens/card_crop_screen.dart';
 import 'management_screen.dart';
 
 class MyCardEditScreen extends ConsumerStatefulWidget {
@@ -31,6 +33,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
   String? _imageUrl;
   File? _newImage;
   bool _isLoading = false;
+  bool _isExtracting = false;
   bool _initialized = false;
   BusinessCard? _existingCard;
 
@@ -64,11 +67,89 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
     _imageUrl = card.imageUrl;
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _pickFromCamera() async {
+    final File? photo = await Navigator.of(context).push<File>(
+      MaterialPageRoute(builder: (_) => const CardCameraScreen()),
+    );
+    if (photo != null && mounted) {
+      final cropped = await _cropImage(photo);
+      setState(() => _newImage = cropped);
+      await _extractText(cropped);
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: source, imageQuality: 90);
-    if (image != null) {
-      setState(() => _newImage = File(image.path));
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1500,
+      maxHeight: 1500,
+      imageQuality: 70,
+    );
+    if (image != null && mounted) {
+      final file = File(image.path);
+      final cropped = await _cropImage(file);
+      setState(() => _newImage = cropped);
+      await _extractText(cropped);
+    }
+  }
+
+  Future<File> _cropImage(File imageFile) async {
+    final File? cropped = await Navigator.of(context).push<File>(
+      MaterialPageRoute(builder: (_) => CardCropScreen(imageFile: imageFile)),
+    );
+    return cropped ?? imageFile;
+  }
+
+  Future<void> _extractText(File imageFile) async {
+    setState(() => _isExtracting = true);
+    try {
+      final ocrService = ref.read(ocrServiceProvider);
+      final locale = ref.read(localeProvider).languageCode;
+      final result = await ocrService.scanBusinessCard(
+        imageFile,
+        language: locale,
+      );
+
+      if (mounted) {
+        setState(() {
+          if (result.name != null && result.name!.isNotEmpty && _nameCtrl.text.isEmpty) {
+            _nameCtrl.text = result.name!;
+          }
+          if (result.company != null && result.company!.isNotEmpty && _companyCtrl.text.isEmpty) {
+            _companyCtrl.text = result.company!;
+          }
+          if (result.position != null && result.position!.isNotEmpty && _positionCtrl.text.isEmpty) {
+            _positionCtrl.text = result.position!;
+          }
+          if (result.department != null && result.department!.isNotEmpty && _departmentCtrl.text.isEmpty) {
+            _departmentCtrl.text = result.department!;
+          }
+          if (result.email != null && result.email!.isNotEmpty && _emailCtrl.text.isEmpty) {
+            _emailCtrl.text = result.email!;
+          }
+          if (result.phone != null && result.phone!.isNotEmpty && _phoneCtrl.text.isEmpty) {
+            _phoneCtrl.text = result.phone!;
+          }
+          if (result.mobile != null && result.mobile!.isNotEmpty && _mobileCtrl.text.isEmpty) {
+            _mobileCtrl.text = result.mobile!;
+          }
+          if (result.address != null && result.address!.isNotEmpty && _addressCtrl.text.isEmpty) {
+            _addressCtrl.text = result.address!;
+          }
+          if (result.website != null && result.website!.isNotEmpty && _websiteCtrl.text.isEmpty) {
+            _websiteCtrl.text = result.website!;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('텍스트 인식 실패: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExtracting = false);
     }
   }
 
@@ -191,7 +272,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                               title: const Text('사진 촬영'),
                               onTap: () {
                                 Navigator.pop(context);
-                                _pickImage(ImageSource.camera);
+                                _pickFromCamera();
                               },
                             ),
                             ListTile(
@@ -200,7 +281,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                               title: const Text('갤러리에서 선택'),
                               onTap: () {
                                 Navigator.pop(context);
-                                _pickImage(ImageSource.gallery);
+                                _pickFromGallery();
                               },
                             ),
                           ],
@@ -255,6 +336,27 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                   ),
                 ),
               ),
+              if (_isExtracting) ...[
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '명함 텍스트 인식 중...',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 24),
 
               _buildField('이름 *', _nameCtrl, required: true),

@@ -74,42 +74,45 @@ class _Card3DWidgetState extends State<Card3DWidget>
           ..setEntry(3, 2, 0.001) // perspective
           ..rotateX(_rotateX)
           ..rotateY(_rotateY),
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [
-                      const Color(0xFF2C2C2C),
-                      const Color(0xFF1A1A1A),
-                    ]
-                  : [
-                      const Color(0xFFFFFFFF),
-                      const Color(0xFFF5F5F5),
-                    ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.4 : 0.15),
-                blurRadius: 24,
-                offset: Offset(_rotateY * 20, _rotateX * -20 + 8),
-                spreadRadius: 2,
+        child: AspectRatio(
+          aspectRatio: 9 / 5,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                  const Color(0xFF2C2C2C),
+                  const Color(0xFF1A1A1A),
+                ]
+                    : [
+                  const Color(0xFFFFFFFF),
+                  const Color(0xFFF5F5F5),
+                ],
               ),
-            ],
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.4 : 0.15),
+                  blurRadius: 24,
+                  offset: Offset(_rotateY * 20, _rotateX * -20 + 8),
+                  spreadRadius: 2,
+                ),
+              ],
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05),
+              ),
             ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: widget.card.imageUrl != null
-                ? _buildImageCard()
-                : _buildInfoCard(theme, isDark),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: widget.card.imageUrl != null
+                  ? _buildImageCard()
+                  : _buildInfoCard(theme, isDark),
+            ),
           ),
         ),
       ),
