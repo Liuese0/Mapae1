@@ -133,12 +133,14 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+
     return Container(
       decoration: BoxDecoration(
         color: theme.bottomSheetTheme.backgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

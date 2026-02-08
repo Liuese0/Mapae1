@@ -16,7 +16,7 @@ final walletSortProvider = StateProvider<SortMode>((ref) => SortMode.byDate);
 final walletCategoryProvider = StateProvider<String?>((ref) => null);
 
 final collectedCardsProvider =
-    FutureProvider.autoDispose<List<CollectedCard>>((ref) async {
+FutureProvider.autoDispose<List<CollectedCard>>((ref) async {
   final service = ref.read(supabaseServiceProvider);
   final user = service.currentUser;
   if (user == null) return [];
@@ -40,7 +40,7 @@ final cardCountProvider = FutureProvider.autoDispose<int>((ref) async {
 });
 
 final categoriesProvider =
-    FutureProvider.autoDispose<List<CardCategory>>((ref) async {
+FutureProvider.autoDispose<List<CardCategory>>((ref) async {
   final service = ref.read(supabaseServiceProvider);
   final user = service.currentUser;
   if (user == null) return [];
@@ -61,6 +61,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true,
       builder: (context) => ScanCardSheet(
         onScanComplete: () {
           ref.invalidate(collectedCardsProvider);
@@ -92,7 +93,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 // Header
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -102,7 +103,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           '전체 명함 ${count}장',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color:
-                                theme.colorScheme.onSurface.withOpacity(0.5),
+                            theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                         ),
                         loading: () => const SizedBox.shrink(),
@@ -113,9 +114,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       GestureDetector(
                         onTap: () {
                           ref.read(walletSortProvider.notifier).state =
-                              sortMode == SortMode.byDate
-                                  ? SortMode.byName
-                                  : SortMode.byDate;
+                          sortMode == SortMode.byDate
+                              ? SortMode.byName
+                              : SortMode.byDate;
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -125,7 +126,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             border:
-                                Border.all(color: theme.colorScheme.outline),
+                            Border.all(color: theme.colorScheme.outline),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -165,22 +166,22 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         Chip(
                           label: Text(
                             categories.valueOrNull
-                                    ?.firstWhere(
-                                        (c) => c.id == selectedCategory,
-                                        orElse: () => CardCategory(
-                                              id: '',
-                                              userId: '',
-                                              name: '',
-                                              createdAt: DateTime.now(),
-                                            ))
-                                    .name ??
+                                ?.firstWhere(
+                                    (c) => c.id == selectedCategory,
+                                orElse: () => CardCategory(
+                                  id: '',
+                                  userId: '',
+                                  name: '',
+                                  createdAt: DateTime.now(),
+                                ))
+                                .name ??
                                 '',
                             style: const TextStyle(fontSize: 12),
                           ),
                           deleteIcon: const Icon(Icons.close, size: 14),
                           onDeleted: () {
                             ref.read(walletCategoryProvider.notifier).state =
-                                null;
+                            null;
                           },
                           visualDensity: VisualDensity.compact,
                         ),
@@ -223,7 +224,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         ),
                         itemCount: cardList.length,
                         separatorBuilder: (_, __) =>
-                            const SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           return CardListTile(
                             card: cardList[index],
@@ -234,7 +235,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       );
                     },
                     loading: () =>
-                        const Center(child: CircularProgressIndicator()),
+                    const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Center(child: Text('오류: $e')),
                   ),
                 ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/services/nfc_service.dart';
 import '../../shared/models/business_card.dart';
 
 class ShareBottomSheet extends ConsumerStatefulWidget {
@@ -17,6 +18,7 @@ class ShareBottomSheet extends ConsumerStatefulWidget {
 class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   bool _nfcMode = false;
   bool _nfcReady = false;
+  NfcService? _nfcService;
 
   void _shareViaSns() {
     final card = widget.card;
@@ -35,6 +37,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
     setState(() => _nfcMode = true);
 
     final nfcService = ref.read(nfcServiceProvider);
+    _nfcService = nfcService;
     nfcService.sendCard(
       card: widget.card,
       onSending: () {
@@ -65,7 +68,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   @override
   void dispose() {
     if (_nfcMode) {
-      ref.read(nfcServiceProvider).stopSession();
+      _nfcService?.stopSession();
     }
     super.dispose();
   }
@@ -78,12 +81,14 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
       return _buildNfcMode(theme);
     }
 
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+
     return Container(
       decoration: BoxDecoration(
         color: theme.bottomSheetTheme.backgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -128,13 +133,15 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   }
 
   Widget _buildNfcMode(ThemeData theme) {
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.6,
       decoration: BoxDecoration(
         color: theme.bottomSheetTheme.backgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
       child: Column(
         children: [
           // Handle
