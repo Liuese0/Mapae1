@@ -33,7 +33,7 @@ class Team {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      if (id.isNotEmpty) 'id': id,
       'name': name,
       'owner_id': ownerId,
       'description': description,
@@ -67,7 +67,7 @@ class TeamMember {
       teamId: json['team_id'] as String,
       userId: json['user_id'] as String,
       role: TeamRole.values.firstWhere(
-        (r) => r.name == json['role'],
+            (r) => r.name == json['role'],
         orElse: () => TeamRole.member,
       ),
       userName: json['user_name'] as String?,

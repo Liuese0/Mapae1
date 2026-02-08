@@ -247,10 +247,12 @@ class SupabaseService {
         .single();
 
     // Add creator as owner
+    final profile = await getUserProfile(userId);
     await _client.from(SupabaseConstants.teamMembersTable).insert({
       'team_id': data['id'],
       'user_id': userId,
       'role': TeamRole.owner.name,
+      'user_name': profile?.name ?? '이름 없음',
       'joined_at': DateTime.now().toIso8601String(),
     });
 
@@ -266,12 +268,29 @@ class SupabaseService {
   }
 
   Future<void> addTeamMember(String teamId, String userId, TeamRole role) async {
+    final profile = await getUserProfile(userId);
     await _client.from(SupabaseConstants.teamMembersTable).insert({
       'team_id': teamId,
       'user_id': userId,
       'role': role.name,
+      'user_name': profile?.name ?? '이름 없음',
       'joined_at': DateTime.now().toIso8601String(),
     });
+  }
+
+  Future<void> deleteTeam(String teamId) async {
+    await _client
+        .from(SupabaseConstants.teamsTable)
+        .delete()
+        .eq('id', teamId);
+  }
+
+  Future<void> leaveTeam(String teamId, String userId) async {
+    await _client
+        .from(SupabaseConstants.teamMembersTable)
+        .delete()
+        .eq('team_id', teamId)
+        .eq('user_id', userId);
   }
 
   Future<void> shareCardToTeam(String cardId, String teamId) async {

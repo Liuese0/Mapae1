@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../shared/models/team.dart';
 import '../../shared/models/collected_card.dart';
 
@@ -18,11 +19,24 @@ class TeamManagementScreen extends ConsumerStatefulWidget {
 class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  TeamRole? _myRole;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _loadMyRole();
+  }
+
+  Future<void> _loadMyRole() async {
+    final service = ref.read(supabaseServiceProvider);
+    final userId = service.currentUser?.id;
+    if (userId == null) return;
+    final members = await service.getTeamMembers(widget.teamId);
+    final me = members.where((m) => m.userId == userId).firstOrNull;
+    if (mounted) {
+      setState(() => _myRole = me?.role);
+    }
   }
 
   @override
@@ -34,6 +48,8 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final service = ref.read(supabaseServiceProvider);
+    final currentUserId = service.currentUser?.id;
 
     return Scaffold(
       appBar: AppBar(
@@ -42,6 +58,36 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
           onPressed: () => context.pop(),
         ),
         title: const Text('팀 관리'),
+        actions: [
+          if (_myRole != null)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) async {
+                if (value == 'delete') {
+                  _showDeleteTeamDialog(context, service);
+                } else if (value == 'leave') {
+                  _showLeaveTeamDialog(context, service, currentUserId!);
+                }
+              },
+              itemBuilder: (context) {
+                if (_myRole == TeamRole.owner) {
+                  return [
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('팀 삭제', style: TextStyle(color: Colors.red)),
+                    ),
+                  ];
+                } else {
+                  return [
+                    const PopupMenuItem(
+                      value: 'leave',
+                      child: Text('팀 나가기', style: TextStyle(color: Colors.red)),
+                    ),
+                  ];
+                }
+              },
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: theme.colorScheme.primary,
@@ -60,6 +106,57 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
           _SharedCardsTab(teamId: widget.teamId),
           _MembersTab(teamId: widget.teamId),
           _CrmTab(teamId: widget.teamId),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteTeamDialog(BuildContext context, SupabaseService service) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('팀 삭제'),
+        content: const Text('팀을 삭제하면 모든 멤버와 공유 명함이 삭제됩니다.\n정말 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await service.deleteTeam(widget.teamId);
+              if (context.mounted) Navigator.pop(context);
+              if (this.context.mounted) this.context.go('/management');
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLeaveTeamDialog(
+      BuildContext context, SupabaseService service, String userId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('팀 나가기'),
+        content: const Text('팀에서 나가시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await service.leaveTeam(widget.teamId, userId);
+              if (context.mounted) Navigator.pop(context);
+              if (this.context.mounted) this.context.go('/management');
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('나가기'),
+          ),
         ],
       ),
     );
@@ -162,7 +259,7 @@ class _MembersTab extends ConsumerWidget {
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor:
-                          theme.colorScheme.primary.withOpacity(0.1),
+                      theme.colorScheme.primary.withOpacity(0.1),
                       child: Icon(
                         Icons.person,
                         color: theme.colorScheme.primary,
