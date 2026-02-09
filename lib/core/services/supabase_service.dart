@@ -356,6 +356,15 @@ class SupabaseService {
     });
   }
 
+  /// 특정 명함이 공유된 팀 목록 조회
+  Future<List<Map<String, dynamic>>> getTeamsWhereCardIsShared(String cardId) async {
+    final data = await _client
+        .from(SupabaseConstants.teamSharedCardsTable)
+        .select('id, team_id')
+        .eq('card_id', cardId);
+    return data;
+  }
+
   Future<void> unshareCardFromTeam(String sharedCardId) async {
     await _client
         .from(SupabaseConstants.teamSharedCardsTable)

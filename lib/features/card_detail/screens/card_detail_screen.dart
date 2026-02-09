@@ -7,21 +7,21 @@ import '../../shared/models/collected_card.dart';
 import '../../shared/models/context_tag.dart';
 
 final cardDetailProvider =
-    FutureProvider.family.autoDispose<CollectedCard?, String>(
+FutureProvider.family.autoDispose<CollectedCard?, String>(
         (ref, cardId) async {
-  final service = ref.read(supabaseServiceProvider);
-  final user = service.currentUser;
-  if (user == null) return null;
+      final service = ref.read(supabaseServiceProvider);
+      final user = service.currentUser;
+      if (user == null) return null;
 
-  final cards = await service.getCollectedCards(user.id);
-  return cards.where((c) => c.id == cardId).firstOrNull;
-});
+      final cards = await service.getCollectedCards(user.id);
+      return cards.where((c) => c.id == cardId).firstOrNull;
+    });
 
 final cardTagsProvider =
-    FutureProvider.family.autoDispose<List<ContextTag>, String>(
+FutureProvider.family.autoDispose<List<ContextTag>, String>(
         (ref, cardId) async {
-  return ref.read(supabaseServiceProvider).getCardTags(cardId);
-});
+      return ref.read(supabaseServiceProvider).getCardTags(cardId);
+    });
 
 class CardDetailScreen extends ConsumerWidget {
   final String cardId;
@@ -236,10 +236,10 @@ class CardDetailScreen extends ConsumerWidget {
                               children: tag.values.entries.map((entry) {
                                 return Padding(
                                   padding:
-                                      const EdgeInsets.symmetric(vertical: 2),
+                                  const EdgeInsets.symmetric(vertical: 2),
                                   child: Row(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    CrossAxisAlignment.start,
                                     children: [
                                       SizedBox(
                                         width: 80,
@@ -286,11 +286,24 @@ class CardDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _deleteCard(BuildContext context, WidgetRef ref) async {
+    final service = ref.read(supabaseServiceProvider);
+
+    // 공유된 팀이 있는지 확인
+    final sharedTeams = await service.getTeamsWhereCardIsShared(cardId);
+    final isShared = sharedTeams.isNotEmpty;
+
+    if (!context.mounted) return;
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('명함 삭제'),
-        content: const Text('이 명함을 삭제하시겠습니까?'),
+        content: Text(
+          isShared
+              ? '이 명함은 ${sharedTeams.length}개 팀에 공유되어 있습니다.\n'
+              '개인 지갑에서만 삭제되며, 팀 공유 명함은 유지됩니다.'
+              : '이 명함을 삭제하시겠습니까?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -305,7 +318,7 @@ class CardDetailScreen extends ConsumerWidget {
     );
 
     if (confirm == true) {
-      await ref.read(supabaseServiceProvider).deleteCollectedCard(cardId);
+      await service.deleteCollectedCard(cardId);
       if (context.mounted) context.pop();
     }
   }

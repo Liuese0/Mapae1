@@ -275,6 +275,12 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                       tooltip: '내 지갑으로 복사',
                       onPressed: () => _copyToWallet(card),
                     ),
+                    if (_canShare)
+                      IconButton(
+                        icon: Icon(Icons.delete_outline, size: 18, color: Colors.red.shade300),
+                        tooltip: '공유 해제',
+                        onPressed: () => _unshareCard(card),
+                      ),
                   ],
                 ),
                 shape: RoundedRectangleBorder(
@@ -301,6 +307,47 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
           ),
       ],
     );
+  }
+
+  Future<void> _unshareCard(Map<String, dynamic> card) async {
+    final name = card['name'] as String? ?? '이름 없음';
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('공유 해제'),
+        content: Text('\'$name\' 명함을 팀 공유에서 제거하시겠습니까?\n개인 지갑의 명함은 유지됩니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('제거'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final sharedCardId = card['id'] as String;
+        await ref.read(supabaseServiceProvider).unshareCardFromTeam(sharedCardId);
+        await _loadCards();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('공유가 해제되었습니다')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('공유 해제 실패: $e')),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _copyToWallet(Map<String, dynamic> card) async {
