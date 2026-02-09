@@ -109,28 +109,38 @@ CREATE TABLE IF NOT EXISTS team_members (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   team_id UUID REFERENCES teams(id) ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-  role TEXT DEFAULT 'member' CHECK (role IN ('owner', 'admin', 'member')),
+  role TEXT DEFAULT 'observer' CHECK (role IN ('owner', 'member', 'observer')),
   user_name TEXT,
   joined_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(team_id, user_id)
 );
 
+-- Helper functions (security definer = bypasses RLS to avoid infinite recursion)
+CREATE OR REPLACE FUNCTION is_team_member(p_team_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_id = p_team_id AND user_id = auth.uid()
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+CREATE OR REPLACE FUNCTION is_team_owner(p_team_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_id = p_team_id AND user_id = auth.uid() AND role = 'owner'
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
 ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Team members can view members" ON team_members FOR SELECT USING (
-  EXISTS (
-    SELECT 1 FROM team_members tm
-    WHERE tm.team_id = team_members.team_id
-    AND tm.user_id = auth.uid()
-  )
-);
-CREATE POLICY "Team admins can manage members" ON team_members FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM team_members tm
-    WHERE tm.team_id = team_members.team_id
-    AND tm.user_id = auth.uid()
-    AND tm.role IN ('owner', 'admin')
-  )
-);
+CREATE POLICY "Team members can view members" ON team_members
+  FOR SELECT USING (is_team_member(team_id));
+CREATE POLICY "Team owner can insert members" ON team_members
+  FOR INSERT WITH CHECK (is_team_owner(team_id));
+CREATE POLICY "Team owner can update members" ON team_members
+  FOR UPDATE USING (is_team_owner(team_id));
+CREATE POLICY "Team owner can delete members" ON team_members
+  FOR DELETE USING (is_team_owner(team_id));
 
 -- Add teams RLS policy that depends on team_members (created above)
 CREATE POLICY "Team members can view team" ON teams FOR SELECT USING (
@@ -142,12 +152,27 @@ CREATE POLICY "Team members can view team" ON teams FOR SELECT USING (
 );
 
 -- ──────────────── Team Shared Cards ────────────────
+-- 공유 시점의 명함 데이터 스냅샷을 저장 (원본 삭제 시에도 유지)
 CREATE TABLE IF NOT EXISTS team_shared_cards (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  card_id UUID REFERENCES collected_cards(id) ON DELETE CASCADE NOT NULL,
+  card_id UUID REFERENCES collected_cards(id) ON DELETE SET NULL,
   team_id UUID REFERENCES teams(id) ON DELETE CASCADE NOT NULL,
   shared_by UUID REFERENCES users(id),
   shared_at TIMESTAMPTZ DEFAULT NOW(),
+  -- 명함 데이터 스냅샷
+  name TEXT,
+  company TEXT,
+  position TEXT,
+  department TEXT,
+  email TEXT,
+  phone TEXT,
+  mobile TEXT,
+  fax TEXT,
+  address TEXT,
+  website TEXT,
+  sns_url TEXT,
+  memo TEXT,
+  image_url TEXT,
   UNIQUE(card_id, team_id)
 );
 
@@ -159,11 +184,12 @@ CREATE POLICY "Team members can view shared cards" ON team_shared_cards FOR SELE
     AND team_members.user_id = auth.uid()
   )
 );
-CREATE POLICY "Team members can share cards" ON team_shared_cards FOR INSERT WITH CHECK (
+CREATE POLICY "Team owner and members can share cards" ON team_shared_cards FOR INSERT WITH CHECK (
   EXISTS (
     SELECT 1 FROM team_members
     WHERE team_members.team_id = team_shared_cards.team_id
     AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
   )
 );
 

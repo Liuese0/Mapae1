@@ -70,7 +70,7 @@ class CollectedCard {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      if (id.isNotEmpty) 'id': id,
       'user_id': userId,
       'name': name,
       'company': company,

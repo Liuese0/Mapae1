@@ -1,4 +1,4 @@
-enum TeamRole { owner, admin, member }
+enum TeamRole { owner, member, observer }
 
 class Team {
   final String id;
@@ -68,7 +68,7 @@ class TeamMember {
       userId: json['user_id'] as String,
       role: TeamRole.values.firstWhere(
             (r) => r.name == json['role'],
-        orElse: () => TeamRole.member,
+        orElse: () => TeamRole.observer,
       ),
       userName: json['user_name'] as String?,
       joinedAt: DateTime.parse(json['joined_at'] as String),

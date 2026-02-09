@@ -267,7 +267,7 @@ class SupabaseService {
     return data.map((json) => TeamMember.fromJson(json)).toList();
   }
 
-  Future<void> addTeamMember(String teamId, String userId, TeamRole role) async {
+  Future<void> addTeamMember(String teamId, String userId, {TeamRole role = TeamRole.observer}) async {
     final profile = await getUserProfile(userId);
     await _client.from(SupabaseConstants.teamMembersTable).insert({
       'team_id': teamId,
@@ -276,6 +276,37 @@ class SupabaseService {
       'user_name': profile?.name ?? '이름 없음',
       'joined_at': DateTime.now().toIso8601String(),
     });
+  }
+
+  /// Owner가 멤버의 역할을 변경 (observer <-> member)
+  Future<void> updateMemberRole(String teamId, String memberId, TeamRole newRole) async {
+    await _client
+        .from(SupabaseConstants.teamMembersTable)
+        .update({'role': newRole.name})
+        .eq('id', memberId);
+  }
+
+  /// Owner 권한 양도
+  Future<void> transferOwnership(String teamId, String currentOwnerId, String newOwnerId) async {
+    // 새 오너로 변경
+    await _client
+        .from(SupabaseConstants.teamMembersTable)
+        .update({'role': TeamRole.owner.name})
+        .eq('team_id', teamId)
+        .eq('user_id', newOwnerId);
+
+    // 기존 오너를 멤버로 변경
+    await _client
+        .from(SupabaseConstants.teamMembersTable)
+        .update({'role': TeamRole.member.name})
+        .eq('team_id', teamId)
+        .eq('user_id', currentOwnerId);
+
+    // teams 테이블의 owner_id도 변경
+    await _client
+        .from(SupabaseConstants.teamsTable)
+        .update({'owner_id': newOwnerId})
+        .eq('id', teamId);
   }
 
   Future<void> deleteTeam(String teamId) async {
@@ -293,25 +324,82 @@ class SupabaseService {
         .eq('user_id', userId);
   }
 
+  /// 명함을 팀에 공유 (스냅샷 저장 — 원본 삭제 시에도 유지)
   Future<void> shareCardToTeam(String cardId, String teamId) async {
+    final userId = currentUser?.id;
+
+    // 원본 명함 데이터를 가져와 스냅샷으로 저장
+    final cardData = await _client
+        .from(SupabaseConstants.collectedCardsTable)
+        .select()
+        .eq('id', cardId)
+        .single();
+
     await _client.from(SupabaseConstants.teamSharedCardsTable).insert({
       'card_id': cardId,
       'team_id': teamId,
+      'shared_by': userId,
       'shared_at': DateTime.now().toIso8601String(),
+      'name': cardData['name'],
+      'company': cardData['company'],
+      'position': cardData['position'],
+      'department': cardData['department'],
+      'email': cardData['email'],
+      'phone': cardData['phone'],
+      'mobile': cardData['mobile'],
+      'fax': cardData['fax'],
+      'address': cardData['address'],
+      'website': cardData['website'],
+      'sns_url': cardData['sns_url'],
+      'memo': cardData['memo'],
+      'image_url': cardData['image_url'],
     });
   }
 
-  Future<List<CollectedCard>> getTeamSharedCards(String teamId) async {
+  Future<void> unshareCardFromTeam(String sharedCardId) async {
+    await _client
+        .from(SupabaseConstants.teamSharedCardsTable)
+        .delete()
+        .eq('id', sharedCardId);
+  }
+
+  /// 팀 공유 명함 목록 (스냅샷 데이터에서 직접 읽기)
+  Future<List<Map<String, dynamic>>> getTeamSharedCards(String teamId) async {
     final data = await _client
         .from(SupabaseConstants.teamSharedCardsTable)
-        .select('card_id, collected_cards(*)')
-        .eq('team_id', teamId);
+        .select()
+        .eq('team_id', teamId)
+        .order('shared_at', ascending: false);
+    return data;
+  }
 
-    return data
-        .where((item) => item['collected_cards'] != null)
-        .map((item) =>
-        CollectedCard.fromJson(item['collected_cards'] as Map<String, dynamic>))
-        .toList();
+  /// 공유된 명함을 내 지갑으로 복사
+  Future<CollectedCard> copySharedCardToWallet(Map<String, dynamic> sharedCard) async {
+    final userId = currentUser?.id;
+    if (userId == null) throw Exception('로그인이 필요합니다.');
+
+    final newCard = CollectedCard(
+      id: '',
+      userId: userId,
+      name: sharedCard['name'] as String?,
+      company: sharedCard['company'] as String?,
+      position: sharedCard['position'] as String?,
+      department: sharedCard['department'] as String?,
+      email: sharedCard['email'] as String?,
+      phone: sharedCard['phone'] as String?,
+      mobile: sharedCard['mobile'] as String?,
+      fax: sharedCard['fax'] as String?,
+      address: sharedCard['address'] as String?,
+      website: sharedCard['website'] as String?,
+      snsUrl: sharedCard['sns_url'] as String?,
+      memo: sharedCard['memo'] as String?,
+      imageUrl: sharedCard['image_url'] as String?,
+      sourceCardId: sharedCard['card_id'] as String?,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    return addCollectedCard(newCard);
   }
 
   // ──────────────── Context Tags ────────────────
