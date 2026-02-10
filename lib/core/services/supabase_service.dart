@@ -8,6 +8,7 @@ import '../../features/shared/models/collected_card.dart';
 import '../../features/shared/models/category.dart';
 import '../../features/shared/models/team.dart';
 import '../../features/shared/models/context_tag.dart';
+import '../../features/shared/models/team_invitation.dart';
 
 class SupabaseService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -409,6 +410,114 @@ class SupabaseService {
     );
 
     return addCollectedCard(newCard);
+  }
+
+  // ──────────────── Team Invitations ────────────────
+
+  /// 이메일로 유저 검색
+  Future<List<AppUser>> searchUsersByEmail(String email) async {
+    final data = await _client
+        .from(SupabaseConstants.usersTable)
+        .select()
+        .ilike('email', '%$email%')
+        .limit(10);
+    return data.map((json) => AppUser.fromJson(json)).toList();
+  }
+
+  /// 팀 초대 보내기
+  Future<TeamInvitation> sendTeamInvitation({
+    required String teamId,
+    required String inviteeId,
+  }) async {
+    final userId = currentUser?.id;
+    if (userId == null) throw Exception('로그인이 필요합니다.');
+
+    final data = await _client
+        .from(SupabaseConstants.teamInvitationsTable)
+        .insert({
+      'team_id': teamId,
+      'inviter_id': userId,
+      'invitee_id': inviteeId,
+      'status': 'pending',
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    })
+        .select('*, teams:team_id(name), inviter:inviter_id(name), invitee:invitee_id(name, email)')
+        .single();
+    return TeamInvitation.fromJson(data);
+  }
+
+  /// 내가 받은 대기 중인 초대 목록
+  Future<List<TeamInvitation>> getReceivedInvitations() async {
+    final userId = currentUser?.id;
+    if (userId == null) return [];
+
+    final data = await _client
+        .from(SupabaseConstants.teamInvitationsTable)
+        .select('*, teams:team_id(name), inviter:inviter_id(name)')
+        .eq('invitee_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', ascending: false);
+    return data.map((json) => TeamInvitation.fromJson(json)).toList();
+  }
+
+  /// 대기 중인 초대 수
+  Future<int> getPendingInvitationCount() async {
+    final userId = currentUser?.id;
+    if (userId == null) return 0;
+
+    final result = await _client
+        .from(SupabaseConstants.teamInvitationsTable)
+        .select()
+        .eq('invitee_id', userId)
+        .eq('status', 'pending')
+        .count(CountOption.exact);
+    return result.count;
+  }
+
+  /// 초대 수락
+  Future<void> acceptInvitation(TeamInvitation invitation) async {
+    // 초대 상태를 accepted로 변경
+    await _client
+        .from(SupabaseConstants.teamInvitationsTable)
+        .update({
+      'status': 'accepted',
+      'updated_at': DateTime.now().toIso8601String(),
+    })
+        .eq('id', invitation.id);
+
+    // 팀 멤버로 추가
+    await addTeamMember(invitation.teamId, invitation.inviteeId);
+  }
+
+  /// 초대 거절
+  Future<void> declineInvitation(String invitationId) async {
+    await _client
+        .from(SupabaseConstants.teamInvitationsTable)
+        .update({
+      'status': 'declined',
+      'updated_at': DateTime.now().toIso8601String(),
+    })
+        .eq('id', invitationId);
+  }
+
+  /// 팀의 대기 중인 초대 목록 (초대한 사람이 확인)
+  Future<List<TeamInvitation>> getTeamPendingInvitations(String teamId) async {
+    final data = await _client
+        .from(SupabaseConstants.teamInvitationsTable)
+        .select('*, invitee:invitee_id(name, email)')
+        .eq('team_id', teamId)
+        .eq('status', 'pending')
+        .order('created_at', ascending: false);
+    return data.map((json) => TeamInvitation.fromJson(json)).toList();
+  }
+
+  /// 초대 취소 (삭제)
+  Future<void> cancelInvitation(String invitationId) async {
+    await _client
+        .from(SupabaseConstants.teamInvitationsTable)
+        .delete()
+        .eq('id', invitationId);
   }
 
   // ──────────────── Context Tags ────────────────

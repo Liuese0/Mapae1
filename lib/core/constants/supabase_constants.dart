@@ -11,6 +11,7 @@ class SupabaseConstants {
   static const String teamSharedCardsTable = 'team_shared_cards';
   static const String contextTagsTable = 'context_tags';
   static const String tagTemplatesTable = 'tag_templates';
+  static const String teamInvitationsTable = 'team_invitations';
   static const String tagTemplateFieldsTable = 'tag_template_fields';
   static const String tagValuesTable = 'tag_values';
 

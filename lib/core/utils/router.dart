@@ -11,6 +11,7 @@ import '../../features/card_detail/screens/card_edit_screen.dart';
 import '../../features/management/screens/my_card_edit_screen.dart';
 import '../../features/management/screens/team_management_screen.dart';
 import '../../features/management/screens/tag_template_screen.dart';
+import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/shared/widgets/main_shell.dart';
 import '../services/auto_login_service.dart';
 
@@ -100,6 +101,10 @@ class AppRouter {
       GoRoute(
         path: '/tag-templates',
         builder: (context, state) => const TagTemplateScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
   );

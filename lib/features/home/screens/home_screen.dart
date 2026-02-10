@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/services/nfc_service.dart';
 import '../../shared/models/business_card.dart';
+import '../../shared/widgets/notification_bell.dart';
 import '../widgets/card_3d_widget.dart';
 import '../widgets/share_bottom_sheet.dart';
 
@@ -54,12 +56,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           children: [
             const SizedBox(height: 16),
-            // App title
-            Text(
-              'NameCard',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
+            // App title + notification bell
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(width: 40), // balance for bell icon
+                  Expanded(
+                    child: Text(
+                      'NameCard',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                  const NotificationBell(),
+                ],
               ),
             ),
             const Spacer(flex: 2),

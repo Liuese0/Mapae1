@@ -5,6 +5,7 @@ import '../../../core/providers/app_providers.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../shared/models/team.dart';
 import '../../shared/models/collected_card.dart';
+import '../../shared/widgets/invite_member_dialog.dart';
 
 class TeamManagementScreen extends ConsumerStatefulWidget {
   final String teamId;
@@ -603,9 +604,7 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
             child: SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: implement invite member
-                },
+                onPressed: () => _showInviteDialog(),
                 icon: const Icon(Icons.person_add_outlined, size: 18),
                 label: const Text('멤버 초대'),
               ),
@@ -614,6 +613,20 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
         ),
       ],
     );
+  }
+
+  Future<void> _showInviteDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => InviteMemberDialog(
+        teamId: widget.teamId,
+        currentMembers: _members ?? [],
+      ),
+    );
+    if (result == true) {
+      await _loadMembers();
+      widget.onRefresh();
+    }
   }
 
   String _roleDisplayName(TeamRole role) {

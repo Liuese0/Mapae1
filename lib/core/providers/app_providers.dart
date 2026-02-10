@@ -6,6 +6,7 @@ import '../services/ocr_service.dart';
 import '../services/nfc_service.dart';
 import '../services/auto_login_service.dart';
 import '../../features/shared/models/app_user.dart';
+import '../../features/shared/models/team_invitation.dart';
 
 // ──────────────── Services ────────────────
 
@@ -100,4 +101,18 @@ final themeModeProvider = StateProvider<ThemeMode>((ref) {
 
 final localeProvider = StateProvider<Locale>((ref) {
   return const Locale('ko');
+});
+
+// ──────────────── Invitations ────────────────
+
+final pendingInvitationsProvider =
+FutureProvider.autoDispose<List<TeamInvitation>>((ref) async {
+  final service = ref.read(supabaseServiceProvider);
+  return service.getReceivedInvitations();
+});
+
+final pendingInvitationCountProvider =
+FutureProvider.autoDispose<int>((ref) async {
+  final service = ref.read(supabaseServiceProvider);
+  return service.getPendingInvitationCount();
 });

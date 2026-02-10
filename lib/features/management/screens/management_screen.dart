@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/team.dart';
+import '../../shared/widgets/notification_bell.dart';
 
 final myCardsManageProvider =
 FutureProvider.autoDispose<List<BusinessCard>>((ref) async {
@@ -37,11 +38,17 @@ class ManagementScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                '관리',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '관리',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const NotificationBell(),
+                ],
               ),
             ),
             const SizedBox(height: 24),
