@@ -81,7 +81,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 // Logo / Title
                 Text(
-                  'NameCard',
+                  'Mapae',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.w700,

@@ -12,7 +12,7 @@ class AppConstants {
   static const String ocrApiUrl = 'https://api.ocr.space/parse/image';
 
   // App
-  static const String appName = 'NameCard';
+  static const String appName = 'Mapae';
   static const int maxMyCards = 10;
   static const int maxCategories = 50;
 

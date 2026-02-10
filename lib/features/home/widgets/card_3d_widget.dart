@@ -151,7 +151,7 @@ class _Card3DWidgetState extends State<Card3DWidget>
           const Spacer(),
           // Name
           Text(
-            widget.card.name ?? 'NameCard',
+            widget.card.name ?? 'Mapae',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,

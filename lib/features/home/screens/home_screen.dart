@@ -65,7 +65,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(width: 40), // balance for bell icon
                   Expanded(
                     child: Text(
-                      'NameCard',
+                      'Mapae',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
