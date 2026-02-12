@@ -414,14 +414,15 @@ class SupabaseService {
 
   // ──────────────── Team Invitations ────────────────
 
-  /// 이메일로 유저 검색
+  /// 이메일로 유저 검색 (RPC 사용 - users 테이블 RLS 우회)
   Future<List<AppUser>> searchUsersByEmail(String email) async {
-    final data = await _client
-        .from(SupabaseConstants.usersTable)
-        .select()
-        .ilike('email', '%$email%')
-        .limit(10);
-    return data.map((json) => AppUser.fromJson(json)).toList();
+    final data = await _client.rpc(
+      'search_users_by_email',
+      params: {'search_query': email},
+    );
+    return (data as List)
+        .map((json) => AppUser.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   /// 팀 초대 보내기

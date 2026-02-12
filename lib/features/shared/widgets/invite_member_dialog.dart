@@ -189,9 +189,11 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
               ),
             ],
             const SizedBox(height: 8),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 300),
-              child: _buildSearchResults(theme),
+            Flexible(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 300),
+                child: _buildSearchResults(theme),
+              ),
             ),
             const SizedBox(height: 8),
             Align(
