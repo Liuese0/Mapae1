@@ -64,10 +64,23 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
           .where((u) => u.id != currentUserId && !memberIds.contains(u.id))
           .toList();
 
+      // 검색 결과는 있지만 필터링으로 제외된 경우 안내 메시지 표시
+      String? filterMessage;
+      if (results.isNotEmpty && filtered.isEmpty) {
+        final hasCurrentUser = results.any((u) => u.id == currentUserId);
+        final hasExistingMember = results.any((u) => memberIds.contains(u.id));
+        if (hasCurrentUser && results.length == 1) {
+          filterMessage = '자기 자신은 초대할 수 없습니다';
+        } else if (hasExistingMember) {
+          filterMessage = '이미 팀에 소속된 멤버입니다';
+        }
+      }
+
       if (mounted) {
         setState(() {
           _searchResults = filtered;
           _searching = false;
+          _errorMessage = filterMessage;
         });
       }
     } catch (e) {
