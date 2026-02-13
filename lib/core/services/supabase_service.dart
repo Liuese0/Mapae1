@@ -9,6 +9,7 @@ import '../../features/shared/models/category.dart';
 import '../../features/shared/models/team.dart';
 import '../../features/shared/models/context_tag.dart';
 import '../../features/shared/models/team_invitation.dart';
+import '../../features/shared/models/crm_contact.dart';
 
 class SupabaseService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -576,6 +577,140 @@ class SupabaseService {
         .from(SupabaseConstants.contextTagsTable)
         .delete()
         .eq('id', tagId);
+  }
+
+  // ──────────────── CRM ────────────────
+
+  /// CRM 연락처 목록 조회
+  Future<List<CrmContact>> getCrmContacts(String teamId, {CrmStatus? status}) async {
+    var query = _client
+        .from(SupabaseConstants.crmContactsTable)
+        .select()
+        .eq('team_id', teamId);
+
+    if (status != null) {
+      query = query.eq('status', status.name);
+    }
+
+    final data = await query.order('updated_at', ascending: false);
+    return data.map((json) => CrmContact.fromJson(json)).toList();
+  }
+
+  /// CRM 연락처 생성
+  Future<CrmContact> createCrmContact(CrmContact contact) async {
+    final data = await _client
+        .from(SupabaseConstants.crmContactsTable)
+        .insert(contact.toJson())
+        .select()
+        .single();
+    return CrmContact.fromJson(data);
+  }
+
+  /// CRM 연락처 수정
+  Future<CrmContact> updateCrmContact(CrmContact contact) async {
+    final data = await _client
+        .from(SupabaseConstants.crmContactsTable)
+        .update({
+      ...contact.toJson(),
+      'updated_at': DateTime.now().toIso8601String(),
+    })
+        .eq('id', contact.id)
+        .select()
+        .single();
+    return CrmContact.fromJson(data);
+  }
+
+  /// CRM 연락처 상태 변경
+  Future<void> updateCrmContactStatus(String contactId, CrmStatus status) async {
+    await _client
+        .from(SupabaseConstants.crmContactsTable)
+        .update({
+      'status': status.name,
+      'updated_at': DateTime.now().toIso8601String(),
+    })
+        .eq('id', contactId);
+  }
+
+  /// CRM 연락처 삭제
+  Future<void> deleteCrmContact(String contactId) async {
+    await _client
+        .from(SupabaseConstants.crmContactsTable)
+        .delete()
+        .eq('id', contactId);
+  }
+
+  /// 공유 명함에서 CRM 연락처로 가져오기
+  Future<CrmContact> importSharedCardToCrm(Map<String, dynamic> sharedCard, String teamId) async {
+    final userId = currentUser?.id;
+    if (userId == null) throw Exception('로그인이 필요합니다.');
+
+    final contact = CrmContact(
+      id: '',
+      teamId: teamId,
+      sharedCardId: sharedCard['id'] as String?,
+      createdBy: userId,
+      name: sharedCard['name'] as String?,
+      company: sharedCard['company'] as String?,
+      position: sharedCard['position'] as String?,
+      department: sharedCard['department'] as String?,
+      email: sharedCard['email'] as String?,
+      phone: sharedCard['phone'] as String?,
+      mobile: sharedCard['mobile'] as String?,
+      status: CrmStatus.lead,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    return createCrmContact(contact);
+  }
+
+  /// CRM 노트 목록 조회
+  Future<List<CrmNote>> getCrmNotes(String contactId) async {
+    final data = await _client
+        .from(SupabaseConstants.crmNotesTable)
+        .select()
+        .eq('contact_id', contactId)
+        .order('created_at', ascending: false);
+    return data.map((json) => CrmNote.fromJson(json)).toList();
+  }
+
+  /// CRM 노트 추가
+  Future<CrmNote> addCrmNote(CrmNote note) async {
+    final data = await _client
+        .from(SupabaseConstants.crmNotesTable)
+        .insert(note.toJson())
+        .select()
+        .single();
+    return CrmNote.fromJson(data);
+  }
+
+  /// CRM 노트 삭제
+  Future<void> deleteCrmNote(String noteId) async {
+    await _client
+        .from(SupabaseConstants.crmNotesTable)
+        .delete()
+        .eq('id', noteId);
+  }
+
+  /// CRM 파이프라인 통계
+  Future<Map<CrmStatus, int>> getCrmPipelineStats(String teamId) async {
+    final data = await _client
+        .from(SupabaseConstants.crmContactsTable)
+        .select('status')
+        .eq('team_id', teamId);
+
+    final stats = <CrmStatus, int>{};
+    for (final status in CrmStatus.values) {
+      stats[status] = 0;
+    }
+    for (final row in data) {
+      final status = CrmStatus.values.firstWhere(
+            (s) => s.name == row['status'],
+        orElse: () => CrmStatus.lead,
+      );
+      stats[status] = (stats[status] ?? 0) + 1;
+    }
+    return stats;
   }
 
   // ──────────────── Storage ────────────────
