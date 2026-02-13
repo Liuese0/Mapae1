@@ -787,6 +787,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
   List<CrmContact> _contacts = [];
   Map<CrmStatus, int> _stats = {};
   bool _loading = true;
+  bool _tableNotFound = false;
   CrmStatus? _filterStatus;
   String _searchQuery = '';
   bool _showPipeline = true;
@@ -799,15 +800,34 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
 
   Future<void> _loadData() async {
     setState(() => _loading = true);
-    final service = ref.read(supabaseServiceProvider);
-    final contacts = await service.getCrmContacts(widget.teamId, status: _filterStatus);
-    final stats = await service.getCrmPipelineStats(widget.teamId);
-    if (mounted) {
-      setState(() {
-        _contacts = contacts;
-        _stats = stats;
-        _loading = false;
-      });
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      final contacts = await service.getCrmContacts(widget.teamId, status: _filterStatus);
+      final stats = await service.getCrmPipelineStats(widget.teamId);
+      if (mounted) {
+        setState(() {
+          _contacts = contacts;
+          _stats = stats;
+          _loading = false;
+          _tableNotFound = false;
+        });
+      }
+    } catch (e) {
+      if (e.toString().contains('PGRST205') || e.toString().contains('could not find')) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _tableNotFound = true;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() => _loading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('로드 실패: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -828,6 +848,10 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
 
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_tableNotFound) {
+      return _buildSetupScreen(theme);
     }
 
     return Column(
@@ -931,9 +955,18 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                   contact: contact,
                   onTap: () => _showContactDetail(contact),
                   onStatusChanged: (status) async {
+                    // 즉시 UI 반영 (낙관적 업데이트)
+                    setState(() {
+                      final idx = _contacts.indexWhere((c) => c.id == contact.id);
+                      if (idx != -1) {
+                        _contacts[idx] = _contacts[idx].copyWith(status: status);
+                        // 통계 업데이트
+                        _stats[contact.status] = (_stats[contact.status] ?? 1) - 1;
+                        _stats[status] = (_stats[status] ?? 0) + 1;
+                      }
+                    });
                     await ref.read(supabaseServiceProvider)
                         .updateCrmContactStatus(contact.id, status);
-                    await _loadData();
                   },
                 );
               },
@@ -1076,6 +1109,46 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
     );
   }
 
+  Widget _buildSetupScreen(ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.construction_outlined,
+              size: 48,
+              color: theme.colorScheme.primary.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'CRM 테이블 설정 필요',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Supabase SQL Editor에서\nmigration_crm.sql을 실행해 주세요.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
+              ),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: _loadData,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('다시 시도'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Color _statusColor(CrmStatus status) {
     switch (status) {
       case CrmStatus.lead:
@@ -1099,10 +1172,9 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
         builder: (_) => _CrmContactDetailScreen(
           contact: contact,
           teamId: widget.teamId,
-          onUpdated: _loadData,
         ),
       ),
-    );
+    ).then((_) => _loadData());
   }
 
   void _showAddContactDialog() {
@@ -1429,12 +1501,10 @@ class _CrmContactCard extends StatelessWidget {
 class _CrmContactDetailScreen extends ConsumerStatefulWidget {
   final CrmContact contact;
   final String teamId;
-  final VoidCallback onUpdated;
 
   const _CrmContactDetailScreen({
     required this.contact,
     required this.teamId,
-    required this.onUpdated,
   });
 
   @override
@@ -1514,10 +1584,7 @@ class _CrmContactDetailScreenState
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, size: 20),
-          onPressed: () {
-            widget.onUpdated();
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: Text(_contact.name ?? 'CRM 연락처'),
         actions: [
@@ -1981,7 +2048,6 @@ class _CrmContactDetailScreenState
 
     if (confirm == true) {
       await ref.read(supabaseServiceProvider).deleteCrmContact(_contact.id);
-      widget.onUpdated();
       if (mounted) Navigator.pop(context);
     }
   }
