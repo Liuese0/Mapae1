@@ -713,6 +713,117 @@ class SupabaseService {
     return stats;
   }
 
+
+
+  // ──────────────── Quick Share ────────────────
+
+  Future<void> upsertQuickShareSession(BusinessCard card) async {
+    final user = currentUser;
+    if (user == null) throw Exception('로그인이 필요합니다.');
+
+    final profile = await getUserProfile(user.id);
+    await _client.from(SupabaseConstants.quickShareSessionsTable).upsert({
+      'user_id': user.id,
+      'card_id': card.id,
+      'name': profile?.name ?? card.name,
+      'company': card.company,
+      'position': card.position,
+      'updated_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<void> removeQuickShareSession() async {
+    final userId = currentUser?.id;
+    if (userId == null) return;
+
+    await _client
+        .from(SupabaseConstants.quickShareSessionsTable)
+        .delete()
+        .eq('user_id', userId);
+  }
+
+  Future<List<Map<String, dynamic>>> getActiveQuickSharePeers() async {
+    final userId = currentUser?.id;
+    if (userId == null) return [];
+
+    final threshold = DateTime.now().subtract(const Duration(seconds: 10)).toIso8601String();
+    final data = await _client
+        .from(SupabaseConstants.quickShareSessionsTable)
+        .select()
+        .neq('user_id', userId)
+        .gte('updated_at', threshold)
+        .order('updated_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  Future<String> createQuickShareExchangeRequest({
+    required String toUserId,
+    required BusinessCard fromCard,
+  }) async {
+    final userId = currentUser?.id;
+    if (userId == null) throw Exception('로그인이 필요합니다.');
+
+    final data = await _client.from(SupabaseConstants.quickShareExchangesTable).insert({
+      'from_user_id': userId,
+      'to_user_id': toUserId,
+      'status': 'requested',
+      'from_card': fromCard.toJson(),
+      'updated_at': DateTime.now().toIso8601String(),
+    }).select('id').single();
+
+    return data['id'] as String;
+  }
+
+  Future<List<Map<String, dynamic>>> getIncomingQuickShareRequests() async {
+    final userId = currentUser?.id;
+    if (userId == null) return [];
+
+    final data = await _client
+        .from(SupabaseConstants.quickShareExchangesTable)
+        .select()
+        .eq('to_user_id', userId)
+        .eq('status', 'requested')
+        .order('updated_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  Future<void> respondQuickShareExchange({
+    required String exchangeId,
+    required BusinessCard toCard,
+  }) async {
+    await _client
+        .from(SupabaseConstants.quickShareExchangesTable)
+        .update({
+          'status': 'responded',
+          'to_card': toCard.toJson(),
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', exchangeId);
+  }
+
+  Future<Map<String, dynamic>?> getQuickShareExchange(String exchangeId) async {
+    final data = await _client
+        .from(SupabaseConstants.quickShareExchangesTable)
+        .select()
+        .eq('id', exchangeId)
+        .maybeSingle();
+
+    if (data == null) return null;
+    return Map<String, dynamic>.from(data);
+  }
+
+  Future<void> completeQuickShareExchange(String exchangeId) async {
+    await _client
+        .from(SupabaseConstants.quickShareExchangesTable)
+        .update({
+          'status': 'completed',
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', exchangeId);
+  }
+
   // ──────────────── Storage ────────────────
 
   Future<String> uploadCardImage(String fileName, Uint8List bytes) async {
