@@ -458,6 +458,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
         const SizedBox(height: 12),
         Expanded(
           child: ListView.separated(
+            primary: false,
             itemCount: _nearbyPeers.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {

@@ -32,6 +32,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     viewportFraction: 0.85,
   );
   int _currentPage = 0;
+  bool _shareSheetOpen = false;
 
   late AnimationController _entranceController;
   late Animation<double> _titleFade;
@@ -100,14 +101,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.dispose();
   }
 
-  void _showShareSheet(BusinessCard card) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      builder: (context) => ShareBottomSheet(card: card),
-    );
+  Future<void> _showShareSheet(BusinessCard card) async {
+    if (_shareSheetOpen) return;
+    _shareSheetOpen = true;
+
+    try {
+      await showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (context) => ShareBottomSheet(card: card),
+      );
+    } finally {
+      _shareSheetOpen = false;
+    }
   }
 
   @override
