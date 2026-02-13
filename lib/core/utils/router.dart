@@ -21,12 +21,9 @@ class AppRouter {
 
   static GoRouter get router => _router;
 
-  /// 자동 로그인 여부에 따라 초기 경로를 결정
   static String get _initialLocation {
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
-      // 세션이 존재하면 자동 로그인 설정과 관계없이 홈으로
-      // (세션은 자동 로그인이 켜져 있을 때만 유지됨)
       return '/home';
     }
     return '/login';
@@ -36,14 +33,38 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: _initialLocation,
     routes: [
-      // Auth routes
+      // Auth routes with fade transition
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const LoginScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
       ),
       GoRoute(
         path: '/signup',
-        builder: (context, state) => const SignUpScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const SignUpScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide = Tween(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ));
+            return SlideTransition(
+              position: slide,
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 350),
+        ),
       ),
 
       // Main app shell with bottom navigation
@@ -72,39 +93,133 @@ class AppRouter {
         ],
       ),
 
-      // Detail routes (outside shell for full screen)
+      // Detail routes with slide-up transition
       GoRoute(
         path: '/card/:id',
-        builder: (context, state) => CardDetailScreen(
-          cardId: state.pathParameters['id']!,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: CardDetailScreen(
+            cardId: state.pathParameters['id']!,
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide = Tween(
+              begin: const Offset(0.0, 0.05),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ));
+            return SlideTransition(
+              position: slide,
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 300),
         ),
       ),
       GoRoute(
         path: '/card/:id/edit',
-        builder: (context, state) => CardEditScreen(
-          cardId: state.pathParameters['id']!,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: CardEditScreen(
+            cardId: state.pathParameters['id']!,
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide = Tween(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ));
+            return SlideTransition(position: slide, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
         ),
       ),
       GoRoute(
         path: '/my-card/edit',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final cardId = state.uri.queryParameters['id'];
-          return MyCardEditScreen(cardId: cardId);
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: MyCardEditScreen(cardId: cardId),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              final slide = Tween(
+                begin: const Offset(0.0, 0.05),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              ));
+              return SlideTransition(
+                position: slide,
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 300),
+          );
         },
       ),
       GoRoute(
         path: '/team/:id',
-        builder: (context, state) => TeamManagementScreen(
-          teamId: state.pathParameters['id']!,
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: TeamManagementScreen(
+            teamId: state.pathParameters['id']!,
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide = Tween(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ));
+            return SlideTransition(position: slide, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
         ),
       ),
       GoRoute(
         path: '/tag-templates',
-        builder: (context, state) => const TagTemplateScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const TagTemplateScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide = Tween(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ));
+            return SlideTransition(position: slide, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
       ),
       GoRoute(
         path: '/notifications',
-        builder: (context, state) => const NotificationsScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const NotificationsScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide = Tween(
+              begin: const Offset(0.0, -0.05),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ));
+            return SlideTransition(
+              position: slide,
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
       ),
     ],
   );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 class MainShell extends StatelessWidget {
@@ -33,7 +34,19 @@ class MainShell extends StatelessWidget {
     final currentIdx = _currentIndex(context);
 
     return Scaffold(
-      body: child,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+        child: KeyedSubtree(
+          key: ValueKey(currentIdx),
+          child: child,
+        ),
+      ),
       extendBody: true,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -83,7 +96,6 @@ class MainShell extends StatelessWidget {
   }
 
   String _getLabel(BuildContext context, int index) {
-    // Fallback labels; in production, use AppLocalizations
     switch (index) {
       case 0:
         return '지갑';
@@ -97,7 +109,7 @@ class MainShell extends StatelessWidget {
   }
 }
 
-class _NavItem extends StatelessWidget {
+class _NavItem extends StatefulWidget {
   final IconData icon;
   final IconData activeIcon;
   final String label;
@@ -113,35 +125,96 @@ class _NavItem extends StatelessWidget {
   });
 
   @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin {
+  late AnimationController _tapController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _tapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+      reverseDuration: const Duration(milliseconds: 200),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.85).animate(
+      CurvedAnimation(parent: _tapController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _tapController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = isActive
-        ? theme.colorScheme.primary
-        : theme.colorScheme.onSurface.withOpacity(0.4);
 
     return GestureDetector(
-      onTap: onTap,
+      onTapDown: (_) => _tapController.forward(),
+      onTapUp: (_) {
+        _tapController.reverse();
+        HapticFeedback.selectionClick();
+        widget.onTap();
+      },
+      onTapCancel: () => _tapController.reverse(),
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              color: color,
-              size: 24,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: color,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, animation) {
+                  return ScaleTransition(
+                    scale: animation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: Icon(
+                  widget.isActive ? widget.activeIcon : widget.icon,
+                  key: ValueKey(widget.isActive),
+                  color: widget.isActive
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withOpacity(0.4),
+                  size: 24,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontSize: 11,
+                  fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.w400,
+                  color: widget.isActive
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withOpacity(0.4),
+                ),
+                child: Text(widget.label),
+              ),
+              // Active indicator dot
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                margin: const EdgeInsets.only(top: 3),
+                width: widget.isActive ? 4 : 0,
+                height: widget.isActive ? 4 : 0,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

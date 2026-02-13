@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/utils/responsive.dart';
+import '../../../core/utils/animated_list_item.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/team.dart';
 import '../../shared/widgets/notification_bell.dart';
@@ -21,14 +23,52 @@ final myTeamsProvider = FutureProvider.autoDispose<List<Team>>((ref) async {
   return service.getUserTeams(user.id);
 });
 
-class ManagementScreen extends ConsumerWidget {
+class ManagementScreen extends ConsumerStatefulWidget {
   const ManagementScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ManagementScreen> createState() => _ManagementScreenState();
+}
+
+class _ManagementScreenState extends ConsumerState<ManagementScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _entranceController;
+  late Animation<double> _headerFade;
+  late Animation<Offset> _headerSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _headerFade = CurvedAnimation(
+      parent: _entranceController,
+      curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+    );
+    _headerSlide = Tween<Offset>(
+      begin: const Offset(-0.1, 0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _entranceController,
+      curve: const Interval(0.0, 0.5, curve: Curves.easeOutCubic),
+    ));
+    _entranceController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final myCards = ref.watch(myCardsManageProvider);
     final myTeams = ref.watch(myTeamsProvider);
+    final hPadding = Responsive.horizontalPadding(context);
 
     return Scaffold(
       body: SafeArea(
@@ -36,55 +76,74 @@ class ManagementScreen extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 120),
           children: [
             const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '관리',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+            SlideTransition(
+              position: _headerSlide,
+              child: FadeTransition(
+                opacity: _headerFade,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: hPadding),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '관리',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 24 * Responsive.fontScale(context),
+                        ),
+                      ),
+                      const NotificationBell(),
+                    ],
                   ),
-                  const NotificationBell(),
-                ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
 
-            // ─── My Cards Section ───
-            _SectionHeader(
-              title: '내 명함',
-              actionLabel: '추가',
-              onAction: () => context.push('/my-card/edit'),
+            // My Cards Section
+            AnimatedListItem(
+              index: 0,
+              child: _SectionHeader(
+                title: '내 명함',
+                actionLabel: '추가',
+                onAction: () => context.push('/my-card/edit'),
+                padding: hPadding,
+              ),
             ),
             const SizedBox(height: 8),
             myCards.when(
               data: (cards) {
                 if (cards.isEmpty) {
-                  return _EmptyBox(
-                    icon: Icons.credit_card_outlined,
-                    message: '등록된 내 명함이 없습니다',
-                    actionLabel: '명함 추가',
-                    onAction: () => context.push('/my-card/edit'),
+                  return AnimatedListItem(
+                    index: 1,
+                    child: _EmptyBox(
+                      icon: Icons.credit_card_outlined,
+                      message: '등록된 내 명함이 없습니다',
+                      actionLabel: '명함 추가',
+                      onAction: () => context.push('/my-card/edit'),
+                      padding: hPadding,
+                    ),
                   );
                 }
                 return Column(
-                  children: cards.map((card) {
-                    return _MyCardTile(
-                      card: card,
-                      onTap: () =>
-                          context.push('/my-card/edit?id=${card.id}'),
-                      onDelete: () async {
-                        final confirm = await _showDeleteDialog(context);
-                        if (confirm == true) {
-                          await ref
-                              .read(supabaseServiceProvider)
-                              .deleteMyCard(card.id);
-                          ref.invalidate(myCardsManageProvider);
-                        }
-                      },
+                  children: cards.asMap().entries.map((entry) {
+                    return AnimatedListItem(
+                      index: entry.key + 1,
+                      child: _MyCardTile(
+                        card: entry.value,
+                        onTap: () => context
+                            .push('/my-card/edit?id=${entry.value.id}'),
+                        onDelete: () async {
+                          final confirm = await _showDeleteDialog(context);
+                          if (confirm == true) {
+                            await ref
+                                .read(supabaseServiceProvider)
+                                .deleteMyCard(entry.value.id);
+                            ref.invalidate(myCardsManageProvider);
+                          }
+                        },
+                        padding: hPadding,
+                      ),
                     );
                   }).toList(),
                 );
@@ -101,28 +160,40 @@ class ManagementScreen extends ConsumerWidget {
 
             const SizedBox(height: 32),
 
-            // ─── Team Section ───
-            _SectionHeader(
-              title: '팀',
-              actionLabel: '만들기',
-              onAction: () => _showCreateTeamDialog(context, ref),
+            // Team Section
+            AnimatedListItem(
+              index: 3,
+              child: _SectionHeader(
+                title: '팀',
+                actionLabel: '만들기',
+                onAction: () => _showCreateTeamDialog(context, ref),
+                padding: hPadding,
+              ),
             ),
             const SizedBox(height: 8),
             myTeams.when(
               data: (teams) {
                 if (teams.isEmpty) {
-                  return _EmptyBox(
-                    icon: Icons.group_outlined,
-                    message: '소속된 팀이 없습니다',
-                    actionLabel: '팀 만들기',
-                    onAction: () => _showCreateTeamDialog(context, ref),
+                  return AnimatedListItem(
+                    index: 4,
+                    child: _EmptyBox(
+                      icon: Icons.group_outlined,
+                      message: '소속된 팀이 없습니다',
+                      actionLabel: '팀 만들기',
+                      onAction: () => _showCreateTeamDialog(context, ref),
+                      padding: hPadding,
+                    ),
                   );
                 }
                 return Column(
-                  children: teams.map((team) {
-                    return _TeamTile(
-                      team: team,
-                      onTap: () => context.push('/team/${team.id}'),
+                  children: teams.asMap().entries.map((entry) {
+                    return AnimatedListItem(
+                      index: entry.key + 4,
+                      child: _TeamTile(
+                        team: entry.value,
+                        onTap: () => context.push('/team/${entry.value.id}'),
+                        padding: hPadding,
+                      ),
                     );
                   }).toList(),
                 );
@@ -139,46 +210,53 @@ class ManagementScreen extends ConsumerWidget {
 
             const SizedBox(height: 32),
 
-            // ─── Tag Templates ───
-            _SectionHeader(
-              title: '상황 태그 템플릿',
-              actionLabel: '관리',
-              onAction: () => context.push('/tag-templates'),
+            // Tag Templates
+            AnimatedListItem(
+              index: 6,
+              child: _SectionHeader(
+                title: '상황 태그 템플릿',
+                actionLabel: '관리',
+                onAction: () => context.push('/tag-templates'),
+                padding: hPadding,
+              ),
             ),
             const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: InkWell(
-                onTap: () => context.push('/tag-templates'),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: theme.colorScheme.outline),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.label_outlined,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '명함에 만난 상황, 특이사항 등을 기록할 태그 형식을 관리합니다',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color:
-                            theme.colorScheme.onSurface.withOpacity(0.6),
+            AnimatedListItem(
+              index: 7,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPadding),
+                child: _TapScaleWidget(
+                  onTap: () => context.push('/tag-templates'),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: theme.colorScheme.outline),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.label_outlined,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '명함에 만난 상황, 특이사항 등을 기록할 태그 형식을 관리합니다',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: theme.colorScheme.onSurface
+                                  .withOpacity(0.6),
+                            ),
                           ),
                         ),
-                      ),
-                      Icon(
-                        Icons.chevron_right,
-                        color: theme.colorScheme.onSurface.withOpacity(0.3),
-                      ),
-                    ],
+                        Icon(
+                          Icons.chevron_right,
+                          color:
+                          theme.colorScheme.onSurface.withOpacity(0.3),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -186,75 +264,90 @@ class ManagementScreen extends ConsumerWidget {
 
             const SizedBox(height: 32),
 
-            // ─── Settings ───
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                '설정',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+            // Settings
+            AnimatedListItem(
+              index: 8,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPadding),
+                child: Text(
+                  '설정',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 12),
 
             // Language
-            _SettingsTile(
-              icon: Icons.language,
-              title: '언어',
-              trailing: _LanguageDropdown(),
+            AnimatedListItem(
+              index: 9,
+              child: _SettingsTile(
+                icon: Icons.language,
+                title: '언어',
+                trailing: _LanguageDropdown(),
+                padding: hPadding,
+              ),
             ),
 
             // Dark mode
-            _SettingsTile(
-              icon: Icons.dark_mode_outlined,
-              title: '다크 모드',
-              trailing: Consumer(
-                builder: (context, ref, _) {
-                  final themeMode = ref.watch(themeModeProvider);
-                  return Switch(
-                    value: themeMode == ThemeMode.dark,
-                    onChanged: (value) {
-                      ref.read(themeModeProvider.notifier).state =
-                      value ? ThemeMode.dark : ThemeMode.light;
-                    },
-                  );
-                },
+            AnimatedListItem(
+              index: 10,
+              child: _SettingsTile(
+                icon: Icons.dark_mode_outlined,
+                title: '다크 모드',
+                trailing: Consumer(
+                  builder: (context, ref, _) {
+                    final themeMode = ref.watch(themeModeProvider);
+                    return Switch(
+                      value: themeMode == ThemeMode.dark,
+                      onChanged: (value) {
+                        ref.read(themeModeProvider.notifier).state =
+                        value ? ThemeMode.dark : ThemeMode.light;
+                      },
+                    );
+                  },
+                ),
+                padding: hPadding,
               ),
             ),
 
             // Logout
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: TextButton(
-                onPressed: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('로그아웃'),
-                      content: const Text('로그아웃 하시겠습니까?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('취소'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('로그아웃'),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirm == true) {
-                    await ref.read(autoLoginServiceProvider).clear();
-                    await ref.read(supabaseServiceProvider).signOut();
-                    if (context.mounted) context.go('/login');
-                  }
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.red.shade400,
+            AnimatedListItem(
+              index: 11,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                    horizontal: hPadding, vertical: 8),
+                child: TextButton(
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('로그아웃'),
+                        content: const Text('로그아웃 하시겠습니까?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('취소'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('로그아웃'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await ref.read(autoLoginServiceProvider).clear();
+                      await ref.read(supabaseServiceProvider).signOut();
+                      if (context.mounted) context.go('/login');
+                    }
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red.shade400,
+                  ),
+                  child: const Text('로그아웃'),
                 ),
-                child: const Text('로그아웃'),
               ),
             ),
           ],
@@ -327,22 +420,75 @@ class ManagementScreen extends ConsumerWidget {
 
 // ──────────────── Helper Widgets ────────────────
 
+/// Generic tap-to-scale micro-interaction wrapper.
+class _TapScaleWidget extends StatefulWidget {
+  final VoidCallback onTap;
+  final Widget child;
+  const _TapScaleWidget({required this.onTap, required this.child});
+
+  @override
+  State<_TapScaleWidget> createState() => _TapScaleWidgetState();
+}
+
+class _TapScaleWidgetState extends State<_TapScaleWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+      reverseDuration: const Duration(milliseconds: 200),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) => Transform.scale(
+          scale: 1.0 - (_controller.value * 0.03),
+          child: child,
+        ),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final double padding;
 
   const _SectionHeader({
     required this.title,
     this.actionLabel,
     this.onAction,
+    this.padding = 20,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: padding),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -371,19 +517,21 @@ class _EmptyBox extends StatelessWidget {
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final double padding;
 
   const _EmptyBox({
     required this.icon,
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.padding = 20,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: padding),
       child: Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
@@ -395,10 +543,19 @@ class _EmptyBox extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 36,
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) => Transform.scale(
+                scale: value,
+                child: child,
+              ),
+              child: Icon(
+                icon,
+                size: 36,
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
+              ),
             ),
             const SizedBox(height: 12),
             Text(
@@ -426,21 +583,22 @@ class _MyCardTile extends StatelessWidget {
   final BusinessCard card;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final double padding;
 
   const _MyCardTile({
     required this.card,
     required this.onTap,
     required this.onDelete,
+    this.padding = 20,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      child: InkWell(
+      padding: EdgeInsets.symmetric(horizontal: padding, vertical: 4),
+      child: _TapScaleWidget(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -465,8 +623,7 @@ class _MyCardTile extends StatelessWidget {
                         '${card.company} ${card.position ?? ""}',
                         style: TextStyle(
                           fontSize: 12,
-                          color:
-                          theme.colorScheme.onSurface.withOpacity(0.5),
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
                         ),
                       ),
                   ],
@@ -497,17 +654,21 @@ class _MyCardTile extends StatelessWidget {
 class _TeamTile extends StatelessWidget {
   final Team team;
   final VoidCallback onTap;
+  final double padding;
 
-  const _TeamTile({required this.team, required this.onTap});
+  const _TeamTile({
+    required this.team,
+    required this.onTap,
+    this.padding = 20,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      child: InkWell(
+      padding: EdgeInsets.symmetric(horizontal: padding, vertical: 4),
+      child: _TapScaleWidget(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -546,21 +707,24 @@ class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final Widget trailing;
+  final double padding;
 
   const _SettingsTile({
     required this.icon,
     required this.title,
     required this.trailing,
+    this.padding = 20,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: padding, vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+          Icon(icon, size: 20,
+              color: theme.colorScheme.onSurface.withOpacity(0.5)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(title, style: const TextStyle(fontSize: 15)),
