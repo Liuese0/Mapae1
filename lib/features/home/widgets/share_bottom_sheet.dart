@@ -365,16 +365,11 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
           ),
           const SizedBox(height: 18),
           Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 450),
-              switchInCurve: Curves.easeInOut,
-              switchOutCurve: Curves.easeInOut,
-              child: _quickShareStage == _QuickShareStage.scanning
-                  ? _buildScanningView(theme)
-                  : _quickShareStage == _QuickShareStage.discovered
-                      ? _buildDiscoveredView(theme)
-                      : _buildExchangeView(theme),
-            ),
+            child: _quickShareStage == _QuickShareStage.scanning
+                ? _buildScanningView(theme)
+                : _quickShareStage == _QuickShareStage.discovered
+                    ? _buildDiscoveredView(theme)
+                    : _buildExchangeView(theme),
           ),
           const SizedBox(height: 12),
           if (_quickShareStage == _QuickShareStage.discovered)
@@ -430,7 +425,6 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
 
   Widget _buildScanningView(ThemeData theme) {
     return Column(
-      key: const ValueKey('scan'),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         TweenAnimationBuilder<double>(
@@ -456,7 +450,6 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
 
   Widget _buildDiscoveredView(ThemeData theme) {
     return Column(
-      key: const ValueKey('discovered'),
       children: [
         Align(
           alignment: Alignment.centerLeft,
@@ -514,7 +507,6 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   Widget _buildExchangeView(ThemeData theme) {
     final peer = _nearbyPeers.isNotEmpty ? _nearbyPeers[_selectedPeerIndex] : null;
     return _ExchangeAnimationView(
-      key: ValueKey('exchange_${_quickShareStage.name}'),
       myCard: widget.card,
       peerName: peer?.name ?? _exchangePeerName ?? '상대',
       peerSubtitle: '${peer?.company ?? ''} ${peer?.position ?? ''}'.trim(),
