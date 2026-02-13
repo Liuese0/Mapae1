@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/services/nfc_service.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/collected_card.dart';
 
@@ -23,6 +24,8 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   bool _nfcReady = false;
   bool _quickShareMode = false;
   NfcService? _nfcService;
+  late final SupabaseService _supabaseService;
+  bool _quickShareSessionActive = false;
 
   _QuickShareStage _quickShareStage = _QuickShareStage.scanning;
   List<_QuickSharePeer> _nearbyPeers = const [];
@@ -31,6 +34,13 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   Timer? _quickSharePollTimer;
   String? _exchangePeerName;
   final Set<String> _handledIncomingIds = <String>{};
+
+
+  @override
+  void initState() {
+    super.initState();
+    _supabaseService = ref.read(supabaseServiceProvider);
+  }
 
   void _shareViaSns() {
     final card = widget.card;
@@ -90,13 +100,15 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   }
 
   Future<void> _startQuickShareSession() async {
-    final service = ref.read(supabaseServiceProvider);
+    final service = _supabaseService;
 
+    _quickShareSessionActive = true;
     await service.upsertQuickShareSession(widget.card);
     await _pollQuickShareState();
 
     _sessionHeartbeatTimer?.cancel();
     _sessionHeartbeatTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      if (!_quickShareSessionActive) return;
       await service.upsertQuickShareSession(widget.card);
     });
 
@@ -107,9 +119,9 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   }
 
   Future<void> _pollQuickShareState() async {
-    if (!_quickShareMode || !mounted) return;
+    if (!_quickShareMode || !_quickShareSessionActive || !mounted) return;
 
-    final service = ref.read(supabaseServiceProvider);
+    final service = _supabaseService;
     final peerRows = await service.getActiveQuickSharePeers();
     final peers = peerRows.map(_QuickSharePeer.fromJson).toList();
 
@@ -131,7 +143,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   }
 
   Future<void> _handleIncomingRequests() async {
-    final service = ref.read(supabaseServiceProvider);
+    final service = _supabaseService;
     final requests = await service.getIncomingQuickShareRequests();
 
     for (final request in requests) {
@@ -153,7 +165,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
     if (_nearbyPeers.isEmpty) return;
 
     final peer = _nearbyPeers[_selectedPeerIndex];
-    final service = ref.read(supabaseServiceProvider);
+    final service = _supabaseService;
 
     setState(() {
       _quickShareStage = _QuickShareStage.exchanging;
@@ -169,7 +181,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   }
 
   Future<void> _waitForResponse(String exchangeId) async {
-    final service = ref.read(supabaseServiceProvider);
+    final service = _supabaseService;
     final startedAt = DateTime.now();
 
     while (mounted && _quickShareMode) {
@@ -206,7 +218,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   }
 
   Future<void> _saveToCollected(BusinessCard remoteCard) async {
-    final service = ref.read(supabaseServiceProvider);
+    final service = _supabaseService;
     final user = service.currentUser;
     if (user == null) return;
 
@@ -235,9 +247,13 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   }
 
   Future<void> _stopQuickShareSession() async {
+    if (!_quickShareSessionActive) return;
+    _quickShareSessionActive = false;
     _sessionHeartbeatTimer?.cancel();
+    _sessionHeartbeatTimer = null;
     _quickSharePollTimer?.cancel();
-    await ref.read(supabaseServiceProvider).removeQuickShareSession();
+    _quickSharePollTimer = null;
+    await _supabaseService.removeQuickShareSession();
   }
 
   @override
@@ -245,8 +261,11 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
     if (_nfcMode) {
       _nfcService?.stopSession();
     }
-    if (_quickShareMode) {
-      _stopQuickShareSession();
+    _sessionHeartbeatTimer?.cancel();
+    _quickSharePollTimer?.cancel();
+    if (_quickShareMode && _quickShareSessionActive) {
+      _quickShareSessionActive = false;
+      _supabaseService.removeQuickShareSession();
     }
     super.dispose();
   }
@@ -348,6 +367,8 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 450),
+              switchInCurve: Curves.easeInOut,
+              switchOutCurve: Curves.easeInOut,
               child: _quickShareStage == _QuickShareStage.scanning
                   ? _buildScanningView(theme)
                   : _quickShareStage == _QuickShareStage.discovered
