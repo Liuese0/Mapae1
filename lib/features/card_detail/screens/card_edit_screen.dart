@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/collected_card.dart';
+import '../../shared/widgets/category_picker_field.dart';
+import '../../wallet/screens/wallet_screen.dart';
 import 'card_detail_screen.dart';
 
 class CardEditScreen extends ConsumerStatefulWidget {
@@ -29,6 +31,8 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
   late TextEditingController _memoCtrl;
   bool _isLoading = false;
   bool _initialized = false;
+  String? _selectedCategoryId;
+  String? _selectedCategoryName;
 
   @override
   void initState() {
@@ -76,6 +80,8 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
     _addressCtrl.text = card.address ?? '';
     _websiteCtrl.text = card.website ?? '';
     _memoCtrl.text = card.memo ?? '';
+    _selectedCategoryId = card.categoryId;
+    _selectedCategoryName = card.categoryName;
   }
 
   Future<void> _save(CollectedCard original) async {
@@ -83,7 +89,9 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final updated = original.copyWith(
+      final updated = CollectedCard(
+        id: original.id,
+        userId: original.userId,
         name: _nameCtrl.text.trim(),
         company: _companyCtrl.text.trim(),
         position: _positionCtrl.text.trim(),
@@ -95,11 +103,18 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
         address: _addressCtrl.text.trim(),
         website: _websiteCtrl.text.trim(),
         memo: _memoCtrl.text.trim(),
+        imageUrl: original.imageUrl,
+        categoryId: _selectedCategoryId,
+        categoryName: _selectedCategoryName,
+        sourceCardId: original.sourceCardId,
+        createdAt: original.createdAt,
         updatedAt: DateTime.now(),
       );
 
       await ref.read(supabaseServiceProvider).updateCollectedCard(updated);
       ref.invalidate(cardDetailProvider(widget.cardId));
+      ref.invalidate(categoriesProvider);
+      ref.invalidate(collectedCardsProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -137,10 +152,10 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
                 onPressed: _isLoading ? null : () => _save(card),
                 child: _isLoading
                     ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
                     : const Text('저장'),
               );
             },
@@ -161,6 +176,16 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
               key: _formKey,
               child: Column(
                 children: [
+                  CategoryPickerField(
+                    categoryId: _selectedCategoryId,
+                    categoryName: _selectedCategoryName,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCategoryId = value.id;
+                        _selectedCategoryName = value.name;
+                      });
+                    },
+                  ),
                   _buildField('이름', _nameCtrl),
                   _buildField('회사명', _companyCtrl),
                   _buildField('직급', _positionCtrl),
@@ -190,11 +215,11 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
   }
 
   Widget _buildField(
-    String label,
-    TextEditingController controller, {
-    TextInputType keyboard = TextInputType.text,
-    int maxLines = 1,
-  }) {
+      String label,
+      TextEditingController controller, {
+        TextInputType keyboard = TextInputType.text,
+        int maxLines = 1,
+      }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(

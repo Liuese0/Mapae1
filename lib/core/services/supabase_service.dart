@@ -148,7 +148,7 @@ class SupabaseService {
       }) async {
     var query = _client
         .from(SupabaseConstants.collectedCardsTable)
-        .select()
+        .select('*, categories(name)')
         .eq('user_id', userId);
 
     if (categoryId != null) {

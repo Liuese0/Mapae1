@@ -61,7 +61,8 @@ class CollectedCard {
       memo: json['memo'] as String?,
       imageUrl: json['image_url'] as String?,
       categoryId: json['category_id'] as String?,
-      categoryName: json['category_name'] as String?,
+      categoryName: json['category_name'] as String? ??
+          (json['categories'] is Map ? (json['categories'] as Map)['name'] as String? : null),
       sourceCardId: json['source_card_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
