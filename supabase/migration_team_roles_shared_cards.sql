@@ -15,7 +15,8 @@ ALTER TABLE team_shared_cards
   ADD COLUMN IF NOT EXISTS website TEXT,
   ADD COLUMN IF NOT EXISTS sns_url TEXT,
   ADD COLUMN IF NOT EXISTS memo TEXT,
-  ADD COLUMN IF NOT EXISTS image_url TEXT;
+  ADD COLUMN IF NOT EXISTS image_url TEXT,
+  ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES categories(id) ON DELETE SET NULL;
 
 -- 2) Backfill existing shared cards with data from collected_cards
 UPDATE team_shared_cards tsc
@@ -93,7 +94,32 @@ CREATE POLICY "Team owner can delete members" ON team_members
 
 DROP POLICY IF EXISTS "Team members can share cards" ON team_shared_cards;
 DROP POLICY IF EXISTS "Team owner and members can share cards" ON team_shared_cards;
+DROP POLICY IF EXISTS "Team owner and members can update shared cards" ON team_shared_cards;
+DROP POLICY IF EXISTS "Team owner and members can delete shared cards" ON team_shared_cards;
 CREATE POLICY "Team owner and members can share cards" ON team_shared_cards FOR INSERT WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+);
+CREATE POLICY "Team owner and members can update shared cards" ON team_shared_cards FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+) WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+);
+CREATE POLICY "Team owner and members can delete shared cards" ON team_shared_cards FOR DELETE USING (
   EXISTS (
     SELECT 1 FROM team_members
     WHERE team_members.team_id = team_shared_cards.team_id
