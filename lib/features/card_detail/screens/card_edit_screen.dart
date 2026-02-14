@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/collected_card.dart';
 import '../../shared/widgets/category_picker_field.dart';
+import '../../wallet/screens/wallet_screen.dart';
 import 'card_detail_screen.dart';
 
 class CardEditScreen extends ConsumerStatefulWidget {
@@ -112,6 +113,8 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
 
       await ref.read(supabaseServiceProvider).updateCollectedCard(updated);
       ref.invalidate(cardDetailProvider(widget.cardId));
+      ref.invalidate(categoriesProvider);
+      ref.invalidate(collectedCardsProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

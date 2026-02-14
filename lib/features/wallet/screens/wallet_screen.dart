@@ -5,7 +5,6 @@ import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/utils/animated_list_item.dart';
 import '../../shared/models/collected_card.dart';
-import '../../shared/models/category.dart';
 import '../widgets/card_list_tile.dart';
 import '../widgets/category_radial_menu.dart' hide AnimatedBuilder;
 import '../widgets/scan_card_sheet.dart';
@@ -40,14 +39,6 @@ final cardCountProvider = FutureProvider.autoDispose<int>((ref) async {
   final user = service.currentUser;
   if (user == null) return 0;
   return service.getCollectedCardCount(user.id);
-});
-
-final categoriesProvider =
-FutureProvider.autoDispose<List<CardCategory>>((ref) async {
-  final service = ref.read(supabaseServiceProvider);
-  final user = service.currentUser;
-  if (user == null) return [];
-  return service.getCategories(user.id);
 });
 
 class WalletScreen extends ConsumerStatefulWidget {

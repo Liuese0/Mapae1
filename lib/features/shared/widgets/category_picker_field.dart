@@ -156,6 +156,7 @@ class _FormCategorySheetState extends ConsumerState<_FormCategorySheet> {
         _isAdding = false;
         _isCreating = false;
       });
+      ref.invalidate(categoriesProvider);
       // Auto-select newly created
       widget.onSelected(created.id, created.name);
     } catch (e) {
