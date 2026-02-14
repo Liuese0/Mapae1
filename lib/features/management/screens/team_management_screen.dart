@@ -335,7 +335,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_isOwner && _teamCategories.isNotEmpty)
+                    if (_canShare && _teamCategories.isNotEmpty)
                       IconButton(
                         icon: Icon(
                           cardCategoryId != null
@@ -707,7 +707,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                     Navigator.pop(dialogContext);
 
                     // Owner면 카테고리 선택 후 공유
-                    if (_isOwner && _teamCategories.isNotEmpty) {
+                    if (_canShare && _teamCategories.isNotEmpty) {
                       _showCategorySelectThenShare(card);
                     } else {
                       await _shareCard(card.id, null);
