@@ -221,6 +221,33 @@ class SupabaseService {
         .eq('id', categoryId);
   }
 
+  // ──────────────── Team Categories ────────────────
+
+  Future<List<CardCategory>> getTeamCategories(String teamId) async {
+    final data = await _client
+        .from(SupabaseConstants.categoriesTable)
+        .select()
+        .eq('team_id', teamId)
+        .order('sort_order');
+    return data.map((json) => CardCategory.fromJson(json)).toList();
+  }
+
+  Future<CardCategory> createTeamCategory(CardCategory category) async {
+    final data = await _client
+        .from(SupabaseConstants.categoriesTable)
+        .insert(category.toJson())
+        .select()
+        .single();
+    return CardCategory.fromJson(data);
+  }
+
+  Future<void> updateSharedCardCategory(String sharedCardId, String? categoryId) async {
+    await _client
+        .from(SupabaseConstants.teamSharedCardsTable)
+        .update({'category_id': categoryId})
+        .eq('id', sharedCardId);
+  }
+
   // ──────────────── Teams ────────────────
 
   Future<List<Team>> getUserTeams(String userId) async {
@@ -327,7 +354,7 @@ class SupabaseService {
   }
 
   /// 명함을 팀에 공유 (스냅샷 저장 — 원본 삭제 시에도 유지)
-  Future<void> shareCardToTeam(String cardId, String teamId) async {
+  Future<void> shareCardToTeam(String cardId, String teamId, {String? categoryId}) async {
     final userId = currentUser?.id;
 
     // 원본 명함 데이터를 가져와 스냅샷으로 저장
@@ -355,6 +382,7 @@ class SupabaseService {
       'sns_url': cardData['sns_url'],
       'memo': cardData['memo'],
       'image_url': cardData['image_url'],
+      if (categoryId != null) 'category_id': categoryId,
     });
   }
 

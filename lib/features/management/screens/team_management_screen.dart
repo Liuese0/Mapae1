@@ -6,6 +6,7 @@ import '../../../core/providers/app_providers.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../shared/models/team.dart';
 import '../../shared/models/collected_card.dart';
+import '../../shared/models/category.dart';
 import '../../shared/models/crm_contact.dart';
 import '../../shared/widgets/invite_member_dialog.dart';
 
@@ -197,7 +198,9 @@ class _SharedCardsTab extends ConsumerStatefulWidget {
 
 class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
   List<Map<String, dynamic>>? _cards;
+  List<CardCategory> _teamCategories = [];
   bool _loading = true;
+  String? _filterCategoryId; // null = 전체
 
   @override
   void initState() {
@@ -207,19 +210,28 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
 
   Future<void> _loadCards() async {
     setState(() => _loading = true);
-    final cards = await ref
-        .read(supabaseServiceProvider)
-        .getTeamSharedCards(widget.teamId);
+    final service = ref.read(supabaseServiceProvider);
+    final cards = await service.getTeamSharedCards(widget.teamId);
+    final categories = await service.getTeamCategories(widget.teamId);
     if (mounted) {
       setState(() {
         _cards = cards;
+        _teamCategories = categories;
         _loading = false;
       });
     }
   }
 
+  bool get _isOwner => widget.myRole == TeamRole.owner;
+
   bool get _canShare =>
       widget.myRole == TeamRole.owner || widget.myRole == TeamRole.member;
+
+  List<Map<String, dynamic>> get _filteredCards {
+    final cards = _cards ?? [];
+    if (_filterCategoryId == null) return cards;
+    return cards.where((c) => c['category_id'] == _filterCategoryId).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -229,10 +241,50 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final cards = _cards ?? [];
+    final cards = _filteredCards;
 
     return Column(
       children: [
+        // Category filter chips
+        if (_teamCategories.isNotEmpty)
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              children: [
+                _buildCategoryChip(null, '전체', theme),
+                ..._teamCategories.map((cat) =>
+                    _buildCategoryChip(cat.id, cat.name, theme)),
+                if (_isOwner)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: ActionChip(
+                      avatar: Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
+                      label: Text('추가', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
+                      onPressed: () => _showCreateCategoryDialog(context),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
+                    ),
+                  ),
+              ],
+            ),
+          )
+        else if (_isOwner)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: SizedBox(
+              width: double.infinity,
+              child: ActionChip(
+                avatar: Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
+                label: Text('팀 카테고리 만들기', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
+                onPressed: () => _showCreateCategoryDialog(context),
+                side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
+              ),
+            ),
+          ),
+
         Expanded(
           child: cards.isEmpty
               ? Center(
@@ -246,7 +298,9 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '공유된 명함이 없습니다',
+                  _filterCategoryId != null
+                      ? '이 카테고리에 명함이 없습니다'
+                      : '공유된 명함이 없습니다',
                   style: TextStyle(
                     color: theme.colorScheme.onSurface.withOpacity(0.4),
                   ),
@@ -263,16 +317,38 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               final name = card['name'] as String? ?? '이름 없음';
               final company = card['company'] as String?;
               final position = card['position'] as String?;
+              final cardCategoryId = card['category_id'] as String?;
+              final categoryName = _teamCategories
+                  .where((c) => c.id == cardCategoryId)
+                  .map((c) => c.name)
+                  .firstOrNull;
+
               return ListTile(
                 title: Text(name),
                 subtitle: Text(
-                  [company, position]
-                      .where((s) => s != null)
-                      .join(' · '),
+                  [
+                    if (categoryName != null) '[$categoryName]',
+                    company,
+                    position,
+                  ].where((s) => s != null).join(' · '),
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (_canShare && _teamCategories.isNotEmpty)
+                      IconButton(
+                        icon: Icon(
+                          cardCategoryId != null
+                              ? Icons.label
+                              : Icons.label_outline,
+                          size: 18,
+                          color: cardCategoryId != null
+                              ? theme.colorScheme.primary
+                              : null,
+                        ),
+                        tooltip: '카테고리 지정',
+                        onPressed: () => _showAssignCategorySheet(card),
+                      ),
                     IconButton(
                       icon: const Icon(Icons.copy, size: 18),
                       tooltip: '내 지갑으로 복사',
@@ -310,6 +386,186 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
           ),
       ],
     );
+  }
+
+  Widget _buildCategoryChip(String? categoryId, String label, ThemeData theme) {
+    final selected = _filterCategoryId == categoryId;
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: FilterChip(
+        label: Text(label, style: const TextStyle(fontSize: 12)),
+        selected: selected,
+        onSelected: (_) {
+          setState(() => _filterCategoryId = categoryId);
+        },
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+      ),
+    );
+  }
+
+  void _showCreateCategoryDialog(BuildContext context) {
+    final controller = TextEditingController();
+    final theme = Theme.of(context);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('팀 카테고리 추가'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: '카테고리 이름',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+          onSubmitted: (_) async {
+            final name = controller.text.trim();
+            if (name.isEmpty) return;
+            Navigator.pop(ctx);
+            await _createTeamCategory(name);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(ctx);
+              await _createTeamCategory(name);
+            },
+            child: const Text('추가'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createTeamCategory(String name) async {
+    try {
+      final service = ref.read(supabaseServiceProvider);
+      final userId = service.currentUser?.id;
+      if (userId == null) return;
+
+      await service.createTeamCategory(
+        CardCategory(
+          id: '',
+          userId: userId,
+          name: name,
+          teamId: widget.teamId,
+          createdAt: DateTime.now(),
+        ),
+      );
+      ref.invalidate(teamCategoriesProvider(widget.teamId));
+      await _loadCards();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('\'$name\' 카테고리가 추가되었습니다')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('카테고리 생성 실패: $e')),
+        );
+      }
+    }
+  }
+
+  void _showAssignCategorySheet(Map<String, dynamic> card) {
+    final currentCategoryId = card['category_id'] as String?;
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('카테고리 지정',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  )),
+            ),
+            ListTile(
+              leading: Icon(Icons.label_off_outlined,
+                  color: currentCategoryId == null
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withOpacity(0.5)),
+              title: Text('선택 안함',
+                  style: TextStyle(
+                    fontWeight: currentCategoryId == null
+                        ? FontWeight.w600 : FontWeight.w400,
+                    color: currentCategoryId == null
+                        ? theme.colorScheme.primary : null,
+                  )),
+              trailing: currentCategoryId == null
+                  ? Icon(Icons.check, color: theme.colorScheme.primary, size: 20)
+                  : null,
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _assignCategory(card, null);
+              },
+            ),
+            ..._teamCategories.map((cat) {
+              final selected = cat.id == currentCategoryId;
+              return ListTile(
+                leading: Icon(Icons.label_outline,
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withOpacity(0.5)),
+                title: Text(cat.name,
+                    style: TextStyle(
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      color: selected ? theme.colorScheme.primary : null,
+                    )),
+                trailing: selected
+                    ? Icon(Icons.check, color: theme.colorScheme.primary, size: 20)
+                    : null,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _assignCategory(card, cat.id);
+                },
+              );
+            }),
+            SizedBox(height: MediaQuery.of(ctx).padding.bottom + 16),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _assignCategory(Map<String, dynamic> card, String? categoryId) async {
+    try {
+      final sharedCardId = card['id'] as String;
+      await ref.read(supabaseServiceProvider)
+          .updateSharedCardCategory(sharedCardId, categoryId);
+      await _loadCards();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('카테고리 지정 실패: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _unshareCard(Map<String, dynamic> card) async {
@@ -449,22 +705,12 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                       return;
                     }
                     Navigator.pop(dialogContext);
-                    try {
-                      await service.shareCardToTeam(
-                          card.id, widget.teamId);
-                      await _loadCards();
-                      if (mounted) {
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          const SnackBar(
-                              content: Text('명함이 팀에 공유되었습니다')),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(content: Text('공유 실패: $e')),
-                        );
-                      }
+
+                    // Owner면 카테고리 선택 후 공유
+                    if (_canShare && _teamCategories.isNotEmpty) {
+                      _showCategorySelectThenShare(card);
+                    } else {
+                      await _shareCard(card.id, null);
                     }
                   },
                 );
@@ -480,6 +726,77 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
         );
       },
     );
+  }
+
+  void _showCategorySelectThenShare(CollectedCard card) {
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('카테고리 선택 (선택사항)',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  )),
+            ),
+            ListTile(
+              leading: Icon(Icons.label_off_outlined,
+                  color: theme.colorScheme.onSurface.withOpacity(0.5)),
+              title: const Text('카테고리 없이 공유'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _shareCard(card.id, null);
+              },
+            ),
+            ..._teamCategories.map((cat) => ListTile(
+              leading: Icon(Icons.label_outline,
+                  color: theme.colorScheme.primary),
+              title: Text(cat.name),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _shareCard(card.id, cat.id);
+              },
+            )),
+            SizedBox(height: MediaQuery.of(ctx).padding.bottom + 16),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _shareCard(String cardId, String? categoryId) async {
+    try {
+      await ref.read(supabaseServiceProvider)
+          .shareCardToTeam(cardId, widget.teamId, categoryId: categoryId);
+      await _loadCards();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('명함이 팀에 공유되었습니다')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('공유 실패: $e')),
+        );
+      }
+    }
   }
 }
 

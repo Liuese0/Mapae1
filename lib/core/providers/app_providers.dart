@@ -114,6 +114,13 @@ FutureProvider.autoDispose<List<CardCategory>>((ref) async {
   return service.getCategories(user.id);
 });
 
+final teamCategoriesProvider =
+FutureProvider.autoDispose.family<List<CardCategory>, String>(
+        (ref, teamId) async {
+      final service = ref.read(supabaseServiceProvider);
+      return service.getTeamCategories(teamId);
+    });
+
 // ──────────────── Invitations ────────────────
 
 final pendingInvitationsProvider =
