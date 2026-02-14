@@ -6,7 +6,6 @@ import '../../../core/utils/responsive.dart';
 import '../../../core/utils/animated_list_item.dart';
 import '../../shared/models/collected_card.dart';
 import '../widgets/card_list_tile.dart';
-import '../widgets/category_radial_menu.dart' hide AnimatedBuilder;
 import '../widgets/scan_card_sheet.dart';
 import '../widgets/search_filter_bar.dart';
 
@@ -50,8 +49,6 @@ class WalletScreen extends ConsumerStatefulWidget {
 
 class _WalletScreenState extends ConsumerState<WalletScreen>
     with SingleTickerProviderStateMixin {
-  bool _showCategoryMenu = false;
-
   late AnimationController _headerController;
   late Animation<double> _headerFade;
   late Animation<Offset> _headerSlide;
@@ -96,10 +93,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
         },
       ),
     );
-  }
-
-  void _onAddLongPressed() {
-    setState(() => _showCategoryMenu = !_showCategoryMenu);
   }
 
   @override
@@ -203,19 +196,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
               ],
             ),
 
-            // Category radial menu overlay
-            if (_showCategoryMenu)
-              CategoryRadialMenu(
-                categories: categories.valueOrNull ?? [],
-                onCategorySelected: (categoryId) {
-                  ref.read(walletCategoryProvider.notifier).state = categoryId;
-                  setState(() => _showCategoryMenu = false);
-                },
-                onDismiss: () {
-                  setState(() => _showCategoryMenu = false);
-                },
-              ),
-
             // Floating add button with pulse animation
             Positioned(
               bottom: Responsive.value(context, mobile: 90.0, tablet: 100.0),
@@ -224,7 +204,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
               child: Center(
                 child: _AnimatedFAB(
                   onTap: _onAddPressed,
-                  onLongPress: _onAddLongPressed,
                 ),
               ),
             ),
@@ -268,8 +247,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
 /// FAB with scale micro-interaction and subtle shadow animation.
 class _AnimatedFAB extends StatefulWidget {
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
-  const _AnimatedFAB({required this.onTap, required this.onLongPress});
+  const _AnimatedFAB({required this.onTap});
 
   @override
   State<_AnimatedFAB> createState() => _AnimatedFABState();
@@ -318,7 +296,6 @@ class _AnimatedFABState extends State<_AnimatedFAB>
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
-      onLongPress: widget.onLongPress,
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) => Transform.scale(
