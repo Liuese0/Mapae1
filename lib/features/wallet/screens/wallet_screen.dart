@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/utils/animated_list_item.dart';
@@ -10,12 +9,14 @@ import '../../shared/models/category.dart';
 import '../widgets/card_list_tile.dart';
 import '../widgets/category_radial_menu.dart' hide AnimatedBuilder;
 import '../widgets/scan_card_sheet.dart';
+import '../widgets/search_filter_bar.dart';
 
 enum SortMode { byDate, byName }
 
 // Wallet providers
 final walletSortProvider = StateProvider<SortMode>((ref) => SortMode.byDate);
 final walletCategoryProvider = StateProvider<String?>((ref) => null);
+final walletSearchQueryProvider = StateProvider<String>((ref) => '');
 
 final collectedCardsProvider =
 FutureProvider.autoDispose<List<CollectedCard>>((ref) async {
@@ -115,9 +116,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
     final theme = Theme.of(context);
     final cards = ref.watch(collectedCardsProvider);
     final cardCount = ref.watch(cardCountProvider);
-    final sortMode = ref.watch(walletSortProvider);
     final categories = ref.watch(categoriesProvider);
-    final selectedCategory = ref.watch(walletCategoryProvider);
+    final searchQuery = ref.watch(walletSearchQueryProvider);
     final hPadding = Responsive.horizontalPadding(context);
 
     return Scaffold(
@@ -126,20 +126,20 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
           children: [
             Column(
               children: [
-                // Header
+                // Header with card count
                 SlideTransition(
                   position: _headerSlide,
                   child: FadeTransition(
                     opacity: _headerFade,
                     child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: hPadding,
-                        vertical: 12,
+                      padding: EdgeInsets.only(
+                        left: hPadding,
+                        right: hPadding,
+                        top: 12,
+                        bottom: 4,
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Card count
                           cardCount.when(
                             data: (count) => Text(
                               '전체 명함 ${count}장',
@@ -151,70 +151,36 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                             loading: () => const SizedBox.shrink(),
                             error: (_, __) => const SizedBox.shrink(),
                           ),
-
-                          // Sort toggle with micro-interaction
-                          _AnimatedSortToggle(
-                            sortMode: sortMode,
-                            onTap: () {
-                              ref.read(walletSortProvider.notifier).state =
-                              sortMode == SortMode.byDate
-                                  ? SortMode.byName
-                                  : SortMode.byDate;
-                            },
-                          ),
                         ],
                       ),
                     ),
                   ),
                 ),
 
-                // Category filter chips
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: selectedCategory != null
-                      ? Padding(
-                    padding: EdgeInsets.only(
-                      left: hPadding,
-                      right: hPadding,
-                      bottom: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Chip(
-                          label: Text(
-                            categories.valueOrNull
-                                ?.firstWhere(
-                                    (c) => c.id == selectedCategory,
-                                orElse: () => CardCategory(
-                                  id: '',
-                                  userId: '',
-                                  name: '',
-                                  createdAt: DateTime.now(),
-                                ))
-                                .name ??
-                                '',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          deleteIcon: const Icon(Icons.close, size: 14),
-                          onDeleted: () {
-                            ref
-                                .read(walletCategoryProvider.notifier)
-                                .state = null;
-                          },
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ],
-                    ),
-                  )
-                      : const SizedBox.shrink(),
+                // Search bar + filter chips
+                SearchFilterBar(
+                  categories: categories.valueOrNull ?? [],
                 ),
 
                 // Card list
                 Expanded(
                   child: cards.when(
                     data: (cardList) {
-                      if (cardList.isEmpty) {
+                      // Apply client-side search filtering
+                      final filteredList = searchQuery.isEmpty
+                          ? cardList
+                          : cardList.where((card) {
+                              final q = searchQuery.toLowerCase();
+                              return (card.name?.toLowerCase().contains(q) ?? false) ||
+                                  (card.company?.toLowerCase().contains(q) ?? false) ||
+                                  (card.position?.toLowerCase().contains(q) ?? false) ||
+                                  (card.department?.toLowerCase().contains(q) ?? false) ||
+                                  (card.email?.toLowerCase().contains(q) ?? false) ||
+                                  (card.phone?.contains(q) ?? false) ||
+                                  (card.mobile?.contains(q) ?? false);
+                            }).toList();
+
+                      if (filteredList.isEmpty) {
                         return _buildEmptyState(theme);
                       }
                       return ListView.separated(
@@ -223,16 +189,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                           right: hPadding,
                           bottom: 120,
                         ),
-                        itemCount: cardList.length,
+                        itemCount: filteredList.length,
                         separatorBuilder: (_, __) =>
                         const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           return AnimatedListItem(
                             index: index,
                             child: CardListTile(
-                              card: cardList[index],
+                              card: filteredList[index],
                               onTap: () => context
-                                  .push('/card/${cardList[index].id}'),
+                                  .push('/card/${filteredList[index].id}'),
                             ),
                           );
                         },
@@ -308,96 +274,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
     );
   }
 }
-
-/// Sort toggle with scale micro-interaction on tap.
-class _AnimatedSortToggle extends StatefulWidget {
-  final SortMode sortMode;
-  final VoidCallback onTap;
-  const _AnimatedSortToggle({required this.sortMode, required this.onTap});
-
-  @override
-  State<_AnimatedSortToggle> createState() => _AnimatedSortToggleState();
-}
-
-class _AnimatedSortToggleState extends State<_AnimatedSortToggle>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 150),
-      reverseDuration: const Duration(milliseconds: 250),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return GestureDetector(
-      onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) {
-        _controller.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _controller.reverse(),
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) => Transform.scale(
-          scale: 1.0 - (_controller.value * 0.08),
-          child: child,
-        ),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: theme.colorScheme.outline),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, animation) => RotationTransition(
-                  turns: Tween(begin: 0.5, end: 1.0).animate(animation),
-                  child: FadeTransition(opacity: animation, child: child),
-                ),
-                child: Icon(
-                  Icons.sort,
-                  key: ValueKey(widget.sortMode),
-                  size: 14,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                ),
-              ),
-              const SizedBox(width: 4),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Text(
-                  widget.sortMode == SortMode.byDate ? '등록순' : '이름순',
-                  key: ValueKey(widget.sortMode),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// FAB with scale micro-interaction and subtle shadow animation.
 class _AnimatedFAB extends StatefulWidget {
   final VoidCallback onTap;
