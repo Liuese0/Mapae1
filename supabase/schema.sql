@@ -157,6 +157,7 @@ CREATE TABLE IF NOT EXISTS team_shared_cards (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   card_id UUID REFERENCES collected_cards(id) ON DELETE SET NULL,
   team_id UUID REFERENCES teams(id) ON DELETE CASCADE NOT NULL,
+  category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
   shared_by UUID REFERENCES users(id),
   shared_at TIMESTAMPTZ DEFAULT NOW(),
   -- 명함 데이터 스냅샷
@@ -185,6 +186,29 @@ CREATE POLICY "Team members can view shared cards" ON team_shared_cards FOR SELE
   )
 );
 CREATE POLICY "Team owner and members can share cards" ON team_shared_cards FOR INSERT WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+);
+CREATE POLICY "Team owner and members can update shared cards" ON team_shared_cards FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+) WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+);
+CREATE POLICY "Team owner and members can delete shared cards" ON team_shared_cards FOR DELETE USING (
   EXISTS (
     SELECT 1 FROM team_members
     WHERE team_members.team_id = team_shared_cards.team_id
