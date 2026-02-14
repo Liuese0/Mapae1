@@ -192,6 +192,22 @@ CREATE POLICY "Team owner and members can share cards" ON team_shared_cards FOR 
     AND team_members.role IN ('owner', 'member')
   )
 );
+CREATE POLICY "Team owner and members can update shared cards" ON team_shared_cards FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+);
+CREATE POLICY "Team owner and members can delete shared cards" ON team_shared_cards FOR DELETE USING (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+);
 
 -- ──────────────── Tag Templates ────────────────
 CREATE TABLE IF NOT EXISTS tag_templates (
