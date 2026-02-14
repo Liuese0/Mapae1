@@ -34,18 +34,9 @@ class MainShell extends StatelessWidget {
     final currentIdx = _currentIndex(context);
 
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        transitionBuilder: (child, animation) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
-        child: KeyedSubtree(
-          key: ValueKey(currentIdx),
-          child: child,
-        ),
+      body: KeyedSubtree(
+        key: ValueKey(currentIdx),
+        child: child,
       ),
       extendBody: true,
       bottomNavigationBar: Container(
