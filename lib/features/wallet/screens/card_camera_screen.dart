@@ -102,22 +102,16 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
             right: 0,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                      icon: const Icon(Icons.close,
+                          color: Colors.white, size: 28),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     const Spacer(),
-                    const Text(
-                      '명함을 가이드에 맞춰주세요',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
                     const Spacer(),
                     const SizedBox(width: 48), // balance
                   ],
@@ -125,6 +119,42 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
               ),
             ),
           ),
+
+          // Guidance text below card area
+          if (_isInitialized)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 140,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      '명함을 가이드에 맞춰주세요',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '기울어져도 자동으로 보정됩니다',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           // Bottom capture button
           Positioned(
@@ -142,14 +172,17 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
                       height: 72,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
+                        border:
+                        Border.all(color: Colors.white, width: 4),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(4),
                         child: Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _isCapturing ? Colors.grey : Colors.white,
+                            color: _isCapturing
+                                ? Colors.grey
+                                : Colors.white,
                           ),
                         ),
                       ),
@@ -206,7 +239,8 @@ class _OverlayPainter extends CustomPainter {
     canvas.drawRect(fullRect, overlayPaint);
 
     final clearPaint = Paint()..blendMode = BlendMode.clear;
-    final rrect = RRect.fromRectAndRadius(cardRect, const Radius.circular(12));
+    final rrect =
+    RRect.fromRectAndRadius(cardRect, const Radius.circular(12));
     canvas.drawRRect(rrect, clearPaint);
     canvas.restore();
 
@@ -216,6 +250,24 @@ class _OverlayPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawRRect(rrect, borderPaint);
+
+    // Draw horizontal level line through center
+    final levelPaint = Paint()
+      ..color = const Color(0x4400C6FF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawLine(
+      Offset(cardRect.left + 10, cardRect.center.dy),
+      Offset(cardRect.right - 10, cardRect.center.dy),
+      levelPaint,
+    );
+
+    // Draw vertical center line
+    canvas.drawLine(
+      Offset(cardRect.center.dx, cardRect.top + 10),
+      Offset(cardRect.center.dx, cardRect.bottom - 10),
+      levelPaint,
+    );
 
     // Draw corner accents
     const cornerLen = 24.0;
@@ -228,17 +280,25 @@ class _OverlayPainter extends CustomPainter {
 
     final r = cardRect;
     // Top-left
-    canvas.drawLine(Offset(r.left, r.top + cornerLen), Offset(r.left, r.top), cornerPaint);
-    canvas.drawLine(Offset(r.left, r.top), Offset(r.left + cornerLen, r.top), cornerPaint);
+    canvas.drawLine(
+        Offset(r.left, r.top + cornerLen), Offset(r.left, r.top), cornerPaint);
+    canvas.drawLine(
+        Offset(r.left, r.top), Offset(r.left + cornerLen, r.top), cornerPaint);
     // Top-right
-    canvas.drawLine(Offset(r.right - cornerLen, r.top), Offset(r.right, r.top), cornerPaint);
-    canvas.drawLine(Offset(r.right, r.top), Offset(r.right, r.top + cornerLen), cornerPaint);
+    canvas.drawLine(Offset(r.right - cornerLen, r.top), Offset(r.right, r.top),
+        cornerPaint);
+    canvas.drawLine(Offset(r.right, r.top),
+        Offset(r.right, r.top + cornerLen), cornerPaint);
     // Bottom-left
-    canvas.drawLine(Offset(r.left, r.bottom - cornerLen), Offset(r.left, r.bottom), cornerPaint);
-    canvas.drawLine(Offset(r.left, r.bottom), Offset(r.left + cornerLen, r.bottom), cornerPaint);
+    canvas.drawLine(Offset(r.left, r.bottom - cornerLen),
+        Offset(r.left, r.bottom), cornerPaint);
+    canvas.drawLine(Offset(r.left, r.bottom),
+        Offset(r.left + cornerLen, r.bottom), cornerPaint);
     // Bottom-right
-    canvas.drawLine(Offset(r.right - cornerLen, r.bottom), Offset(r.right, r.bottom), cornerPaint);
-    canvas.drawLine(Offset(r.right, r.bottom), Offset(r.right, r.bottom - cornerLen), cornerPaint);
+    canvas.drawLine(Offset(r.right - cornerLen, r.bottom),
+        Offset(r.right, r.bottom), cornerPaint);
+    canvas.drawLine(Offset(r.right, r.bottom),
+        Offset(r.right, r.bottom - cornerLen), cornerPaint);
   }
 
   @override

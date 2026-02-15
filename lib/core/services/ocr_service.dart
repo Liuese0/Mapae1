@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import '../constants/app_constants.dart';
+import 'image_processing_service.dart';
 
 class OcrResult {
   final String? name;
@@ -16,6 +17,7 @@ class OcrResult {
   final String? address;
   final String? website;
   final String rawText;
+  final double confidence;
 
   const OcrResult({
     this.name,
@@ -29,11 +31,13 @@ class OcrResult {
     this.address,
     this.website,
     required this.rawText,
+    this.confidence = 0.0,
   });
 }
 
 class OcrService {
   final Dio _dio = Dio();
+  final ImageProcessingService _imageProcessor = ImageProcessingService();
 
   /// Scan a business card image and extract text using OCR.space API.
   /// Supports Korean, English, and Chinese.
@@ -66,6 +70,19 @@ class OcrService {
     throw Exception('이미지 크기를 줄일 수 없습니다. 더 작은 이미지를 사용해주세요.');
   }
 
+  /// Lightweight preprocessing for OCR accuracy:
+  /// resolution normalization and contrast stretching only.
+  /// Falls back to original image on any failure or timeout.
+  Future<File> _preprocessForOcr(File imageFile) async {
+    try {
+      return await _imageProcessor
+          .preprocessForOcr(imageFile)
+          .timeout(const Duration(seconds: 5), onTimeout: () => imageFile);
+    } catch (_) {
+      return imageFile;
+    }
+  }
+
   Future<OcrResult> scanBusinessCard(File imageFile, {String language = 'kor'}) async {
     final String ocrLang = _mapLanguage(language);
 
@@ -73,8 +90,11 @@ class OcrService {
     // Engine 2 only supports limited languages (mainly Latin-based).
     final String ocrEngine = (ocrLang == 'eng') ? '2' : '1';
 
-    // Compress image if it exceeds OCR.space 1MB limit
-    final processedFile = await _compressIfNeeded(imageFile);
+    // Step 1: Preprocess image for OCR (white balance, shadow removal, contrast, sharpening)
+    final preprocessedFile = await _preprocessForOcr(imageFile);
+
+    // Step 2: Compress image if it exceeds OCR.space 1MB limit
+    final processedFile = await _compressIfNeeded(preprocessedFile);
 
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(
@@ -82,7 +102,7 @@ class OcrService {
         filename: processedFile.path.split('/').last,
       ),
       'language': ocrLang,
-      'isOverlayRequired': 'false',
+      'isOverlayRequired': 'true',
       'detectOrientation': 'true',
       'scale': 'true',
       'OCREngine': ocrEngine,
@@ -95,6 +115,8 @@ class OcrService {
         headers: {
           'apikey': AppConstants.ocrApiKey,
         },
+        sendTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
       ),
     );
 
@@ -128,7 +150,31 @@ class OcrService {
         if (rawText.trim().isEmpty) {
           throw Exception('No text detected in image');
         }
-        return _parseBusinessCardText(rawText);
+
+        // Extract confidence if available
+        final textOverlay = results[0]['TextOverlay'];
+        double confidence = 0.0;
+        if (textOverlay != null && textOverlay['Lines'] is List) {
+          final lines = textOverlay['Lines'] as List;
+          double totalConf = 0;
+          int wordCount = 0;
+          for (final line in lines) {
+            if (line['Words'] is List) {
+              for (final word in line['Words']) {
+                if (word['WordConfidence'] != null) {
+                  totalConf += (word['WordConfidence'] as num).toDouble();
+                  wordCount++;
+                }
+              }
+            }
+          }
+          if (wordCount > 0) confidence = totalConf / wordCount;
+        }
+
+        // Clean raw text: remove common OCR artifacts
+        final cleanedText = _cleanOcrArtifacts(rawText);
+
+        return _parseBusinessCardText(cleanedText, confidence: confidence);
       }
     }
 
@@ -147,8 +193,39 @@ class OcrService {
     }
   }
 
+  /// Clean common OCR artifacts from raw text.
+  String _cleanOcrArtifacts(String rawText) {
+    var cleaned = rawText;
+
+    // Remove common OCR noise characters
+    cleaned = cleaned.replaceAll(RegExp(r'[|\\{}\[\]<>~`]'), '');
+
+    // Fix common OCR misreads
+    cleaned = cleaned.replaceAll(RegExp(r'(?<=\d)O(?=\d)'), '0'); // O → 0 in numbers
+    cleaned = cleaned.replaceAll(RegExp(r'(?<=\d)l(?=\d)'), '1'); // l → 1 in numbers
+    cleaned = cleaned.replaceAll(RegExp(r'(?<=\d)I(?=\d)'), '1'); // I → 1 in numbers
+
+    // Clean excessive whitespace
+    cleaned = cleaned.replaceAll(RegExp(r'[ \t]+'), ' ');
+
+    // Remove lines that are just dots, dashes, or single characters
+    final lines = cleaned.split('\n');
+    final filteredLines = lines.where((line) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) return false;
+      if (trimmed.length <= 1 && !RegExp(r'[가-힣a-zA-Z0-9]').hasMatch(trimmed)) {
+        return false;
+      }
+      // Remove lines that are only punctuation/symbols
+      if (RegExp(r'^[^가-힣a-zA-Z0-9]+$').hasMatch(trimmed)) return false;
+      return true;
+    });
+
+    return filteredLines.join('\n');
+  }
+
   /// Parse the raw OCR text into structured business card fields.
-  OcrResult _parseBusinessCardText(String rawText) {
+  OcrResult _parseBusinessCardText(String rawText, {double confidence = 0.0}) {
     final lines = rawText
         .split('\n')
         .map((l) => l.trim())
@@ -306,6 +383,7 @@ class OcrService {
       address: address,
       website: website,
       rawText: rawText,
+      confidence: confidence,
     );
   }
 

@@ -5,6 +5,7 @@ import '../services/supabase_service.dart';
 import '../services/ocr_service.dart';
 import '../services/nfc_service.dart';
 import '../services/auto_login_service.dart';
+import '../services/image_processing_service.dart';
 import '../../features/shared/models/app_user.dart';
 import '../../features/shared/models/category.dart';
 import '../../features/shared/models/team_invitation.dart';
@@ -25,6 +26,10 @@ final nfcServiceProvider = Provider<NfcService>((ref) {
 
 final autoLoginServiceProvider = Provider<AutoLoginService>((ref) {
   return AutoLoginService();
+});
+
+final imageProcessingServiceProvider = Provider<ImageProcessingService>((ref) {
+  return ImageProcessingService();
 });
 
 // ──────────────── Auth State ────────────────

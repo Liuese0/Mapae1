@@ -20,6 +20,7 @@ class ScanCardSheet extends ConsumerStatefulWidget {
 
 class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   bool _isProcessing = false;
+  String _processingStatus = '명함 인식 중...';
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickFromCamera() async {
@@ -55,8 +56,15 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
     return cropped ?? imageFile;
   }
 
+  void _updateStatus(String status) {
+    if (mounted) setState(() => _processingStatus = status);
+  }
+
   Future<void> _processImage(File imageFile) async {
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _processingStatus = '명함 인식 중...';
+    });
 
     try {
       final ocrService = ref.read(ocrServiceProvider);
@@ -72,11 +80,14 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
       // Get locale for OCR language
       final locale = ref.read(localeProvider).languageCode;
 
-      // Perform OCR
+      // Perform OCR (includes preprocessing: white balance, shadow removal, contrast, sharpening)
+      _updateStatus('문자 인식 중...');
       final result = await ocrService.scanBusinessCard(
         imageFile,
         language: locale,
       );
+
+      _updateStatus('정보 저장 중...');
 
       // Upload image
       final imageBytes = await imageFile.readAsBytes();
@@ -160,7 +171,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
             const CircularProgressIndicator(),
             const SizedBox(height: 16),
             Text(
-              '명함 인식 중...',
+              _processingStatus,
               style: TextStyle(
                 color: theme.colorScheme.onSurface.withOpacity(0.6),
               ),
