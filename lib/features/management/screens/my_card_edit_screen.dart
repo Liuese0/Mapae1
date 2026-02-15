@@ -222,6 +222,18 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
     }
   }
 
+
+  Future<void> _closeSheetAndStartCameraScan() async {
+    Navigator.of(context).pop();
+
+    // 바텀시트 닫힘 애니메이션 직후 스캐너를 열면
+    // 일부 기기에서 화면이 잠깐 검게 보일 수 있어 한 프레임 여유를 둡니다.
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+
+    if (!mounted) return;
+    await _pickFromCamera();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -276,10 +288,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                             ListTile(
                               leading: const Icon(Icons.camera_alt_outlined),
                               title: const Text('사진 촬영 (문서 스캐너)'),
-                              onTap: () {
-                                Navigator.pop(context);
-                                _pickFromCamera();
-                              },
+                              onTap: _closeSheetAndStartCameraScan,
                             ),
                             ListTile(
                               leading:
