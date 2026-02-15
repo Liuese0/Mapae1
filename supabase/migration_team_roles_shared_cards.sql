@@ -101,3 +101,45 @@ CREATE POLICY "Team owner and members can share cards" ON team_shared_cards FOR 
     AND team_members.role IN ('owner', 'member')
   )
 );
+
+-- 5-2) Allow owner and members to UPDATE shared cards (e.g. assign category)
+DROP POLICY IF EXISTS "Team owner and members can update shared cards" ON team_shared_cards;
+CREATE POLICY "Team owner and members can update shared cards" ON team_shared_cards FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+);
+
+-- 5-3) Allow owner and members to DELETE shared cards (unshare)
+DROP POLICY IF EXISTS "Team owner and members can delete shared cards" ON team_shared_cards;
+CREATE POLICY "Team owner and members can delete shared cards" ON team_shared_cards FOR DELETE USING (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+);
+
+-- 6) Team category RLS policies
+DROP POLICY IF EXISTS "Team owner can manage team categories" ON categories;
+CREATE POLICY "Team owner can manage team categories" ON categories FOR ALL USING (
+  team_id IS NOT NULL AND EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = categories.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role = 'owner'
+  )
+);
+
+DROP POLICY IF EXISTS "Team members can view team categories" ON categories;
+CREATE POLICY "Team members can view team categories" ON categories FOR SELECT USING (
+  team_id IS NOT NULL AND EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = categories.team_id
+    AND team_members.user_id = auth.uid()
+  )
+);

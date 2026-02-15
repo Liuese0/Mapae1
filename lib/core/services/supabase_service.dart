@@ -201,6 +201,7 @@ class SupabaseService {
         .from(SupabaseConstants.categoriesTable)
         .select()
         .eq('user_id', userId)
+        .isFilter('team_id', null)
         .order('sort_order');
     return data.map((json) => CardCategory.fromJson(json)).toList();
   }

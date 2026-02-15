@@ -256,7 +256,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 _buildCategoryChip(null, '전체', theme),
                 ..._teamCategories.map((cat) =>
                     _buildCategoryChip(cat.id, cat.name, theme)),
-                if (_isOwner)
+                if (_isOwner) ...[
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
                     child: ActionChip(
@@ -268,6 +268,18 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                       side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: ActionChip(
+                      avatar: Icon(Icons.settings, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                      label: Text('관리', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6))),
+                      onPressed: () => _showManageCategoriesSheet(),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                    ),
+                  ),
+                ],
               ],
             ),
           )
@@ -390,18 +402,130 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
 
   Widget _buildCategoryChip(String? categoryId, String label, ThemeData theme) {
     final selected = _filterCategoryId == categoryId;
+    final chip = FilterChip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      selected: selected,
+      onSelected: (_) {
+        setState(() => _filterCategoryId = categoryId);
+      },
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+    );
+
+    // 카테고리 칩 길게 누르면 삭제 (전체 칩 제외, owner만)
+    if (categoryId != null && _isOwner) {
+      return Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: GestureDetector(
+          onLongPress: () => _showDeleteCategoryDialog(categoryId, label),
+          child: chip,
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(right: 6),
-      child: FilterChip(
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-        selected: selected,
-        onSelected: (_) {
-          setState(() => _filterCategoryId = categoryId);
-        },
-        visualDensity: VisualDensity.compact,
-        padding: EdgeInsets.zero,
+      child: chip,
+    );
+  }
+
+  void _showManageCategoriesSheet() {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('카테고리 관리',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  )),
+            ),
+            ..._teamCategories.map((cat) {
+              return ListTile(
+                leading: Icon(Icons.label_outline,
+                    color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                title: Text(cat.name),
+                trailing: IconButton(
+                  icon: Icon(Icons.delete_outline, color: Colors.red.withOpacity(0.7), size: 20),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _showDeleteCategoryDialog(cat.id, cat.name);
+                  },
+                ),
+              );
+            }),
+            if (_teamCategories.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text('카테고리가 없습니다',
+                    style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4))),
+              ),
+            SizedBox(height: MediaQuery.of(ctx).padding.bottom + 16),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteCategoryDialog(String categoryId, String name) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('카테고리 삭제'),
+        content: Text('\'$name\' 카테고리를 삭제하시겠습니까?\n해당 카테고리가 지정된 명함은 카테고리 없음으로 변경됩니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _deleteTeamCategory(categoryId);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _deleteTeamCategory(String categoryId) async {
+    try {
+      await ref.read(supabaseServiceProvider).deleteCategory(categoryId);
+      if (_filterCategoryId == categoryId) {
+        _filterCategoryId = null;
+      }
+      ref.invalidate(teamCategoriesProvider(widget.teamId));
+      await _loadCards();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('카테고리가 삭제되었습니다')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('카테고리 삭제 실패: $e')),
+        );
+      }
+    }
   }
 
   void _showCreateCategoryDialog(BuildContext context) {

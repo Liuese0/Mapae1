@@ -84,6 +84,21 @@ CREATE TABLE IF NOT EXISTS categories (
 
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage own categories" ON categories FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Team owner can manage team categories" ON categories FOR ALL USING (
+  team_id IS NOT NULL AND EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = categories.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role = 'owner'
+  )
+);
+CREATE POLICY "Team members can view team categories" ON categories FOR SELECT USING (
+  team_id IS NOT NULL AND EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = categories.team_id
+    AND team_members.user_id = auth.uid()
+  )
+);
 
 -- Add FK from collected_cards to categories
 ALTER TABLE collected_cards
@@ -185,6 +200,22 @@ CREATE POLICY "Team members can view shared cards" ON team_shared_cards FOR SELE
   )
 );
 CREATE POLICY "Team owner and members can share cards" ON team_shared_cards FOR INSERT WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+);
+CREATE POLICY "Team owner and members can update shared cards" ON team_shared_cards FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM team_members
+    WHERE team_members.team_id = team_shared_cards.team_id
+    AND team_members.user_id = auth.uid()
+    AND team_members.role IN ('owner', 'member')
+  )
+);
+CREATE POLICY "Team owner and members can delete shared cards" ON team_shared_cards FOR DELETE USING (
   EXISTS (
     SELECT 1 FROM team_members
     WHERE team_members.team_id = team_shared_cards.team_id
