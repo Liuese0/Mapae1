@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/business_card.dart';
-import '../../wallet/screens/card_camera_screen.dart';
 import '../../wallet/screens/card_crop_screen.dart';
 import 'management_screen.dart';
 
@@ -68,13 +67,20 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
   }
 
   Future<void> _pickFromCamera() async {
-    final File? photo = await Navigator.of(context).push<File>(
-      MaterialPageRoute(builder: (_) => const CardCameraScreen()),
-    );
-    if (photo != null && mounted) {
-      final cropped = await _cropImage(photo);
-      setState(() => _newImage = cropped);
-      await _extractText(cropped);
+    try {
+      final ocrService = ref.read(ocrServiceProvider);
+      final File? scannedImage = await ocrService.scanCardWithDocumentScanner();
+
+      if (scannedImage != null && mounted) {
+        setState(() => _newImage = scannedImage);
+        await _extractText(scannedImage);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('문서 스캔 실패: $e')),
+        );
+      }
     }
   }
 
@@ -269,7 +275,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                           children: [
                             ListTile(
                               leading: const Icon(Icons.camera_alt_outlined),
-                              title: const Text('사진 촬영'),
+                              title: const Text('사진 촬영 (문서 스캐너)'),
                               onTap: () {
                                 Navigator.pop(context);
                                 _pickFromCamera();
