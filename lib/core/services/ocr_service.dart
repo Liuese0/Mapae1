@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import '../constants/app_constants.dart';
 import 'image_processing_service.dart';
@@ -81,6 +83,31 @@ class OcrService {
     } catch (_) {
       return imageFile;
     }
+  }
+
+
+  Future<File?> scanCardWithDocumentScanner() async {
+    if (!(defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS)) {
+      throw Exception('ML Kit 문서 스캐너는 Android/iOS에서만 지원됩니다.');
+    }
+
+    final scanner = DocumentScanner(
+      options: DocumentScannerOptions(
+        documentFormat: DocumentFormat.jpeg,
+        mode: ScannerMode.full,
+        pageLimit: 1,
+        isGalleryImport: true,
+      ),
+    );
+
+    final result = await scanner.scanDocument();
+
+    if (result == null || result.images.isEmpty) {
+      return null;
+    }
+
+    return File(result.images.first);
   }
 
   Future<OcrResult> scanBusinessCard(File imageFile, {String language = 'kor'}) async {

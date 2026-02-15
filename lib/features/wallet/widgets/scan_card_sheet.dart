@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/collected_card.dart';
-import '../screens/card_camera_screen.dart';
 import '../screens/card_crop_screen.dart';
 
 class ScanCardSheet extends ConsumerStatefulWidget {
@@ -24,12 +23,19 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickFromCamera() async {
-    final File? photo = await Navigator.of(context).push<File>(
-      MaterialPageRoute(builder: (_) => const CardCameraScreen()),
-    );
-    if (photo != null && mounted) {
-      final cropped = await _cropImage(photo);
-      await _processImage(cropped);
+    try {
+      final ocrService = ref.read(ocrServiceProvider);
+      final File? scannedImage = await ocrService.scanCardWithDocumentScanner();
+
+      if (scannedImage != null && mounted) {
+        await _processImage(scannedImage);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('문서 스캔 실패: $e')),
+        );
+      }
     }
   }
 
@@ -190,7 +196,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
             _OptionTile(
               icon: Icons.camera_alt_outlined,
               title: '사진 촬영',
-              subtitle: '카메라로 명함을 촬영합니다',
+              subtitle: 'ML Kit 문서 스캐너로 명함을 촬영합니다',
               onTap: _pickFromCamera,
             ),
             const SizedBox(height: 12),
