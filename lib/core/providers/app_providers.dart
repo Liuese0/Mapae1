@@ -6,6 +6,7 @@ import '../services/ocr_service.dart';
 import '../services/nfc_service.dart';
 import '../services/auto_login_service.dart';
 import '../services/image_processing_service.dart';
+import '../services/document_scanner_service.dart';
 import '../../features/shared/models/app_user.dart';
 import '../../features/shared/models/category.dart';
 import '../../features/shared/models/team_invitation.dart';
@@ -30,6 +31,10 @@ final autoLoginServiceProvider = Provider<AutoLoginService>((ref) {
 
 final imageProcessingServiceProvider = Provider<ImageProcessingService>((ref) {
   return ImageProcessingService();
+});
+
+final documentScannerServiceProvider = Provider<DocumentScannerService>((ref) {
+  return DocumentScannerService();
 });
 
 // ──────────────── Auth State ────────────────

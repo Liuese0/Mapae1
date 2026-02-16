@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/collected_card.dart';
 import '../../shared/models/context_tag.dart';
+import '../../wallet/screens/wallet_screen.dart';
 
 final cardDetailProvider =
 FutureProvider.family.autoDispose<CollectedCard?, String>(
@@ -319,6 +320,9 @@ class CardDetailScreen extends ConsumerWidget {
 
     if (confirm == true) {
       await service.deleteCollectedCard(cardId);
+      ref.invalidate(collectedCardsProvider);
+      ref.invalidate(cardCountProvider);
+      ref.invalidate(categoriesProvider);
       if (context.mounted) context.pop();
     }
   }

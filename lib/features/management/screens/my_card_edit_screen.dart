@@ -2,12 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/business_card.dart';
-import '../../wallet/screens/card_camera_screen.dart';
-import '../../wallet/screens/card_crop_screen.dart';
 import 'management_screen.dart';
 
 class MyCardEditScreen extends ConsumerStatefulWidget {
@@ -67,38 +64,13 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
     _imageUrl = card.imageUrl;
   }
 
-  Future<void> _pickFromCamera() async {
-    final File? photo = await Navigator.of(context).push<File>(
-      MaterialPageRoute(builder: (_) => const CardCameraScreen()),
-    );
-    if (photo != null && mounted) {
-      final cropped = await _cropImage(photo);
-      setState(() => _newImage = cropped);
-      await _extractText(cropped);
+  Future<void> _scanWithDocumentScanner() async {
+    final scannerService = ref.read(documentScannerServiceProvider);
+    final scannedFile = await scannerService.scanDocument();
+    if (scannedFile != null && mounted) {
+      setState(() => _newImage = scannedFile);
+      await _extractText(scannedFile);
     }
-  }
-
-  Future<void> _pickFromGallery() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1500,
-      maxHeight: 1500,
-      imageQuality: 70,
-    );
-    if (image != null && mounted) {
-      final file = File(image.path);
-      final cropped = await _cropImage(file);
-      setState(() => _newImage = cropped);
-      await _extractText(cropped);
-    }
-  }
-
-  Future<File> _cropImage(File imageFile) async {
-    final File? cropped = await Navigator.of(context).push<File>(
-      MaterialPageRoute(builder: (_) => CardCropScreen(imageFile: imageFile)),
-    );
-    return cropped ?? imageFile;
   }
 
   Future<void> _extractText(File imageFile) async {
@@ -260,35 +232,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
               // Card image
               Center(
                 child: GestureDetector(
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      builder: (context) => SafeArea(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ListTile(
-                              leading: const Icon(Icons.camera_alt_outlined),
-                              title: const Text('사진 촬영'),
-                              onTap: () {
-                                Navigator.pop(context);
-                                _pickFromCamera();
-                              },
-                            ),
-                            ListTile(
-                              leading:
-                              const Icon(Icons.photo_library_outlined),
-                              title: const Text('갤러리에서 선택'),
-                              onTap: () {
-                                Navigator.pop(context);
-                                _pickFromGallery();
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                  onTap: _scanWithDocumentScanner,
                   child: Container(
                     width: double.infinity,
                     height: 180,

@@ -77,7 +77,7 @@ class OcrService {
     try {
       return await _imageProcessor
           .preprocessForOcr(imageFile)
-          .timeout(const Duration(seconds: 5), onTimeout: () => imageFile);
+          .timeout(const Duration(seconds: 10), onTimeout: () => imageFile);
     } catch (_) {
       return imageFile;
     }
@@ -108,19 +108,34 @@ class OcrService {
       'OCREngine': ocrEngine,
     });
 
-    final response = await _dio.post(
-      AppConstants.ocrApiUrl,
-      data: formData,
-      options: Options(
-        headers: {
-          'apikey': AppConstants.ocrApiKey,
-        },
-        sendTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
-      ),
-    );
+    // Retry up to 2 times on timeout/network errors
+    Response? response;
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        response = await _dio.post(
+          AppConstants.ocrApiUrl,
+          data: formData,
+          options: Options(
+            headers: {
+              'apikey': AppConstants.ocrApiKey,
+            },
+            sendTimeout: const Duration(seconds: 60),
+            receiveTimeout: const Duration(seconds: 60),
+          ),
+        );
+        break; // Success, exit retry loop
+      } on DioException catch (e) {
+        final isRetryable = e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.sendTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            e.type == DioExceptionType.connectionError;
+        if (!isRetryable || attempt == 2) rethrow;
+        // Wait before retry: 2s, 4s
+        await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
+      }
+    }
 
-    if (response.statusCode == 200) {
+    if (response != null && response.statusCode == 200) {
       final data = response.data;
 
       // Check for API-level errors
@@ -252,6 +267,14 @@ class OcrService {
       final emailMatch = emailRegex.firstMatch(line);
       if (emailMatch != null && email == null) {
         email = emailMatch.group(0);
+        // Check if the rest of the line (after removing email) contains address info
+        final remainder = line
+            .replaceAll(emailMatch.group(0)!, '')
+            .replaceAll(RegExp(r'^[:\s,]+|[:\s,]+$'), '')
+            .trim();
+        if (remainder.isNotEmpty && _isAddressLine(remainder) && address == null) {
+          address = remainder;
+        }
         continue;
       }
 
@@ -292,17 +315,28 @@ class OcrService {
       }
 
       // Address indicators (merge consecutive address lines)
+      // But first strip out any embedded email from the address line
       if (_isAddressLine(line)) {
-        if (address == null) {
-          address = line;
-          // Look ahead for continuation lines
-          while (i + 1 < lines.length && _isAddressLine(lines[i + 1])) {
-            i++;
-            address = '$address ${lines[i]}';
+        var addressPart = line;
+        final embeddedEmail = emailRegex.firstMatch(addressPart);
+        if (embeddedEmail != null) {
+          email ??= embeddedEmail.group(0);
+          addressPart = addressPart
+              .replaceAll(embeddedEmail.group(0)!, '')
+              .replaceAll(RegExp(r'^[:\s,]+|[:\s,]+$'), '')
+              .trim();
+        }
+        if (addressPart.isNotEmpty) {
+          if (address == null) {
+            address = addressPart;
+            // Look ahead for continuation lines
+            while (i + 1 < lines.length && _isAddressLine(lines[i + 1])) {
+              i++;
+              address = '$address ${lines[i]}';
+            }
+          } else {
+            address = '$address $addressPart';
           }
-        } else {
-          // Append to existing address if already found
-          address = '$address $line';
         }
         continue;
       }
@@ -344,7 +378,15 @@ class OcrService {
       }
 
       if (nameIdx >= 0 && name == null) {
-        name = remaining[nameIdx];
+        // Even if it matched as a person name, try to split off position keywords
+        final candidate = remaining[nameIdx];
+        final split = _splitPositionAndName(candidate);
+        if (split != null) {
+          name = split['name'];
+          position ??= split['position'];
+        } else {
+          name = candidate;
+        }
         final leftover = [...remaining]..removeAt(nameIdx);
         for (final line in leftover) {
           if (company == null) {
@@ -356,10 +398,16 @@ class OcrService {
           }
         }
       } else if (name == null) {
-        // No clear name found — assign remaining to unfilled fields in order
+        // No clear name found — try splitting each remaining line for position+name
         for (final line in remaining) {
           if (name == null) {
-            name = line;
+            final split = _splitPositionAndName(line);
+            if (split != null) {
+              name = split['name'];
+              position ??= split['position'];
+            } else {
+              name = line;
+            }
           } else if (company == null) {
             company = line;
           } else if (position == null) {
@@ -395,30 +443,28 @@ class OcrService {
   }
 
   /// Try to split a line that contains both a position title and a person name.
+  /// Handles both "직급 이름" and "이름 직급" orders.
   /// Returns {'position': ..., 'name': ...} or null if it can't be split.
   Map<String, String>? _splitPositionAndName(String line) {
-    final allPositionKeywords = [
-      // Longer keywords first to match greedily (대표이사 before 대표)
-      '대표이사', '본부장', '센터장',
-      '대표', '이사', '부장', '차장', '과장', '대리', '사원',
-      '팀장', '실장', '원장', '소장', '교수', '박사',
-      '매니저', '디렉터', '엔지니어',
-      'president', 'director', 'manager', 'engineer', 'developer',
-      'designer', 'analyst', 'consultant', 'specialist', 'officer',
-      'ceo', 'cto', 'cfo', 'coo', 'vp', 'head',
-      '总裁', '总经理', '经理', '主任', '工程师',
-    ];
+    final trimmed = line.trim();
+    final lower = trimmed.toLowerCase();
 
-    final lower = line.toLowerCase().trim();
-    for (final kw in allPositionKeywords) {
-      if (!lower.contains(kw.toLowerCase())) continue;
-      // Remove the keyword and see if there's a remainder
-      final remainder = line
-          .replaceAll(RegExp(RegExp.escape(kw), caseSensitive: false), '')
+    for (final kw in _positionKeywords) {
+      final kwLower = kw.toLowerCase();
+      if (!lower.contains(kwLower)) continue;
+
+      // Remove the matched keyword and clean up
+      final remainder = trimmed
+          .replaceFirst(RegExp(RegExp.escape(kw), caseSensitive: false), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
           .trim();
-      // If removing the keyword leaves something behind, treat it as the name
-      if (remainder.isNotEmpty && remainder != line.trim()) {
-        return {'position': kw, 'name': remainder};
+
+      // Only consider it a split if the remainder looks like a valid name part
+      if (remainder.isNotEmpty && remainder != trimmed) {
+        // Avoid splitting if remainder is too long (likely not just a name)
+        if (remainder.length <= 10 || _isLikelyPersonName(remainder)) {
+          return {'position': kw, 'name': remainder};
+        }
       }
     }
     return null;
@@ -439,22 +485,29 @@ class OcrService {
     return companyIndicators.any((kw) => lower.contains(kw));
   }
 
+  /// All position keywords used for detection and splitting, ordered longest first.
+  static const List<String> _positionKeywords = [
+    // Korean - longer keywords first for greedy matching
+    '대표이사', '부대표', '전무이사', '상무이사', '본부장', '센터장',
+    '수석연구원', '책임연구원', '선임연구원', '주임연구원', '연구원',
+    '수석', '책임', '선임', '주임',
+    '대표', '전무', '상무', '이사', '부장', '차장', '과장', '대리', '사원',
+    '팀장', '실장', '원장', '소장', '교수', '박사', '위원', '간사',
+    '매니저', '디렉터', '엔지니어', '컨설턴트',
+    // English
+    'president', 'vice president', 'director', 'manager', 'engineer',
+    'developer', 'designer', 'analyst', 'consultant', 'specialist',
+    'officer', 'head', 'lead', 'senior', 'associate', 'assistant',
+    'supervisor', 'coordinator', 'advisor', 'architect',
+    'ceo', 'cto', 'cfo', 'coo', 'vp', 'evp', 'svp',
+    // Chinese
+    '总裁', '总经理', '副总经理', '经理', '副经理', '主任', '工程师',
+  ];
+
   /// Check if a line looks like a job title / position.
   bool _isPositionTitle(String line) {
-    final positionIndicators = [
-      // Korean
-      '대표', '이사', '부장', '차장', '과장', '대리', '사원', '팀장',
-      '실장', '본부장', '센터장', '원장', '소장', '교수', '박사',
-      '매니저', '디렉터', '엔지니어',
-      // English
-      'ceo', 'cto', 'cfo', 'coo', 'vp', 'president', 'director',
-      'manager', 'engineer', 'developer', 'designer', 'analyst',
-      'consultant', 'specialist', 'officer', 'head',
-      // Chinese
-      '总裁', '总经理', '经理', '主任', '工程师',
-    ];
-    final lower = line.toLowerCase();
-    return positionIndicators.any((kw) => lower.contains(kw));
+    final lower = line.toLowerCase().trim();
+    return _positionKeywords.any((kw) => lower.contains(kw.toLowerCase()));
   }
 
   /// Check if a line looks like a department name.
@@ -480,17 +533,35 @@ class OcrService {
   /// Check if a line is likely a person's name rather than an organization.
   bool _isLikelyPersonName(String line) {
     final trimmed = line.trim();
+
+    // Reject if it's a company or department
+    if (_isCompanyName(trimmed) || _isDepartmentName(trimmed)) return false;
+
     // Korean names are typically 2-4 characters (syllables)
     final koreanOnly = trimmed.replaceAll(RegExp(r'[^가-힣]'), '');
     if (koreanOnly.length >= 2 && koreanOnly.length <= 4 && trimmed.length <= 5) {
       return true;
     }
+
+    // Korean name + position on same line (e.g. "홍길동 과장", "대리 홍길동")
+    // Still counts as "likely person name" — splitting is done separately
+    if (koreanOnly.length >= 2 && koreanOnly.length <= 4 && trimmed.length <= 12) {
+      // Check if stripping position keywords leaves a valid Korean name
+      var stripped = trimmed;
+      for (final kw in _positionKeywords) {
+        stripped = stripped.replaceAll(RegExp(RegExp.escape(kw), caseSensitive: false), '').trim();
+      }
+      final strippedKorean = stripped.replaceAll(RegExp(r'[^가-힣]'), '');
+      if (strippedKorean.length >= 2 && strippedKorean.length <= 4) {
+        return true;
+      }
+    }
+
     // English names: 2-3 words, each starting with uppercase
     final words = trimmed.split(RegExp(r'\s+'));
     if (words.length >= 2 &&
         words.length <= 3 &&
         words.every((w) => w.isNotEmpty && w[0] == w[0].toUpperCase()) &&
-        !_isCompanyName(trimmed) &&
         !_isPositionTitle(trimmed)) {
       return true;
     }
