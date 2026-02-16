@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
-import '../../../core/services/nfc_service.dart';
+
 import '../../../core/utils/responsive.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/widgets/notification_bell.dart';

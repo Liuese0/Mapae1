@@ -16,9 +16,6 @@ class AppConstants {
   static const int maxMyCards = 10;
   static const int maxCategories = 50;
 
-  // NFC
-  static const String nfcMimeType = 'application/com.namecard.card';
-
   // Animation durations
   static const Duration shortAnimation = Duration(milliseconds: 200);
   static const Duration mediumAnimation = Duration(milliseconds: 400);

@@ -279,9 +279,32 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
             ),
             const SizedBox(height: 12),
 
-            // Language
+            // Personal info
             AnimatedListItem(
               index: 9,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: 4),
+                child: _TapScaleWidget(
+                  onTap: () => context.push('/profile'),
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_outlined, size: 20,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text('개인정보', style: TextStyle(fontSize: 15)),
+                      ),
+                      Icon(Icons.chevron_right,
+                          color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Language
+            AnimatedListItem(
+              index: 10,
               child: _SettingsTile(
                 icon: Icons.language,
                 title: '언어',
@@ -292,7 +315,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
 
             // Dark mode
             AnimatedListItem(
-              index: 10,
+              index: 11,
               child: _SettingsTile(
                 icon: Icons.dark_mode_outlined,
                 title: '다크 모드',
@@ -314,7 +337,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
 
             // Logout
             AnimatedListItem(
-              index: 11,
+              index: 12,
               child: Padding(
                 padding: EdgeInsets.symmetric(
                     horizontal: hPadding, vertical: 8),

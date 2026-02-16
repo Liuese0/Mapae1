@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/providers/app_providers.dart';
-import '../../../core/services/nfc_service.dart';
+
 import '../../../core/services/supabase_service.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/collected_card.dart';
@@ -20,10 +20,7 @@ class ShareBottomSheet extends ConsumerStatefulWidget {
 }
 
 class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
-  bool _nfcMode = false;
-  bool _nfcReady = false;
   bool _quickShareMode = false;
-  NfcService? _nfcService;
   late final SupabaseService _supabaseService;
   bool _quickShareSessionActive = false;
 
@@ -53,38 +50,6 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
 
     Share.share(text.toString(), subject: '명함 공유 - ${card.name ?? ""}');
     Navigator.of(context).pop();
-  }
-
-  void _shareViaNfc() {
-    setState(() => _nfcMode = true);
-
-    final nfcService = ref.read(nfcServiceProvider);
-    _nfcService = nfcService;
-    nfcService.sendCard(
-      card: widget.card,
-      onSending: () {
-        setState(() => _nfcReady = true);
-      },
-      onSuccess: () {
-        if (mounted) {
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('명함이 공유되었습니다.')),
-          );
-        }
-      },
-      onError: (error) {
-        if (mounted) {
-          setState(() {
-            _nfcMode = false;
-            _nfcReady = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error)),
-          );
-        }
-      },
-    );
   }
 
   Future<void> _shareViaQuickShare() async {
@@ -258,9 +223,6 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
 
   @override
   void dispose() {
-    if (_nfcMode) {
-      _nfcService?.stopSession();
-    }
     _sessionHeartbeatTimer?.cancel();
     _quickSharePollTimer?.cancel();
     if (_quickShareMode && _quickShareSessionActive) {
@@ -273,10 +235,6 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    if (_nfcMode) {
-      return _buildNfcMode(theme);
-    }
 
     if (_quickShareMode) {
       return _buildQuickShareMode(theme);
@@ -314,13 +272,6 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
             title: 'SNS로 공유',
             subtitle: '카카오톡, 메시지 등',
             onTap: _shareViaSns,
-          ),
-          const SizedBox(height: 12),
-          _ShareOption(
-            icon: Icons.nfc_outlined,
-            title: 'NFC로 공유',
-            subtitle: '핸드폰을 서로 맞대세요',
-            onTap: _shareViaNfc,
           ),
           const SizedBox(height: 12),
           _ShareOption(
@@ -514,77 +465,6 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
     );
   }
 
-  Widget _buildNfcMode(ThemeData theme) {
-    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
-
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.6,
-      decoration: BoxDecoration(
-        color: theme.bottomSheetTheme.backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
-      child: Column(
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const Spacer(),
-          Transform.rotate(
-            angle: 1.5708,
-            child: Container(
-              width: 200,
-              height: 120,
-              decoration: BoxDecoration(
-                color: theme.cardTheme.color,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: theme.colorScheme.outline),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 16)],
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(widget.card.name ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                  if (widget.card.company != null)
-                    Text(
-                      widget.card.company!,
-                      style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurface.withOpacity(0.5)),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _nfcReady ? theme.colorScheme.primary.withOpacity(0.1) : Colors.transparent,
-              border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3), width: 2),
-            ),
-            child: Icon(Icons.nfc, size: 36, color: theme.colorScheme.primary),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '상대방 핸드폰을 가까이 대세요',
-            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6)),
-          ),
-          const Spacer(),
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('취소')),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
 }
 
 enum _QuickShareStage { scanning, discovered, exchanging, completed }

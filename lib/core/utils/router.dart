@@ -11,6 +11,7 @@ import '../../features/card_detail/screens/card_edit_screen.dart';
 import '../../features/management/screens/my_card_edit_screen.dart';
 import '../../features/management/screens/team_management_screen.dart';
 import '../../features/management/screens/tag_template_screen.dart';
+import '../../features/management/screens/profile_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/shared/widgets/main_shell.dart';
 import '../services/auto_login_service.dart';
@@ -187,6 +188,24 @@ class AppRouter {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const TagTemplateScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide = Tween(
+              begin: const Offset(1.0, 0.0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ));
+            return SlideTransition(position: slide, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
+      ),
+      GoRoute(
+        path: '/profile',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const ProfileScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             final slide = Tween(
               begin: const Offset(1.0, 0.0),

@@ -15,8 +15,6 @@
   "orDivider": "或",
   "shareCard": "分享名片",
   "shareViaSns": "通过SNS分享",
-  "shareViaNfc": "通过NFC分享",
-  "bringPhoneCloser": "请将手机靠近对方设备",
   "totalCards": "共 {count} 张名片",
   "@totalCards": {
     "placeholders": {
@@ -95,8 +93,6 @@
   "korean": "한국어",
   "english": "English",
   "chinese": "中文",
-  "nfcNotAvailable": "此设备不支持NFC。",
-  "nfcReady": "NFC已就绪",
   "cardShared": "名片已分享。",
   "noCards": "暂无名片。",
   "noMyCards": "暂无已注册的名片。",

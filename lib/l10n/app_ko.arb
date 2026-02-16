@@ -15,8 +15,6 @@
   "orDivider": "또는",
   "shareCard": "명함 공유",
   "shareViaSns": "SNS로 공유",
-  "shareViaNfc": "NFC로 공유",
-  "bringPhoneCloser": "상대방 핸드폰을 가까이 대세요",
   "totalCards": "전체 명함 {count}장",
   "@totalCards": {
     "placeholders": {
@@ -95,8 +93,6 @@
   "korean": "한국어",
   "english": "English",
   "chinese": "中文",
-  "nfcNotAvailable": "이 기기에서는 NFC를 사용할 수 없습니다.",
-  "nfcReady": "NFC 준비 완료",
   "cardShared": "명함이 공유되었습니다.",
   "noCards": "명함이 없습니다.",
   "noMyCards": "등록된 내 명함이 없습니다.",

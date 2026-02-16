@@ -28,6 +28,7 @@ class SupabaseService {
       email: email,
       password: password,
       data: {'name': name},
+      emailRedirectTo: 'com.namecard.app://login-callback',
     );
     return response;
   }
@@ -51,6 +52,27 @@ class SupabaseService {
 
   Future<void> signOut() async {
     await _client.auth.signOut();
+  }
+
+  Future<void> deleteAccount() async {
+    final user = currentUser;
+    if (user == null) throw Exception('로그인이 필요합니다.');
+
+    // Delete user profile data first
+    await _client.from(SupabaseConstants.usersTable).delete().eq('id', user.id);
+
+    // Sign out (actual auth user deletion requires Supabase Edge Function or admin API)
+    await _client.auth.signOut();
+  }
+
+  Future<void> updateUserName(String name) async {
+    final user = currentUser;
+    if (user == null) throw Exception('로그인이 필요합니다.');
+
+    await _client
+        .from(SupabaseConstants.usersTable)
+        .update({'name': name})
+        .eq('id', user.id);
   }
 
   Future<void> resetPassword(String email) async {

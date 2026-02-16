@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../services/ocr_service.dart';
-import '../services/nfc_service.dart';
+
 import '../services/auto_login_service.dart';
 import '../services/image_processing_service.dart';
 import '../services/document_scanner_service.dart';
@@ -21,9 +21,6 @@ final ocrServiceProvider = Provider<OcrService>((ref) {
   return OcrService();
 });
 
-final nfcServiceProvider = Provider<NfcService>((ref) {
-  return NfcService();
-});
 
 final autoLoginServiceProvider = Provider<AutoLoginService>((ref) {
   return AutoLoginService();
