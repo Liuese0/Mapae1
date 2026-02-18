@@ -5,7 +5,34 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../shared/models/business_card.dart';
+import '../../shared/models/context_tag.dart';
 import 'management_screen.dart';
+import 'tag_template_screen.dart';
+
+/// 템플릿 필드 이름 → BusinessCard 필드 매핑
+const _myCardFieldMap = <String, String>{
+  '이름': 'name',
+  '회사명': 'company',
+  '회사': 'company',
+  '직급': 'position',
+  '직함': 'position',
+  '부서': 'department',
+  '이메일': 'email',
+  '전화번호': 'phone',
+  '전화': 'phone',
+  '휴대폰': 'mobile',
+  '핸드폰': 'mobile',
+  '주소': 'address',
+  '웹사이트': 'website',
+  '홈페이지': 'website',
+};
+
+const _myCardKeyboard = <String, TextInputType>{
+  'email': TextInputType.emailAddress,
+  'phone': TextInputType.phone,
+  'mobile': TextInputType.phone,
+  'website': TextInputType.url,
+};
 
 class MyCardEditScreen extends ConsumerStatefulWidget {
   final String? cardId;
@@ -18,15 +45,13 @@ class MyCardEditScreen extends ConsumerStatefulWidget {
 
 class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _companyCtrl = TextEditingController();
-  final _positionCtrl = TextEditingController();
-  final _departmentCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _mobileCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
-  final _websiteCtrl = TextEditingController();
+
+  final _cardControllers = <String, TextEditingController>{};
+  static const _allFields = [
+    'name', 'company', 'position', 'department',
+    'email', 'phone', 'mobile', 'address', 'website',
+  ];
+
   String? _imageUrl;
   File? _newImage;
   bool _isLoading = false;
@@ -34,17 +59,27 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
   bool _initialized = false;
   BusinessCard? _existingCard;
 
+  // 템플릿 상태
+  TagTemplate? _selectedTemplate;
+  final Map<String, TextEditingController> _customFieldControllers = {};
+  final Map<String, bool> _customCheckValues = {};
+
+  @override
+  void initState() {
+    super.initState();
+    for (final key in _allFields) {
+      _cardControllers[key] = TextEditingController();
+    }
+  }
+
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _companyCtrl.dispose();
-    _positionCtrl.dispose();
-    _departmentCtrl.dispose();
-    _emailCtrl.dispose();
-    _phoneCtrl.dispose();
-    _mobileCtrl.dispose();
-    _addressCtrl.dispose();
-    _websiteCtrl.dispose();
+    for (final ctrl in _cardControllers.values) {
+      ctrl.dispose();
+    }
+    for (final ctrl in _customFieldControllers.values) {
+      ctrl.dispose();
+    }
     super.dispose();
   }
 
@@ -52,16 +87,50 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
     if (_initialized) return;
     _initialized = true;
     _existingCard = card;
-    _nameCtrl.text = card.name ?? '';
-    _companyCtrl.text = card.company ?? '';
-    _positionCtrl.text = card.position ?? '';
-    _departmentCtrl.text = card.department ?? '';
-    _emailCtrl.text = card.email ?? '';
-    _phoneCtrl.text = card.phone ?? '';
-    _mobileCtrl.text = card.mobile ?? '';
-    _addressCtrl.text = card.address ?? '';
-    _websiteCtrl.text = card.website ?? '';
+    _cardControllers['name']!.text = card.name ?? '';
+    _cardControllers['company']!.text = card.company ?? '';
+    _cardControllers['position']!.text = card.position ?? '';
+    _cardControllers['department']!.text = card.department ?? '';
+    _cardControllers['email']!.text = card.email ?? '';
+    _cardControllers['phone']!.text = card.phone ?? '';
+    _cardControllers['mobile']!.text = card.mobile ?? '';
+    _cardControllers['address']!.text = card.address ?? '';
+    _cardControllers['website']!.text = card.website ?? '';
     _imageUrl = card.imageUrl;
+  }
+
+  String? _resolveCardField(String fieldName) {
+    return _myCardFieldMap[fieldName];
+  }
+
+  void _selectTemplate(TagTemplate template) {
+    for (final ctrl in _customFieldControllers.values) {
+      ctrl.dispose();
+    }
+    _customFieldControllers.clear();
+    _customCheckValues.clear();
+
+    _selectedTemplate = template;
+
+    for (final field in template.fields) {
+      final cardField = _resolveCardField(field.name);
+      if (cardField != null) continue;
+
+      if (field.type == TagFieldType.check) {
+        _customCheckValues[field.id] = false;
+      } else {
+        _customFieldControllers[field.id] = TextEditingController();
+      }
+    }
+  }
+
+  void _clearTemplate() {
+    for (final ctrl in _customFieldControllers.values) {
+      ctrl.dispose();
+    }
+    _customFieldControllers.clear();
+    _customCheckValues.clear();
+    _selectedTemplate = null;
   }
 
   Future<void> _scanWithDocumentScanner() async {
@@ -85,32 +154,32 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
 
       if (mounted) {
         setState(() {
-          if (result.name != null && result.name!.isNotEmpty && _nameCtrl.text.isEmpty) {
-            _nameCtrl.text = result.name!;
+          if (result.name != null && result.name!.isNotEmpty && _cardControllers['name']!.text.isEmpty) {
+            _cardControllers['name']!.text = result.name!;
           }
-          if (result.company != null && result.company!.isNotEmpty && _companyCtrl.text.isEmpty) {
-            _companyCtrl.text = result.company!;
+          if (result.company != null && result.company!.isNotEmpty && _cardControllers['company']!.text.isEmpty) {
+            _cardControllers['company']!.text = result.company!;
           }
-          if (result.position != null && result.position!.isNotEmpty && _positionCtrl.text.isEmpty) {
-            _positionCtrl.text = result.position!;
+          if (result.position != null && result.position!.isNotEmpty && _cardControllers['position']!.text.isEmpty) {
+            _cardControllers['position']!.text = result.position!;
           }
-          if (result.department != null && result.department!.isNotEmpty && _departmentCtrl.text.isEmpty) {
-            _departmentCtrl.text = result.department!;
+          if (result.department != null && result.department!.isNotEmpty && _cardControllers['department']!.text.isEmpty) {
+            _cardControllers['department']!.text = result.department!;
           }
-          if (result.email != null && result.email!.isNotEmpty && _emailCtrl.text.isEmpty) {
-            _emailCtrl.text = result.email!;
+          if (result.email != null && result.email!.isNotEmpty && _cardControllers['email']!.text.isEmpty) {
+            _cardControllers['email']!.text = result.email!;
           }
-          if (result.phone != null && result.phone!.isNotEmpty && _phoneCtrl.text.isEmpty) {
-            _phoneCtrl.text = result.phone!;
+          if (result.phone != null && result.phone!.isNotEmpty && _cardControllers['phone']!.text.isEmpty) {
+            _cardControllers['phone']!.text = result.phone!;
           }
-          if (result.mobile != null && result.mobile!.isNotEmpty && _mobileCtrl.text.isEmpty) {
-            _mobileCtrl.text = result.mobile!;
+          if (result.mobile != null && result.mobile!.isNotEmpty && _cardControllers['mobile']!.text.isEmpty) {
+            _cardControllers['mobile']!.text = result.mobile!;
           }
-          if (result.address != null && result.address!.isNotEmpty && _addressCtrl.text.isEmpty) {
-            _addressCtrl.text = result.address!;
+          if (result.address != null && result.address!.isNotEmpty && _cardControllers['address']!.text.isEmpty) {
+            _cardControllers['address']!.text = result.address!;
           }
-          if (result.website != null && result.website!.isNotEmpty && _websiteCtrl.text.isEmpty) {
-            _websiteCtrl.text = result.website!;
+          if (result.website != null && result.website!.isNotEmpty && _cardControllers['website']!.text.isEmpty) {
+            _cardControllers['website']!.text = result.website!;
           }
         });
       }
@@ -149,15 +218,15 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
       final card = BusinessCard(
         id: widget.cardId ?? const Uuid().v4(),
         userId: user.id,
-        name: _nameCtrl.text.trim(),
-        company: _companyCtrl.text.trim(),
-        position: _positionCtrl.text.trim(),
-        department: _departmentCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
-        phone: _phoneCtrl.text.trim(),
-        mobile: _mobileCtrl.text.trim(),
-        address: _addressCtrl.text.trim(),
-        website: _websiteCtrl.text.trim(),
+        name: _cardControllers['name']!.text.trim(),
+        company: _cardControllers['company']!.text.trim(),
+        position: _cardControllers['position']!.text.trim(),
+        department: _cardControllers['department']!.text.trim(),
+        email: _cardControllers['email']!.text.trim(),
+        phone: _cardControllers['phone']!.text.trim(),
+        mobile: _cardControllers['mobile']!.text.trim(),
+        address: _cardControllers['address']!.text.trim(),
+        website: _cardControllers['website']!.text.trim(),
         imageUrl: imageUrl,
         createdAt: _existingCard?.createdAt ?? now,
         updatedAt: now,
@@ -192,6 +261,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEdit = widget.cardId != null;
+    final templatesAsync = ref.watch(tagTemplatesProvider);
 
     // Load existing card data if editing
     if (isEdit) {
@@ -201,6 +271,8 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
         if (card != null) _populateFields(card);
       });
     }
+
+    final templates = templatesAsync.valueOrNull ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -303,19 +375,51 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
               ],
               const SizedBox(height: 24),
 
-              _buildField('이름 *', _nameCtrl, required: true),
-              _buildField('회사명', _companyCtrl),
-              _buildField('직급', _positionCtrl),
-              _buildField('부서', _departmentCtrl),
-              _buildField('이메일', _emailCtrl,
-                  keyboard: TextInputType.emailAddress),
-              _buildField('전화번호', _phoneCtrl,
-                  keyboard: TextInputType.phone),
-              _buildField('휴대폰', _mobileCtrl,
-                  keyboard: TextInputType.phone),
-              _buildField('주소', _addressCtrl),
-              _buildField('웹사이트', _websiteCtrl,
-                  keyboard: TextInputType.url),
+              // ── 양식 선택 드롭다운 ──
+              if (templates.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedTemplate?.id,
+                    decoration: InputDecoration(
+                      labelText: '입력 양식',
+                      labelStyle: const TextStyle(fontSize: 13),
+                      prefixIcon: Icon(
+                        Icons.description_outlined,
+                        size: 20,
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                    ),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('기본 양식',
+                            style: TextStyle(fontSize: 14)),
+                      ),
+                      ...templates.map((t) => DropdownMenuItem<String>(
+                        value: t.id,
+                        child: Text(t.name,
+                            style: const TextStyle(fontSize: 14)),
+                      )),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        if (value == null) {
+                          _clearTemplate();
+                        } else {
+                          final template =
+                          templates.firstWhere((t) => t.id == value);
+                          if (_selectedTemplate?.id == template.id) return;
+                          _selectTemplate(template);
+                        }
+                      });
+                    },
+                  ),
+                ),
+
+              // ── 폼 필드 ──
+              ..._buildFormFields(),
+
               const SizedBox(height: 40),
             ],
           ),
@@ -324,17 +428,103 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
     );
   }
 
-  Widget _buildField(
-      String label,
-      TextEditingController controller, {
-        TextInputType keyboard = TextInputType.text,
-        bool required = false,
-      }) {
+  List<Widget> _buildFormFields() {
+    // 기본 양식
+    if (_selectedTemplate == null) {
+      return [
+        _buildCardField('이름 *', 'name', required: true),
+        _buildCardField('회사명', 'company'),
+        _buildCardField('직급', 'position'),
+        _buildCardField('부서', 'department'),
+        _buildCardField('이메일', 'email'),
+        _buildCardField('전화번호', 'phone'),
+        _buildCardField('휴대폰', 'mobile'),
+        _buildCardField('주소', 'address'),
+        _buildCardField('웹사이트', 'website'),
+      ];
+    }
+
+    // 템플릿 양식
+    final sortedFields = [..._selectedTemplate!.fields]
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
+    return sortedFields.map((field) {
+      final cardField = _resolveCardField(field.name);
+
+      if (cardField != null) {
+        return _buildCardField(field.name, cardField);
+      }
+
+      // 커스텀 필드
+      switch (field.type) {
+        case TagFieldType.text:
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: TextFormField(
+              controller: _customFieldControllers[field.id],
+              decoration: InputDecoration(
+                labelText: field.name,
+                labelStyle: const TextStyle(fontSize: 13),
+              ),
+            ),
+          );
+        case TagFieldType.date:
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: TextFormField(
+              controller: _customFieldControllers[field.id],
+              readOnly: true,
+              decoration: InputDecoration(
+                labelText: field.name,
+                labelStyle: const TextStyle(fontSize: 13),
+                suffixIcon: const Icon(Icons.calendar_today, size: 18),
+              ),
+              onTap: () async {
+                final ctrl = _customFieldControllers[field.id]!;
+                final now = DateTime.now();
+                DateTime? initial;
+                try { initial = DateTime.parse(ctrl.text); } catch (_) {}
+
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: initial ?? now,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) {
+                  ctrl.text =
+                  '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+                }
+              },
+            ),
+          );
+        case TagFieldType.check:
+          final checked = _customCheckValues[field.id] ?? false;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: CheckboxListTile(
+              title: Text(field.name, style: const TextStyle(fontSize: 14)),
+              value: checked,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              onChanged: (value) {
+                setState(() {
+                  _customCheckValues[field.id] = value ?? false;
+                });
+              },
+            ),
+          );
+      }
+    }).toList();
+  }
+
+  Widget _buildCardField(String label, String fieldKey,
+      {bool required = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
-        controller: controller,
-        keyboardType: keyboard,
+        controller: _cardControllers[fieldKey],
+        keyboardType: _myCardKeyboard[fieldKey] ?? TextInputType.text,
         decoration: InputDecoration(labelText: label),
         validator: required
             ? (v) => (v == null || v.trim().isEmpty) ? '필수 입력' : null

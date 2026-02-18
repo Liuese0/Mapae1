@@ -1,4 +1,4 @@
-enum TagFieldType { text, date, select }
+enum TagFieldType { text, date, check }
 
 class TagTemplate {
   final String id;
@@ -21,8 +21,8 @@ class TagTemplate {
       userId: json['user_id'] as String,
       name: json['name'] as String,
       fields: (json['fields'] as List<dynamic>?)
-              ?.map((f) => TagTemplateField.fromJson(f as Map<String, dynamic>))
-              .toList() ??
+          ?.map((f) => TagTemplateField.fromJson(f as Map<String, dynamic>))
+          .toList() ??
           [],
       createdAt: DateTime.parse(json['created_at'] as String),
     );
@@ -43,14 +43,12 @@ class TagTemplateField {
   final String id;
   final String name;
   final TagFieldType type;
-  final List<String>? options; // for select type
   final int sortOrder;
 
   const TagTemplateField({
     required this.id,
     required this.name,
     required this.type,
-    this.options,
     this.sortOrder = 0,
   });
 
@@ -59,10 +57,9 @@ class TagTemplateField {
       id: json['id'] as String,
       name: json['name'] as String,
       type: TagFieldType.values.firstWhere(
-        (t) => t.name == json['type'],
+            (t) => t.name == json['type'],
         orElse: () => TagFieldType.text,
       ),
-      options: (json['options'] as List<dynamic>?)?.cast<String>(),
       sortOrder: json['sort_order'] as int? ?? 0,
     );
   }
@@ -72,7 +69,6 @@ class TagTemplateField {
       'id': id,
       'name': name,
       'type': type.name,
-      'options': options,
       'sort_order': sortOrder,
     };
   }

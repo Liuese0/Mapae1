@@ -6,7 +6,7 @@ import '../../../core/providers/app_providers.dart';
 import '../../shared/models/context_tag.dart';
 
 final tagTemplatesProvider =
-    FutureProvider.autoDispose<List<TagTemplate>>((ref) async {
+FutureProvider.autoDispose<List<TagTemplate>>((ref) async {
   final service = ref.read(supabaseServiceProvider);
   final user = service.currentUser;
   if (user == null) return [];
@@ -166,8 +166,8 @@ class _TemplateTile extends StatelessWidget {
                 case TagFieldType.date:
                   typeLabel = '날짜';
                   break;
-                case TagFieldType.select:
-                  typeLabel = '선택';
+                case TagFieldType.check:
+                  typeLabel = '체크';
                   break;
               }
               return Chip(
@@ -217,7 +217,6 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
       _fields.add(_FieldEntry(
         nameController: TextEditingController(),
         type: TagFieldType.text,
-        options: [],
       ));
     });
   }
@@ -255,9 +254,6 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
           id: const Uuid().v4(),
           name: entry.value.nameController.text.trim(),
           type: entry.value.type,
-          options: entry.value.type == TagFieldType.select
-              ? entry.value.options
-              : null,
           sortOrder: entry.key,
         );
       }).toList();
@@ -306,10 +302,10 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
             onPressed: _isLoading ? null : _save,
             child: _isLoading
                 ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
                 : const Text('저장'),
           ),
         ],
@@ -347,63 +343,51 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.colorScheme.outline),
                 ),
-                child: Column(
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: field.nameController,
-                            decoration: const InputDecoration(
-                              labelText: '필드 이름',
-                              isDense: true,
-                            ),
-                          ),
+                    Expanded(
+                      child: TextFormField(
+                        controller: field.nameController,
+                        decoration: const InputDecoration(
+                          labelText: '필드 이름',
+                          isDense: true,
                         ),
-                        const SizedBox(width: 8),
-                        DropdownButton<TagFieldType>(
-                          value: field.type,
-                          underline: const SizedBox.shrink(),
-                          items: const [
-                            DropdownMenuItem(
-                              value: TagFieldType.text,
-                              child: Text('텍스트', style: TextStyle(fontSize: 13)),
-                            ),
-                            DropdownMenuItem(
-                              value: TagFieldType.date,
-                              child: Text('날짜', style: TextStyle(fontSize: 13)),
-                            ),
-                            DropdownMenuItem(
-                              value: TagFieldType.select,
-                              child: Text('선택', style: TextStyle(fontSize: 13)),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() => _fields[index].type = value);
-                            }
-                          },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    DropdownButton<TagFieldType>(
+                      value: field.type,
+                      underline: const SizedBox.shrink(),
+                      items: const [
+                        DropdownMenuItem(
+                          value: TagFieldType.text,
+                          child:
+                          Text('텍스트', style: TextStyle(fontSize: 13)),
                         ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.close,
-                            size: 18,
-                            color: Colors.red.shade300,
-                          ),
-                          onPressed: () => _removeField(index),
-                          visualDensity: VisualDensity.compact,
+                        DropdownMenuItem(
+                          value: TagFieldType.date,
+                          child: Text('날짜', style: TextStyle(fontSize: 13)),
+                        ),
+                        DropdownMenuItem(
+                          value: TagFieldType.check,
+                          child: Text('체크', style: TextStyle(fontSize: 13)),
                         ),
                       ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _fields[index].type = value);
+                        }
+                      },
                     ),
-                    if (field.type == TagFieldType.select) ...[
-                      const SizedBox(height: 8),
-                      _SelectOptionsEditor(
-                        options: field.options,
-                        onChanged: (options) {
-                          setState(() => _fields[index].options = options);
-                        },
+                    IconButton(
+                      icon: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.red.shade300,
                       ),
-                    ],
+                      onPressed: () => _removeField(index),
+                      visualDensity: VisualDensity.compact,
+                    ),
                   ],
                 ),
               );
@@ -456,18 +440,26 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
                               ),
                             ),
                           ),
-                          Expanded(
-                            child: Container(
-                              height: 28,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: theme.colorScheme.outline
-                                      .withOpacity(0.5),
+                          if (field.type == TagFieldType.check)
+                            Icon(
+                              Icons.check_box_outline_blank,
+                              size: 20,
+                              color: theme.colorScheme.onSurface
+                                  .withOpacity(0.3),
+                            )
+                          else
+                            Expanded(
+                              child: Container(
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: theme.colorScheme.outline
+                                        .withOpacity(0.5),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     );
@@ -485,88 +477,9 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
 class _FieldEntry {
   final TextEditingController nameController;
   TagFieldType type;
-  List<String> options;
 
   _FieldEntry({
     required this.nameController,
     required this.type,
-    required this.options,
   });
-}
-
-class _SelectOptionsEditor extends StatefulWidget {
-  final List<String> options;
-  final Function(List<String>) onChanged;
-
-  const _SelectOptionsEditor({
-    required this.options,
-    required this.onChanged,
-  });
-
-  @override
-  State<_SelectOptionsEditor> createState() => _SelectOptionsEditorState();
-}
-
-class _SelectOptionsEditorState extends State<_SelectOptionsEditor> {
-  final _controller = TextEditingController();
-
-  void _addOption() {
-    if (_controller.text.trim().isNotEmpty) {
-      final updated = [...widget.options, _controller.text.trim()];
-      widget.onChanged(updated);
-      _controller.clear();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: 4,
-          children: widget.options.asMap().entries.map((entry) {
-            return Chip(
-              label: Text(entry.value, style: const TextStyle(fontSize: 11)),
-              onDeleted: () {
-                final updated = [...widget.options]..removeAt(entry.key);
-                widget.onChanged(updated);
-              },
-              deleteIconColor: Colors.red.shade300,
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _controller,
-                decoration: const InputDecoration(
-                  hintText: '선택 옵션 추가',
-                  isDense: true,
-                ),
-                onFieldSubmitted: (_) => _addOption(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline, size: 20),
-              onPressed: _addOption,
-              visualDensity: VisualDensity.compact,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
