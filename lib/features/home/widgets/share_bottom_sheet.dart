@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/providers/app_providers.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/collected_card.dart';
@@ -39,7 +40,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
     _supabaseService = ref.read(supabaseServiceProvider);
   }
 
-  void _shareViaSns() {
+  Future<void> _shareViaSns() async {
     final card = widget.card;
     final text = StringBuffer('${card.name ?? ""}');
     if (card.company != null) text.write(' | ${card.company}');
@@ -48,8 +49,18 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
     if (card.phone != null) text.write('\n${card.phone}');
     if (card.mobile != null) text.write('\n${card.mobile}');
 
+    try {
+      final token = await _supabaseService.createSharedLink(card);
+      final shareUrl =
+          '${AppConstants.supabaseUrl}/functions/v1/share-redirect?token=$token';
+      text.write('\n\n📇 Mapae 앱으로 이 명함을 저장하세요:');
+      text.write('\n$shareUrl');
+    } catch (_) {
+      // 링크 생성 실패 시 텍스트만 공유
+    }
+
     Share.share(text.toString(), subject: '명함 공유 - ${card.name ?? ""}');
-    Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _shareViaQuickShare() async {

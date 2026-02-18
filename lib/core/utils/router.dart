@@ -13,6 +13,7 @@ import '../../features/management/screens/team_management_screen.dart';
 import '../../features/management/screens/tag_template_screen.dart';
 import '../../features/management/screens/profile_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
+import '../../features/card_detail/screens/shared_card_receive_screen.dart';
 import '../../features/shared/widgets/main_shell.dart';
 import '../services/auto_login_service.dart';
 
@@ -215,6 +216,29 @@ class AppRouter {
               curve: Curves.easeOutCubic,
             ));
             return SlideTransition(position: slide, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
+      ),
+      GoRoute(
+        path: '/shared-card/:token',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: SharedCardReceiveScreen(
+            token: state.pathParameters['token']!,
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final slide = Tween(
+              begin: const Offset(0.0, 0.05),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ));
+            return SlideTransition(
+              position: slide,
+              child: FadeTransition(opacity: animation, child: child),
+            );
           },
           transitionDuration: const Duration(milliseconds: 300),
         ),

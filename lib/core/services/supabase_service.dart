@@ -58,10 +58,9 @@ class SupabaseService {
     final user = currentUser;
     if (user == null) throw Exception('로그인이 필요합니다.');
 
-    // Delete user profile data first
-    await _client.from(SupabaseConstants.usersTable).delete().eq('id', user.id);
+    // Call DB function that deletes all user data + auth.users row
+    await _client.rpc('delete_user_account');
 
-    // Sign out (actual auth user deletion requires Supabase Edge Function or admin API)
     await _client.auth.signOut();
   }
 
@@ -873,6 +872,36 @@ class SupabaseService {
       'updated_at': DateTime.now().toIso8601String(),
     })
         .eq('id', exchangeId);
+  }
+
+  // ──────────────── Shared Links ────────────────
+
+  /// 명함 공유 링크 생성 (shared_links 테이블에 저장)
+  Future<String> createSharedLink(BusinessCard card) async {
+    final userId = currentUser?.id;
+
+    final data = await _client
+        .from(SupabaseConstants.sharedLinksTable)
+        .insert({
+      'card_data': card.toJson(),
+      'created_by': userId,
+    })
+        .select('id')
+        .single();
+
+    return data['id'] as String;
+  }
+
+  /// 공유 링크로 명함 데이터 조회
+  Future<Map<String, dynamic>?> getSharedLink(String token) async {
+    final data = await _client
+        .from(SupabaseConstants.sharedLinksTable)
+        .select('card_data, created_by')
+        .eq('id', token)
+        .maybeSingle();
+
+    if (data == null) return null;
+    return Map<String, dynamic>.from(data['card_data'] as Map);
   }
 
   // ──────────────── Storage ────────────────

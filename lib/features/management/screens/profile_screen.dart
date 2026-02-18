@@ -55,57 +55,83 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _deleteAccount() async {
+    final passwordController = TextEditingController();
+    String? errorText;
+
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('계정 탈퇴'),
-        content: const Text(
-          '정말 탈퇴하시겠습니까?\n\n'
-              '모든 데이터가 삭제되며 복구할 수 없습니다.',
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('계정 탈퇴'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '모든 데이터가 삭제되며 복구할 수 없습니다.\n본인 확인을 위해 비밀번호를 입력해주세요.',
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '비밀번호',
+                  prefixIcon: const Icon(Icons.lock_outlined, size: 20),
+                  errorText: errorText,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final password = passwordController.text;
+                if (password.isEmpty) {
+                  setDialogState(() => errorText = '비밀번호를 입력해주세요');
+                  return;
+                }
+                try {
+                  final service = ref.read(supabaseServiceProvider);
+                  final email = service.currentUser?.email;
+                  if (email == null) return;
+
+                  await service.signInWithEmail(
+                    email: email,
+                    password: password,
+                  );
+                  if (context.mounted) Navigator.pop(context, true);
+                } catch (_) {
+                  setDialogState(() => errorText = '비밀번호가 올바르지 않습니다');
+                }
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('탈퇴'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('탈퇴'),
-          ),
-        ],
       ),
     );
 
+    passwordController.dispose();
     if (confirm != true) return;
-
-    // Second confirmation
-    final finalConfirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('최종 확인'),
-        content: const Text('계정을 삭제하면 되돌릴 수 없습니다.\n정말 진행하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
-    );
-
-    if (finalConfirm != true) return;
 
     setState(() => _isLoading = true);
     try {
       await ref.read(autoLoginServiceProvider).clear();
       await ref.read(supabaseServiceProvider).deleteAccount();
-      if (mounted) context.go('/login');
+      if (mounted) {
+        // Wait for the widget tree to settle before navigating
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (mounted) context.go('/login');
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);

@@ -33,6 +33,15 @@
                     android:scheme="com.namecard.app"
                     android:host="login-callback"/>
             </intent-filter>
+            <!-- Deep link for shared card -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="com.namecard.app"
+                    android:host="share"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

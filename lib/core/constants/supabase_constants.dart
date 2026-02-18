@@ -18,6 +18,7 @@ class SupabaseConstants {
   static const String crmNotesTable = 'crm_notes';
   static const String quickShareSessionsTable = 'quick_share_sessions';
   static const String quickShareExchangesTable = 'quick_share_exchanges';
+  static const String sharedLinksTable = 'shared_links';
 
   // Storage buckets
   static const String cardImagesBucket = 'card-images';

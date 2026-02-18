@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,11 +50,51 @@ Future<void> main() async {
   runApp(const ProviderScope(child: NameCardApp()));
 }
 
-class NameCardApp extends ConsumerWidget {
+class NameCardApp extends ConsumerStatefulWidget {
   const NameCardApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NameCardApp> createState() => _NameCardAppState();
+}
+
+class _NameCardAppState extends ConsumerState<NameCardApp> {
+  late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _appLinks = AppLinks();
+    _initDeepLinks();
+  }
+
+  Future<void> _initDeepLinks() async {
+    // Handle link when app is opened from a deep link (cold start)
+    try {
+      final initialLink = await _appLinks.getInitialLink();
+      if (initialLink != null) _handleDeepLink(initialLink);
+    } catch (_) {}
+
+    // Handle links when app is already running (warm start)
+    _linkSubscription = _appLinks.uriLinkStream.listen(_handleDeepLink);
+  }
+
+  void _handleDeepLink(Uri uri) {
+    // com.namecard.app://share/TOKEN
+    if (uri.host == 'share' && uri.pathSegments.isNotEmpty) {
+      final token = uri.pathSegments.first;
+      AppRouter.router.go('/shared-card/$token');
+    }
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
 
