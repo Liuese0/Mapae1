@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/signup_screen.dart';
+import '../../features/auth/screens/language_select_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/wallet/screens/wallet_screen.dart';
 import '../../features/management/screens/management_screen.dart';
@@ -23,18 +25,37 @@ class AppRouter {
 
   static GoRouter get router => _router;
 
+  /// 앱 첫 실행 여부 (언어 선택 완료 전)를 캐싱합니다.
+  static bool? _languageSelected;
+
+  static Future<void> preload() async {
+    final prefs = await SharedPreferences.getInstance();
+    _languageSelected = prefs.getBool('language_selected') ?? false;
+  }
+
   static String get _initialLocation {
+    if (_languageSelected == false) return '/language-select';
     final session = Supabase.instance.client.auth.currentSession;
-    if (session != null) {
-      return '/home';
-    }
-    return '/login';
+    return session != null ? '/home' : '/login';
   }
 
   static final _router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: _initialLocation,
     routes: [
+      // Language selection (first run only)
+      GoRoute(
+        path: '/language-select',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const LanguageSelectScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
+      ),
+
       // Auth routes with fade transition
       GoRoute(
         path: '/login',

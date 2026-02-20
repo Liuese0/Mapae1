@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/services/ad_service.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -16,6 +15,9 @@ import 'core/providers/app_providers.dart';
 import 'core/utils/router.dart';
 import 'core/services/auto_login_service.dart';
 import 'l10n/generated/app_localizations.dart';
+
+// re-export helpers used in main()
+export 'core/providers/app_providers.dart' show loadSavedLocale, LocaleNotifier;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,13 +47,24 @@ Future<void> main() async {
     }
   }
 
+  // 저장된 언어 로드 + 첫 실행 여부 확인
+  final savedLocale = await loadSavedLocale();
+  await AppRouter.preload();
+
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(const ProviderScope(child: NameCardApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        localeProvider.overrideWith((ref) => LocaleNotifier()..init(savedLocale)),
+      ],
+      child: const NameCardApp(),
+    ),
+  );
 }
 
 class NameCardApp extends ConsumerStatefulWidget {
@@ -109,17 +122,8 @@ class _NameCardAppState extends ConsumerState<NameCardApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       locale: locale,
-      supportedLocales: const [
-        Locale('ko'),
-        Locale('en'),
-        Locale('zh'),
-      ],
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: AppRouter.router,
     );
   }
