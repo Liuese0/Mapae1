@@ -107,7 +107,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
     if (isPremium || cards.length < 5) {
       return List<CollectedCard?>.from(cards);
     }
-    final List<CollectedCard?> mixed = [];
+    final List<CollectedCard?> mixed = [null]; // 첫 번째 카드 위 광고 슬롯
     for (int i = 0; i < cards.length; i++) {
       mixed.add(cards[i]);
       // 5번째 카드(인덱스 4, 9, 14 …) 뒤에 광고 슬롯 삽입
