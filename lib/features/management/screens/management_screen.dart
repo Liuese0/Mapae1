@@ -7,6 +7,7 @@ import '../../../core/utils/animated_list_item.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/team.dart';
 import '../../shared/widgets/notification_bell.dart';
+import '../../wallet/screens/wallet_screen.dart';
 
 final myCardsManageProvider =
 FutureProvider.autoDispose<List<BusinessCard>>((ref) async {
@@ -210,9 +211,65 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
 
             const SizedBox(height: 32),
 
-            // Tag Templates
+            // Ad-free premium
             AnimatedListItem(
               index: 6,
+              child: _SectionHeader(
+                title: '프리미엄',
+                padding: hPadding,
+              ),
+            ),
+            const SizedBox(height: 8),
+            AnimatedListItem(
+              index: 9,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPadding),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.colorScheme.outline),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '광고 제거 (₩1,000 · 1회 구매)',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '지갑 화면 네이티브 광고를 완전히 제거합니다.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: ref.watch(premiumAdFreeProvider),
+                        onChanged: (value) {
+                          ref.read(premiumAdFreeProvider.notifier).state = value;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Tag Templates
+            AnimatedListItem(
+              index: 8,
               child: _SectionHeader(
                 title: '상황 태그 템플릿',
                 actionLabel: '관리',
@@ -222,7 +279,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
             ),
             const SizedBox(height: 8),
             AnimatedListItem(
-              index: 7,
+              index: 9,
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: hPadding),
                 child: _TapScaleWidget(

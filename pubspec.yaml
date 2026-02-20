@@ -70,6 +70,7 @@ dependencies:
   path_provider: ^2.1.2
   permission_handler: ^11.3.0
   flutter_animate: ^4.5.0
+  google_mobile_ads: ^5.2.0
 
 dev_dependencies:
   flutter_test:
