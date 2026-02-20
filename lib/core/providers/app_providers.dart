@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../services/ocr_service.dart';
+import '../services/premium_service.dart';
 
 import '../services/auto_login_service.dart';
 import '../services/image_processing_service.dart';
@@ -97,6 +98,44 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<AppUser?>> {
     await _ref.read(supabaseServiceProvider).updateUserProfile(updated);
     state = AsyncValue.data(updated);
   }
+}
+
+// ──────────────── Premium (광고 제거) ────────────────
+
+final premiumServiceProvider = Provider<PremiumService>((ref) {
+  final service = PremiumService();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+/// 프리미엄(광고 제거) 상태 관리.
+///
+/// `true` → 광고 숨김 / `false` → 광고 표시
+final isPremiumProvider =
+StateNotifierProvider<PremiumNotifier, bool>((ref) {
+  final service = ref.watch(premiumServiceProvider);
+  return PremiumNotifier(service);
+});
+
+class PremiumNotifier extends StateNotifier<bool> {
+  final PremiumService _service;
+
+  PremiumNotifier(this._service) : super(false) {
+    _init();
+  }
+
+  Future<void> _init() async {
+    state = await _service.isPremium();
+    // 구매 완료/복원 이벤트 수신 시작
+    _service.startListening(() => state = true);
+  }
+
+  /// 광고 제거 구매를 시작합니다.
+  /// 성공 시 null, 실패 시 한국어 오류 메시지 반환.
+  Future<String?> purchase() => _service.purchaseRemoveAds();
+
+  /// 이전 구매 내역 복원.
+  Future<void> restore() => _service.restorePurchases();
 }
 
 // ──────────────── Theme Mode ────────────────

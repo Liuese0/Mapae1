@@ -6,6 +6,7 @@ import '../../../core/utils/responsive.dart';
 import '../../../core/utils/animated_list_item.dart';
 import '../../shared/models/collected_card.dart';
 import '../widgets/card_list_tile.dart';
+import '../widgets/native_ad_card.dart';
 import '../widgets/scan_card_sheet.dart';
 import '../widgets/search_filter_bar.dart';
 
@@ -95,6 +96,28 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
     );
   }
 
+  /// 명함 리스트에 광고 슬롯을 삽입한 혼합 아이템 목록을 생성합니다.
+  ///
+  /// 프리미엄 사용자이면 광고 없이 반환.
+  /// 그 외에는 맨 위 + 5번째 카드마다 뒤에 광고 슬롯(null)을 삽입.
+  List<CollectedCard?> _buildMixedList(
+      List<CollectedCard> cards,
+      bool isPremium,
+      ) {
+    if (isPremium) {
+      return List<CollectedCard?>.from(cards);
+    }
+    final List<CollectedCard?> mixed = [null]; // 첫 번째 카드 위 광고 슬롯
+    for (int i = 0; i < cards.length; i++) {
+      mixed.add(cards[i]);
+      // 5번째 카드(인덱스 4, 9, 14 …) 뒤에 광고 슬롯 삽입
+      if ((i + 1) % 5 == 0) {
+        mixed.add(null);
+      }
+    }
+    return mixed;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -102,6 +125,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
     final cardCount = ref.watch(cardCountProvider);
     final categories = ref.watch(categoriesProvider);
     final searchQuery = ref.watch(walletSearchQueryProvider);
+    final isPremium = ref.watch(isPremiumProvider);
     final hPadding = Responsive.horizontalPadding(context);
 
     return Scaffold(
@@ -167,22 +191,50 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                       if (filteredList.isEmpty) {
                         return _buildEmptyState(theme);
                       }
-                      return ListView.separated(
+
+                      // 광고 슬롯(null)이 포함된 혼합 리스트
+                      final mixedList = _buildMixedList(filteredList, isPremium);
+                      // 애니메이션 인덱스는 실제 카드 순번 기준
+                      int cardAnimIndex = 0;
+
+                      return ListView.builder(
                         padding: EdgeInsets.only(
                           left: hPadding,
                           right: hPadding,
                           bottom: 120,
                         ),
-                        itemCount: filteredList.length,
-                        separatorBuilder: (_, __) =>
-                        const SizedBox(height: 8),
+                        itemCount: mixedList.length,
                         itemBuilder: (context, index) {
-                          return AnimatedListItem(
-                            index: index,
-                            child: CardListTile(
-                              card: filteredList[index],
-                              onTap: () => context
-                                  .push('/card/${filteredList[index].id}'),
+                          final item = mixedList[index];
+
+                          // ── 광고 슬롯 ──
+                          if (item == null) {
+                            return const NativeAdCard();
+                          }
+
+                          // ── 명함 카드 ──
+                          final animIndex = cardAnimIndex++;
+                          final isLast = index == mixedList.length - 1;
+                          // 다음 아이템이 광고이면 간격을 NativeAdCard가 처리하므로 축소
+                          final nextIsAd = !isLast &&
+                              index + 1 < mixedList.length &&
+                              mixedList[index + 1] == null;
+
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: isLast
+                                  ? 0
+                                  : nextIsAd
+                                  ? 4
+                                  : 8,
+                            ),
+                            child: AnimatedListItem(
+                              index: animIndex,
+                              child: CardListTile(
+                                card: item,
+                                onTap: () =>
+                                    context.push('/card/${item.id}'),
+                              ),
                             ),
                           );
                         },

@@ -529,17 +529,11 @@ class SupabaseService {
 
   /// 초대 수락
   Future<void> acceptInvitation(TeamInvitation invitation) async {
-    // 초대 상태를 accepted로 변경
-    await _client
-        .from(SupabaseConstants.teamInvitationsTable)
-        .update({
-      'status': 'accepted',
-      'updated_at': DateTime.now().toIso8601String(),
-    })
-        .eq('id', invitation.id);
-
-    // 팀 멤버로 추가
-    await addTeamMember(invitation.teamId, invitation.inviteeId);
+    // SECURITY DEFINER RPC로 초대 검증 → status 업데이트 → team_members 삽입을 원자적으로 처리
+    // (team_members INSERT 정책이 오너만 허용하므로 RPC로 우회)
+    await _client.rpc('accept_team_invitation', params: {
+      'invitation_id': invitation.id,
+    });
   }
 
   /// 초대 거절

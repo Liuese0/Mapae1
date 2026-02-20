@@ -122,8 +122,12 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
       }
     } catch (e) {
       if (mounted) {
+        final message = e.toString().contains('duplicate key') ||
+            e.toString().contains('23505')
+            ? '이미 초대를 보낸 유저입니다'
+            : '초대 중 오류가 발생했습니다';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('초대 실패: $e')),
+          SnackBar(content: Text(message)),
         );
       }
     }
