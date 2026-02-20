@@ -6,6 +6,8 @@ class Team {
   final String ownerId;
   final String? description;
   final String? imageUrl;
+  final String? shareCode;
+  final bool shareCodeEnabled;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -15,6 +17,8 @@ class Team {
     required this.ownerId,
     this.description,
     this.imageUrl,
+    this.shareCode,
+    this.shareCodeEnabled = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -26,6 +30,8 @@ class Team {
       ownerId: json['owner_id'] as String,
       description: json['description'] as String?,
       imageUrl: json['image_url'] as String?,
+      shareCode: json['share_code'] as String?,
+      shareCodeEnabled: json['share_code_enabled'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
