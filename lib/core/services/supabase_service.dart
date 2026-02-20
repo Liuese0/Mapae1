@@ -375,6 +375,46 @@ class SupabaseService {
         .eq('user_id', userId);
   }
 
+  // ──────────────── Team Share Code ────────────────
+
+  /// Owner가 공유 코드를 활성화(최초 생성 또는 재발급). 새 코드를 반환.
+  Future<String> enableTeamShareCode(String teamId) async {
+    final result = await _client.rpc(
+      'enable_team_share_code',
+      params: {'p_team_id': teamId},
+    );
+    return result as String;
+  }
+
+  /// Owner가 공유 코드를 비활성화.
+  Future<void> disableTeamShareCode(String teamId) async {
+    await _client.rpc(
+      'disable_team_share_code',
+      params: {'p_team_id': teamId},
+    );
+  }
+
+  /// Owner/Member만 호출 가능. {share_code, share_code_enabled} 반환.
+  Future<Map<String, dynamic>?> getTeamShareInfo(String teamId) async {
+    final result = await _client.rpc(
+      'get_team_share_info',
+      params: {'p_team_id': teamId},
+    );
+    if (result == null) return null;
+    final list = result as List<dynamic>;
+    if (list.isEmpty) return null;
+    return list.first as Map<String, dynamic>;
+  }
+
+  /// 공유 코드로 팀 참가 (observer 역할로 입장). 입장한 teamId 반환.
+  Future<String> joinTeamByCode(String code) async {
+    final result = await _client.rpc(
+      'join_team_by_code',
+      params: {'p_code': code.trim().toUpperCase()},
+    );
+    return result as String;
+  }
+
   /// 명함을 팀에 공유 (스냅샷 저장 — 원본 삭제 시에도 유지)
   Future<void> shareCardToTeam(String cardId, String teamId, {String? categoryId}) async {
     final userId = currentUser?.id;

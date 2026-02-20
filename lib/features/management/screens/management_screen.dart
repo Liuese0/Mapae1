@@ -163,11 +163,34 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
             // Team Section
             AnimatedListItem(
               index: 3,
-              child: _SectionHeader(
-                title: '팀',
-                actionLabel: '만들기',
-                onAction: () => _showCreateTeamDialog(context, ref),
-                padding: hPadding,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPadding),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '팀',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () =>
+                              _showJoinTeamDialog(context, ref),
+                          child: const Text('참가', style: TextStyle(fontSize: 13)),
+                        ),
+                        TextButton(
+                          onPressed: () =>
+                              _showCreateTeamDialog(context, ref),
+                          child: const Text('만들기', style: TextStyle(fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -395,6 +418,96 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
             child: const Text('삭제'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showJoinTeamDialog(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
+    bool loading = false;
+    String? errorText;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            title: const Text('팀 참가'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '팀 공유코드를 입력하면\nObserver로 팀에 참가합니다.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    hintText: '공유코드 (예: AB3D7XYZ)',
+                    errorText: errorText,
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                  ),
+                  textCapitalization: TextCapitalization.characters,
+                  autofocus: true,
+                  onChanged: (_) {
+                    if (errorText != null) {
+                      setDialogState(() => errorText = null);
+                    }
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: loading
+                    ? null
+                    : () async {
+                        final code = controller.text.trim();
+                        if (code.isEmpty) return;
+                        setDialogState(() => loading = true);
+                        try {
+                          await ref
+                              .read(supabaseServiceProvider)
+                              .joinTeamByCode(code);
+                          ref.invalidate(myTeamsProvider);
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('팀에 참가했습니다! (Observer)'),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          final msg = e.toString();
+                          setDialogState(() {
+                            loading = false;
+                            errorText = msg.contains('Invalid or inactive')
+                                ? '유효하지 않거나 비활성화된 코드입니다'
+                                : msg.contains('Already a team member')
+                                    ? '이미 팀 멤버입니다'
+                                    : '참가 실패: $msg';
+                          });
+                        }
+                      },
+                child: loading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('참가'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
