@@ -122,7 +122,7 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
             myRole: _myRole,
             onRefresh: _loadMyRole,
           ),
-          _CrmTab(teamId: widget.teamId),
+          _CrmTab(teamId: widget.teamId, myRole: _myRole),
         ],
       ),
     );
@@ -1276,8 +1276,9 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
 
 class _CrmTab extends ConsumerStatefulWidget {
   final String teamId;
+  final TeamRole? myRole;
 
-  const _CrmTab({required this.teamId});
+  const _CrmTab({required this.teamId, this.myRole});
 
   @override
   ConsumerState<_CrmTab> createState() => _CrmTabState();
@@ -1291,6 +1292,14 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
   CrmStatus? _filterStatus;
   String _searchQuery = '';
   bool _showPipeline = true;
+
+  bool get _isObserver => widget.myRole == TeamRole.observer;
+
+  void _showNoPermission() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('권한이 없습니다. Observer는 CRM을 수정할 수 없습니다')),
+    );
+  }
 
   @override
   void initState() {
@@ -1455,6 +1464,10 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                   contact: contact,
                   onTap: () => _showContactDetail(contact),
                   onStatusChanged: (status) async {
+                    if (_isObserver) {
+                      _showNoPermission();
+                      return;
+                    }
                     // 즉시 UI 반영 (낙관적 업데이트)
                     setState(() {
                       final idx = _contacts.indexWhere((c) => c.id == contact.id);
@@ -1482,7 +1495,13 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _showImportFromSharedCards(),
+                    onPressed: () {
+                      if (_isObserver) {
+                        _showNoPermission();
+                        return;
+                      }
+                      _showImportFromSharedCards();
+                    },
                     icon: const Icon(Icons.download_outlined, size: 18),
                     label: const Text('공유 명함에서 가져오기'),
                   ),
@@ -1490,7 +1509,13 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => _showAddContactDialog(),
+                    onPressed: () {
+                      if (_isObserver) {
+                        _showNoPermission();
+                        return;
+                      }
+                      _showAddContactDialog();
+                    },
                     icon: const Icon(Icons.person_add_outlined, size: 18),
                     label: const Text('직접 추가'),
                   ),
@@ -1672,6 +1697,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
         builder: (_) => _CrmContactDetailScreen(
           contact: contact,
           teamId: widget.teamId,
+          myRole: widget.myRole,
         ),
       ),
     ).then((_) => _loadData());
@@ -2001,10 +2027,12 @@ class _CrmContactCard extends StatelessWidget {
 class _CrmContactDetailScreen extends ConsumerStatefulWidget {
   final CrmContact contact;
   final String teamId;
+  final TeamRole? myRole;
 
   const _CrmContactDetailScreen({
     required this.contact,
     required this.teamId,
+    this.myRole,
   });
 
   @override
@@ -2019,6 +2047,14 @@ class _CrmContactDetailScreenState
   bool _loadingNotes = true;
   final _noteController = TextEditingController();
   bool _isEditing = false;
+
+  bool get _isObserver => widget.myRole == TeamRole.observer;
+
+  void _showNoPermission() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('권한이 없습니다. Observer는 CRM을 수정할 수 없습니다')),
+    );
+  }
 
   // Edit controllers
   late TextEditingController _nameCtrl;
@@ -2091,7 +2127,13 @@ class _CrmContactDetailScreenState
           if (!_isEditing)
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 20),
-              onPressed: () => setState(() => _isEditing = true),
+              onPressed: () {
+                if (_isObserver) {
+                  _showNoPermission();
+                  return;
+                }
+                setState(() => _isEditing = true);
+              },
             ),
           if (_isEditing)
             IconButton(
@@ -2101,7 +2143,13 @@ class _CrmContactDetailScreenState
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
-              if (value == 'delete') _deleteContact();
+              if (value == 'delete') {
+                if (_isObserver) {
+                  _showNoPermission();
+                  return;
+                }
+                _deleteContact();
+              }
             },
             itemBuilder: (_) => [
               const PopupMenuItem(
@@ -2166,7 +2214,13 @@ class _CrmContactDetailScreenState
                   child: ChoiceChip(
                     label: Text(s.label, style: const TextStyle(fontSize: 12)),
                     selected: selected,
-                    onSelected: (_) => _updateStatus(s),
+                    onSelected: (_) {
+                      if (_isObserver) {
+                        _showNoPermission();
+                        return;
+                      }
+                      _updateStatus(s);
+                    },
                     visualDensity: VisualDensity.compact,
                     selectedColor: _statusColor(s).withOpacity(0.2),
                     side: BorderSide(
@@ -2354,7 +2408,13 @@ class _CrmContactDetailScreenState
             ),
             const SizedBox(width: 8),
             IconButton.filled(
-              onPressed: _addNote,
+              onPressed: () {
+                if (_isObserver) {
+                  _showNoPermission();
+                  return;
+                }
+                _addNote();
+              },
               icon: const Icon(Icons.send, size: 18),
             ),
           ],
