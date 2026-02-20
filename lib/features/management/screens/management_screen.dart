@@ -9,6 +9,7 @@ import '../../shared/models/business_card.dart';
 import '../../shared/models/team.dart';
 import '../../shared/widgets/notification_bell.dart';
 import '../../../core/services/premium_service.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 final myCardsManageProvider =
 FutureProvider.autoDispose<List<BusinessCard>>((ref) async {
@@ -68,6 +69,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final myCards = ref.watch(myCardsManageProvider);
     final myTeams = ref.watch(myTeamsProvider);
     final hPadding = Responsive.horizontalPadding(context);
@@ -88,7 +90,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '관리',
+                        l10n.management,
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           fontSize: 24 * Responsive.fontScale(context),
@@ -106,8 +108,8 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
             AnimatedListItem(
               index: 0,
               child: _SectionHeader(
-                title: '내 명함',
-                actionLabel: '추가',
+                title: l10n.myCards,
+                actionLabel: l10n.addCard,
                 onAction: () => context.push('/my-card/edit'),
                 padding: hPadding,
               ),
@@ -292,7 +294,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: hPadding),
                 child: Text(
-                  '설정',
+                  l10n.settings,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -313,8 +315,8 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                       Icon(Icons.person_outlined, size: 20,
                           color: theme.colorScheme.onSurface.withOpacity(0.5)),
                       const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text('개인정보', style: TextStyle(fontSize: 15)),
+                      Expanded(
+                        child: Text(l10n.profile, style: const TextStyle(fontSize: 15)),
                       ),
                       Icon(Icons.chevron_right,
                           color: theme.colorScheme.onSurface.withOpacity(0.3)),
@@ -329,7 +331,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
               index: 10,
               child: _SettingsTile(
                 icon: Icons.language,
-                title: '언어',
+                title: l10n.language,
                 trailing: _LanguageDropdown(),
                 padding: hPadding,
               ),
@@ -340,7 +342,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
               index: 11,
               child: _SettingsTile(
                 icon: Icons.dark_mode_outlined,
-                title: '다크 모드',
+                title: l10n.darkMode,
                 trailing: Consumer(
                   builder: (context, ref, _) {
                     final themeMode = ref.watch(themeModeProvider);
@@ -374,16 +376,16 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: const Text('로그아웃'),
-                        content: const Text('로그아웃 하시겠습니까?'),
+                        title: Text(l10n.logout),
+                        content: Text(l10n.logoutConfirm),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context, false),
-                            child: const Text('취소'),
+                            child: Text(l10n.cancel),
                           ),
                           TextButton(
                             onPressed: () => Navigator.pop(context, true),
-                            child: const Text('로그아웃'),
+                            child: Text(l10n.logout),
                           ),
                         ],
                       ),
@@ -397,7 +399,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.red.shade400,
                   ),
-                  child: const Text('로그아웃'),
+                  child: Text(l10n.logout),
                 ),
               ),
             ),
@@ -883,17 +885,17 @@ class _LanguageDropdown extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
+    final l10n = AppLocalizations.of(context);
     return DropdownButton<String>(
       value: locale.languageCode,
       underline: const SizedBox.shrink(),
-      items: const [
-        DropdownMenuItem(value: 'ko', child: Text('한국어')),
-        DropdownMenuItem(value: 'en', child: Text('English')),
-        DropdownMenuItem(value: 'zh', child: Text('中文')),
+      items: [
+        DropdownMenuItem(value: 'ko', child: Text(l10n.korean)),
+        DropdownMenuItem(value: 'en', child: Text(l10n.english)),
       ],
       onChanged: (value) {
         if (value != null) {
-          ref.read(localeProvider.notifier).state = Locale(value);
+          ref.read(localeProvider.notifier).setLocale(Locale(value));
         }
       },
     );

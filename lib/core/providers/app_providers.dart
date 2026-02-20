@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../services/ocr_service.dart';
@@ -146,9 +147,46 @@ final themeModeProvider = StateProvider<ThemeMode>((ref) {
 
 // ──────────────── Locale ────────────────
 
-final localeProvider = StateProvider<Locale>((ref) {
+const _kLocaleKey = 'app_locale';
+const _kLanguageSelectedKey = 'language_selected';
+
+/// 앱 시작 시 저장된 언어를 SharedPreferences에서 읽어 옵니다.
+/// main()에서 호출하여 ProviderScope override로 주입합니다.
+Future<Locale> loadSavedLocale() async {
+  final prefs = await SharedPreferences.getInstance();
+  final code = prefs.getString(_kLocaleKey);
+  if (code != null && ['ko', 'en'].contains(code)) {
+    return Locale(code);
+  }
   return const Locale('ko');
+}
+
+/// 언어 선택 완료 여부를 반환합니다.
+Future<bool> isLanguageSelected() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool(_kLanguageSelectedKey) ?? false;
+}
+
+final localeProvider =
+StateNotifierProvider<LocaleNotifier, Locale>((ref) {
+  return LocaleNotifier();
 });
+
+class LocaleNotifier extends StateNotifier<Locale> {
+  LocaleNotifier() : super(const Locale('ko'));
+
+  /// 초기 언어를 외부에서 주입 (main에서 호출)
+  void init(Locale locale) {
+    state = locale;
+  }
+
+  Future<void> setLocale(Locale locale) async {
+    state = locale;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kLocaleKey, locale.languageCode);
+    await prefs.setBool(_kLanguageSelectedKey, true);
+  }
+}
 
 // ──────────────── Categories ────────────────
 

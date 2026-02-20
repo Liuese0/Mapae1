@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -87,13 +88,14 @@ class MainShell extends StatelessWidget {
   }
 
   String _getLabel(BuildContext context, int index) {
+    final l10n = AppLocalizations.of(context);
     switch (index) {
       case 0:
-        return '지갑';
+        return l10n.wallet;
       case 1:
-        return '홈';
+        return l10n.home;
       case 2:
-        return '관리';
+        return l10n.management;
       default:
         return '';
     }
