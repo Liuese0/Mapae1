@@ -7,6 +7,7 @@ import '../../../core/utils/animated_list_item.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/team.dart';
 import '../../shared/widgets/notification_bell.dart';
+import '../../../core/services/premium_service.dart';
 
 final myCardsManageProvider =
 FutureProvider.autoDispose<List<BusinessCard>>((ref) async {
@@ -333,6 +334,12 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                 ),
                 padding: hPadding,
               ),
+            ),
+
+            // Remove Ads (Premium)
+            AnimatedListItem(
+              index: 12,
+              child: _PremiumTile(padding: hPadding),
             ),
 
             // Logout
@@ -776,6 +783,315 @@ class _LanguageDropdown extends ConsumerWidget {
           ref.read(localeProvider.notifier).state = Locale(value);
         }
       },
+    );
+  }
+}
+
+// ──────────────── Premium Tile ────────────────
+
+/// 설정 리스트의 광고 제거 항목.
+/// 프리미엄 상태에 따라 UI가 달라집니다.
+class _PremiumTile extends ConsumerWidget {
+  final double padding;
+  const _PremiumTile({this.padding = 20});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isPremium = ref.watch(isPremiumProvider);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: padding, vertical: 4),
+      child: isPremium
+          ? _buildPremiumActive(theme)
+          : _buildPremiumInactive(context, ref, theme),
+    );
+  }
+
+  Widget _buildPremiumActive(ThemeData theme) {
+    return Row(
+      children: [
+        Icon(
+          Icons.star_rounded,
+          size: 20,
+          color: theme.colorScheme.onSurface.withOpacity(0.5),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            '광고 제거',
+            style: const TextStyle(fontSize: 15),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: theme.colorScheme.onSurface.withOpacity(0.06),
+          ),
+          child: Text(
+            '적용됨',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: theme.colorScheme.onSurface.withOpacity(0.45),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPremiumInactive(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+  ) {
+    return _TapScaleWidget(
+      onTap: () => _showPremiumSheet(context, ref),
+      child: Row(
+        children: [
+          Icon(
+            Icons.star_outline_rounded,
+            size: 20,
+            color: theme.colorScheme.onSurface.withOpacity(0.5),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '광고 제거',
+              style: const TextStyle(fontSize: 15),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: theme.colorScheme.primary.withOpacity(0.08),
+            ),
+            child: Text(
+              '₩1,000',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(
+            Icons.chevron_right,
+            color: theme.colorScheme.onSurface.withOpacity(0.3),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPremiumSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _PremiumBottomSheet(ref: ref),
+    );
+  }
+}
+
+// ──────────────── Premium Bottom Sheet ────────────────
+
+class _PremiumBottomSheet extends ConsumerStatefulWidget {
+  final WidgetRef ref;
+  const _PremiumBottomSheet({required this.ref});
+
+  @override
+  ConsumerState<_PremiumBottomSheet> createState() =>
+      _PremiumBottomSheetState();
+}
+
+class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
+  bool _isLoading = false;
+
+  Future<void> _handlePurchase() async {
+    setState(() => _isLoading = true);
+
+    final error = await ref.read(isPremiumProvider.notifier).purchase();
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (error != null) {
+      _showError(error);
+    }
+    // 성공 시 구매 스트림에서 자동으로 isPremiumProvider 업데이트됨
+  }
+
+  Future<void> _handleRestore() async {
+    setState(() => _isLoading = true);
+    await ref.read(isPremiumProvider.notifier).restore();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    final isPremium = ref.read(isPremiumProvider);
+    if (isPremium && mounted) {
+      Navigator.of(context).pop();
+    } else {
+      _showError('복원할 구매 내역이 없습니다.');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isPremium = ref.watch(isPremiumProvider);
+
+    // 구매 완료 후 시트 닫기
+    if (isPremium) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).pop();
+      });
+    }
+
+    return Container(
+      margin: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── 헤더 ──
+              Row(
+                children: [
+                  Icon(
+                    Icons.star_rounded,
+                    size: 22,
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '광고 없는 Mapae',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '명함 리스트의 광고를 영구적으로 제거합니다.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface.withOpacity(0.55),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── 혜택 목록 ──
+              _BenefitRow(
+                icon: Icons.block_rounded,
+                text: '명함 리스트 광고 완전 제거',
+                theme: theme,
+              ),
+              const SizedBox(height: 10),
+              _BenefitRow(
+                icon: Icons.all_inclusive_rounded,
+                text: '1회 결제 · 평생 적용',
+                theme: theme,
+              ),
+              const SizedBox(height: 10),
+              _BenefitRow(
+                icon: Icons.devices_rounded,
+                text: '동일 계정 기기 복원 가능',
+                theme: theme,
+              ),
+              const SizedBox(height: 28),
+
+              // ── 구매 버튼 ──
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handlePurchase,
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('₩1,000 · 광고 제거'),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // ── 복원 버튼 ──
+              Center(
+                child: TextButton(
+                  onPressed: _isLoading ? null : _handleRestore,
+                  child: Text(
+                    '이전 구매 복원',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BenefitRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final ThemeData theme;
+
+  const _BenefitRow({
+    required this.icon,
+    required this.text,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 17,
+          color: theme.colorScheme.onSurface.withOpacity(0.55),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            color: theme.colorScheme.onSurface.withOpacity(0.75),
+          ),
+        ),
+      ],
     );
   }
 }
