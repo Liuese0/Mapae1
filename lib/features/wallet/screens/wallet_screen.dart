@@ -98,13 +98,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
 
   /// 명함 리스트에 광고 슬롯을 삽입한 혼합 아이템 목록을 생성합니다.
   ///
-  /// 프리미엄 사용자이거나 카드가 5개 미만이면 광고 없이 반환.
-  /// 그 외에는 5번째 카드마다 뒤에 광고 슬롯(null)을 삽입.
+  /// 프리미엄 사용자이면 광고 없이 반환.
+  /// 그 외에는 맨 위 + 5번째 카드마다 뒤에 광고 슬롯(null)을 삽입.
   List<CollectedCard?> _buildMixedList(
     List<CollectedCard> cards,
     bool isPremium,
   ) {
-    if (isPremium || cards.length < 5) {
+    if (isPremium) {
       return List<CollectedCard?>.from(cards);
     }
     final List<CollectedCard?> mixed = [null]; // 첫 번째 카드 위 광고 슬롯
