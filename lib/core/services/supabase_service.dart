@@ -375,6 +375,43 @@ class SupabaseService {
         .eq('user_id', userId);
   }
 
+  /// 단일 팀 조회 (share_code, share_code_enabled 포함)
+  Future<Team?> getTeam(String teamId) async {
+    final data = await _client
+        .from(SupabaseConstants.teamsTable)
+        .select()
+        .eq('id', teamId)
+        .maybeSingle();
+    if (data == null) return null;
+    return Team.fromJson(data);
+  }
+
+  /// 팀 공유코드 생성 (오너 전용) — RPC 호출
+  Future<String> generateTeamShareCode(String teamId) async {
+    final result = await _client.rpc(
+      'generate_team_share_code',
+      params: {'p_team_id': teamId},
+    );
+    return result as String;
+  }
+
+  /// 팀 공유코드 활성/비활성 토글 (오너 전용) — RPC 호출
+  Future<void> toggleTeamShareCode(String teamId, {required bool enabled}) async {
+    await _client.rpc(
+      'toggle_team_share_code',
+      params: {'p_team_id': teamId, 'p_enabled': enabled},
+    );
+  }
+
+  /// 공유코드로 팀 참가 — observer로 합류, 결과 Map 반환
+  Future<Map<String, dynamic>> joinTeamByShareCode(String shareCode) async {
+    final result = await _client.rpc(
+      'join_team_by_share_code',
+      params: {'p_share_code': shareCode.trim().toUpperCase()},
+    );
+    return Map<String, dynamic>.from(result as Map);
+  }
+
   /// 명함을 팀에 공유 (스냅샷 저장 — 원본 삭제 시에도 유지)
   Future<void> shareCardToTeam(String cardId, String teamId, {String? categoryId}) async {
     final userId = currentUser?.id;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -943,7 +944,9 @@ class _MembersTab extends ConsumerStatefulWidget {
 
 class _MembersTabState extends ConsumerState<_MembersTab> {
   List<TeamMember>? _members;
+  Team? _team;
   bool _loading = true;
+  bool _shareCodeLoading = false;
 
   @override
   void initState() {
@@ -953,18 +956,23 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
 
   Future<void> _loadMembers() async {
     setState(() => _loading = true);
-    final members = await ref
-        .read(supabaseServiceProvider)
-        .getTeamMembers(widget.teamId);
+    final service = ref.read(supabaseServiceProvider);
+    final results = await Future.wait([
+      service.getTeamMembers(widget.teamId),
+      service.getTeam(widget.teamId),
+    ]);
     if (mounted) {
       setState(() {
-        _members = members;
+        _members = results[0] as List<TeamMember>;
+        _team = results[1] as Team?;
         _loading = false;
       });
     }
   }
 
   bool get _isOwner => widget.myRole == TeamRole.owner;
+  bool get _isMember =>
+      widget.myRole == TeamRole.owner || widget.myRole == TeamRole.member;
 
   @override
   Widget build(BuildContext context) {
@@ -978,6 +986,16 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
 
     return Column(
       children: [
+        // ── 팀 공유코드 섹션 (오너·멤버만 표시) ──
+        if (_isMember && _team != null)
+          _ShareCodeSection(
+            team: _team!,
+            isOwner: _isOwner,
+            isLoading: _shareCodeLoading,
+            onToggle: (enabled) => _toggleShareCode(enabled),
+            onRegenerate: _regenerateShareCode,
+          ),
+
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.all(20),
@@ -1056,6 +1074,47 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
         ),
       ],
     );
+  }
+
+  Future<void> _toggleShareCode(bool enabled) async {
+    setState(() => _shareCodeLoading = true);
+    try {
+      await ref.read(supabaseServiceProvider)
+          .toggleTeamShareCode(widget.teamId, enabled: enabled);
+      final updated = await ref.read(supabaseServiceProvider).getTeam(widget.teamId);
+      if (mounted) setState(() => _team = updated);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('변경 실패: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _shareCodeLoading = false);
+    }
+  }
+
+  Future<void> _regenerateShareCode() async {
+    setState(() => _shareCodeLoading = true);
+    try {
+      await ref.read(supabaseServiceProvider)
+          .generateTeamShareCode(widget.teamId);
+      final updated = await ref.read(supabaseServiceProvider).getTeam(widget.teamId);
+      if (mounted) {
+        setState(() => _team = updated);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('공유코드가 재생성되었습니다')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('재생성 실패: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _shareCodeLoading = false);
+    }
   }
 
   Future<void> _showInviteDialog() async {
@@ -2498,5 +2557,170 @@ class _CrmContactDetailScreenState
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
+  }
+}
+
+// ──────────────── Share Code Section Widget ────────────────
+
+class _ShareCodeSection extends StatelessWidget {
+  final Team team;
+  final bool isOwner;
+  final bool isLoading;
+  final ValueChanged<bool> onToggle;
+  final VoidCallback onRegenerate;
+
+  const _ShareCodeSection({
+    required this.team,
+    required this.isOwner,
+    required this.isLoading,
+    required this.onToggle,
+    required this.onRegenerate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final enabled = team.shareCodeEnabled;
+    final code = team.shareCode;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: enabled
+              ? theme.colorScheme.primary.withOpacity(0.35)
+              : theme.colorScheme.outline.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.link,
+                size: 18,
+                color: enabled
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface.withOpacity(0.4),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '팀 공유코드',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: enabled
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+              ),
+              if (isLoading)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else if (isOwner)
+                Switch(
+                  value: enabled,
+                  onChanged: onToggle,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+            ],
+          ),
+          if (!enabled)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                isOwner
+                    ? '공유코드를 활성화하면 누구나 코드로 팀에 참가할 수 있습니다'
+                    : '공유코드가 비활성화되어 있습니다',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.colorScheme.onSurface.withOpacity(0.45),
+                ),
+              ),
+            )
+          else ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      code != null
+                          ? _formatCode(code)
+                          : '코드 생성 중...',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 3,
+                        color: theme.colorScheme.primary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.copy, size: 20),
+                  tooltip: '복사',
+                  onPressed: code == null
+                      ? null
+                      : () {
+                    Clipboard.setData(ClipboardData(text: code));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('공유코드가 복사되었습니다'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+                if (isOwner)
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 20),
+                    tooltip: '코드 재생성',
+                    onPressed: isLoading ? null : onRegenerate,
+                  ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                '이 코드로 팀에 참가하면 Observer로 시작합니다',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: theme.colorScheme.onSurface.withOpacity(0.45),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 코드를 4자리씩 구분해서 표시: ABCD-EFGH
+  String _formatCode(String code) {
+    if (code.length == 8) {
+      return '${code.substring(0, 4)}-${code.substring(4)}';
+    }
+    return code;
   }
 }
