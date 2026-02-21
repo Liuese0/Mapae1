@@ -268,6 +268,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
   }
 
   Widget _buildEmptyState(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
