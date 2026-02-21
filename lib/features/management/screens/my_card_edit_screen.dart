@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/context_tag.dart';
 import 'management_screen.dart';
@@ -186,7 +187,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('텍스트 인식 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).scanTextFailed(e.toString()))),
         );
       }
     } finally {
@@ -242,14 +243,14 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('저장되었습니다')),
+          SnackBar(content: Text(AppLocalizations.of(context).saved)),
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('저장 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).saveFailed(e.toString()))),
         );
       }
     } finally {
@@ -280,7 +281,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
           icon: const Icon(Icons.arrow_back_ios, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: Text(isEdit ? '내 명함 수정' : '내 명함 추가'),
+        title: Text(isEdit ? AppLocalizations.of(context).editMyCard : AppLocalizations.of(context).addMyCard),
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _save,
@@ -290,7 +291,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-                : const Text('저장'),
+                : Text(AppLocalizations.of(context).save),
           ),
         ],
       ),
@@ -340,7 +341,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '명함 이미지 추가',
+                          AppLocalizations.of(context).addCardImage,
                           style: TextStyle(
                             fontSize: 13,
                             color: theme.colorScheme.onSurface
@@ -364,7 +365,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '명함 텍스트 인식 중...',
+                      AppLocalizations.of(context).scanningText,
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.colorScheme.onSurface.withOpacity(0.6),
@@ -382,7 +383,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                   child: DropdownButtonFormField<String>(
                     value: _selectedTemplate?.id,
                     decoration: InputDecoration(
-                      labelText: '입력 양식',
+                      labelText: AppLocalizations.of(context).inputForm,
                       labelStyle: const TextStyle(fontSize: 13),
                       prefixIcon: Icon(
                         Icons.description_outlined,
@@ -391,10 +392,10 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                       ),
                     ),
                     items: [
-                      const DropdownMenuItem<String>(
+                      DropdownMenuItem<String>(
                         value: null,
-                        child: Text('기본 양식',
-                            style: TextStyle(fontSize: 14)),
+                        child: Text(AppLocalizations.of(context).defaultForm,
+                            style: const TextStyle(fontSize: 14)),
                       ),
                       ...templates.map((t) => DropdownMenuItem<String>(
                         value: t.id,
@@ -431,16 +432,17 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
   List<Widget> _buildFormFields() {
     // 기본 양식
     if (_selectedTemplate == null) {
+      final l10n = AppLocalizations.of(context);
       return [
-        _buildCardField('이름 *', 'name', required: true),
-        _buildCardField('회사명', 'company'),
-        _buildCardField('직급', 'position'),
-        _buildCardField('부서', 'department'),
-        _buildCardField('이메일', 'email'),
-        _buildCardField('전화번호', 'phone'),
-        _buildCardField('휴대폰', 'mobile'),
-        _buildCardField('주소', 'address'),
-        _buildCardField('웹사이트', 'website'),
+        _buildCardField('${l10n.name} *', 'name', required: true),
+        _buildCardField(l10n.companyName, 'company'),
+        _buildCardField(l10n.position, 'position'),
+        _buildCardField(l10n.department, 'department'),
+        _buildCardField(l10n.email, 'email'),
+        _buildCardField(l10n.phoneNumber, 'phone'),
+        _buildCardField(l10n.mobileNumber, 'mobile'),
+        _buildCardField(l10n.address, 'address'),
+        _buildCardField(l10n.website, 'website'),
       ];
     }
 
@@ -527,7 +529,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
         keyboardType: _myCardKeyboard[fieldKey] ?? TextInputType.text,
         decoration: InputDecoration(labelText: label),
         validator: required
-            ? (v) => (v == null || v.trim().isEmpty) ? '필수 입력' : null
+            ? (v) => (v == null || v.trim().isEmpty) ? AppLocalizations.of(context).required : null
             : null,
       ),
     );

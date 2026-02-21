@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/services/supabase_service.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/team.dart';
 import '../../shared/models/collected_card.dart';
 import '../../shared/models/category.dart';
@@ -66,7 +67,7 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
           icon: const Icon(Icons.arrow_back_ios, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: const Text('팀 관리'),
+        title: Text(AppLocalizations.of(context).teamManagement),
         actions: [
           if (_myRole != null)
             PopupMenuButton<String>(
@@ -79,18 +80,19 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
                 }
               },
               itemBuilder: (context) {
+                final l10n = AppLocalizations.of(context);
                 if (_myRole == TeamRole.owner) {
                   return [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
-                      child: Text('팀 삭제', style: TextStyle(color: Colors.red)),
+                      child: Text(l10n.deleteTeam, style: const TextStyle(color: Colors.red)),
                     ),
                   ];
                 } else {
                   return [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'leave',
-                      child: Text('팀 나가기', style: TextStyle(color: Colors.red)),
+                      child: Text(l10n.leaveTeam, style: const TextStyle(color: Colors.red)),
                     ),
                   ];
                 }
@@ -102,10 +104,10 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
           labelColor: theme.colorScheme.primary,
           unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.4),
           indicatorColor: theme.colorScheme.primary,
-          tabs: const [
-            Tab(text: '공유 명함'),
-            Tab(text: '멤버'),
-            Tab(text: 'CRM'),
+          tabs: [
+            Tab(text: AppLocalizations.of(context).sharedCards),
+            Tab(text: AppLocalizations.of(context).teamMembers),
+            const Tab(text: 'CRM'),
           ],
         ),
       ),
@@ -129,15 +131,16 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
   }
 
   void _showDeleteTeamDialog(BuildContext context, SupabaseService service) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('팀 삭제'),
-        content: const Text('팀을 삭제하면 모든 멤버와 공유 명함이 삭제됩니다.\n정말 삭제하시겠습니까?'),
+        title: Text(l10n.deleteTeam),
+        content: Text(l10n.deleteTeamConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -146,7 +149,7 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
               if (this.context.mounted) this.context.go('/management');
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('삭제'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -155,15 +158,16 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
 
   void _showLeaveTeamDialog(
       BuildContext context, SupabaseService service, String userId) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('팀 나가기'),
-        content: const Text('팀에서 나가시겠습니까?'),
+        title: Text(l10n.leaveTeam),
+        content: Text(l10n.leaveTeamConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -172,7 +176,7 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
               if (this.context.mounted) this.context.go('/management');
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('나가기'),
+            child: Text(l10n.leave),
           ),
         ],
       ),
@@ -254,7 +258,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               children: [
-                _buildCategoryChip(null, '전체', theme),
+                _buildCategoryChip(null, AppLocalizations.of(context).allCategories, theme),
                 ..._teamCategories.map((cat) =>
                     _buildCategoryChip(cat.id, cat.name, theme)),
                 if (_isOwner) ...[
@@ -262,7 +266,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                     padding: const EdgeInsets.only(left: 4),
                     child: ActionChip(
                       avatar: Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
-                      label: Text('추가', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
+                      label: Text(AppLocalizations.of(context).add, style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
                       onPressed: () => _showCreateCategoryDialog(context),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
@@ -273,7 +277,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                     padding: const EdgeInsets.only(left: 4),
                     child: ActionChip(
                       avatar: Icon(Icons.settings, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.5)),
-                      label: Text('관리', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6))),
+                      label: Text(AppLocalizations.of(context).manage, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6))),
                       onPressed: () => _showManageCategoriesSheet(),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
@@ -291,7 +295,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               width: double.infinity,
               child: ActionChip(
                 avatar: Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
-                label: Text('팀 카테고리 만들기', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
+                label: Text(AppLocalizations.of(context).createTeamCategory, style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
                 onPressed: () => _showCreateCategoryDialog(context),
                 side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
               ),
@@ -312,8 +316,8 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 const SizedBox(height: 16),
                 Text(
                   _filterCategoryId != null
-                      ? '이 카테고리에 명함이 없습니다'
-                      : '공유된 명함이 없습니다',
+                      ? AppLocalizations.of(context).noCardsInCategory
+                      : AppLocalizations.of(context).noSharedCards,
                   style: TextStyle(
                     color: theme.colorScheme.onSurface.withOpacity(0.4),
                   ),
@@ -327,7 +331,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final card = cards[index];
-              final name = card['name'] as String? ?? '이름 없음';
+              final name = card['name'] as String? ?? AppLocalizations.of(context).noName;
               final company = card['company'] as String?;
               final position = card['position'] as String?;
               final cardCategoryId = card['category_id'] as String?;
@@ -359,18 +363,18 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                               ? theme.colorScheme.primary
                               : null,
                         ),
-                        tooltip: '카테고리 지정',
+                        tooltip: AppLocalizations.of(context).assignCategory,
                         onPressed: () => _showAssignCategorySheet(card),
                       ),
                     IconButton(
                       icon: const Icon(Icons.copy, size: 18),
-                      tooltip: '내 지갑으로 복사',
+                      tooltip: AppLocalizations.of(context).wallet,
                       onPressed: () => _copyToWallet(card),
                     ),
                     if (_canShare)
                       IconButton(
                         icon: Icon(Icons.delete_outline, size: 18, color: Colors.red.shade300),
-                        tooltip: '공유 해제',
+                        tooltip: AppLocalizations.of(context).unshareTitle,
                         onPressed: () => _unshareCard(card),
                       ),
                   ],
@@ -392,7 +396,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 child: OutlinedButton.icon(
                   onPressed: () => _showShareCardDialog(context),
                   icon: const Icon(Icons.share_outlined, size: 18),
-                  label: const Text('명함 공유하기'),
+                  label: Text(AppLocalizations.of(context).shareCardAction),
                 ),
               ),
             ),
@@ -451,7 +455,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text('카테고리 관리',
+              child: Text(AppLocalizations.of(ctx).categoryManagement,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   )),
@@ -473,7 +477,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
             if (_teamCategories.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text('카테고리가 없습니다',
+                child: Text(AppLocalizations.of(ctx).noCategories,
                     style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4))),
               ),
             SizedBox(height: MediaQuery.of(ctx).padding.bottom + 16),
@@ -487,12 +491,12 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('카테고리 삭제'),
-        content: Text('\'$name\' 카테고리를 삭제하시겠습니까?\n해당 카테고리가 지정된 명함은 카테고리 없음으로 변경됩니다.'),
+        title: Text(AppLocalizations.of(ctx).deleteCategoryTitle),
+        content: Text(AppLocalizations.of(ctx).deleteCategoryConfirm(name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('취소'),
+            child: Text(AppLocalizations.of(ctx).cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -500,7 +504,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               await _deleteTeamCategory(categoryId);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('삭제'),
+            child: Text(AppLocalizations.of(ctx).delete),
           ),
         ],
       ),
@@ -517,13 +521,13 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
       await _loadCards();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('카테고리가 삭제되었습니다')),
+          SnackBar(content: Text(AppLocalizations.of(context).categoryDeleted)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('카테고리 삭제 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).categoryDeleteFailed(e.toString()))),
         );
       }
     }
@@ -536,12 +540,12 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('팀 카테고리 추가'),
+        title: Text(AppLocalizations.of(ctx).addCategoryTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: '카테고리 이름',
+            hintText: AppLocalizations.of(ctx).categoryName,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
@@ -555,7 +559,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('취소'),
+            child: Text(AppLocalizations.of(ctx).cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -564,7 +568,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               Navigator.pop(ctx);
               await _createTeamCategory(name);
             },
-            child: const Text('추가'),
+            child: Text(AppLocalizations.of(ctx).add),
           ),
         ],
       ),
@@ -590,13 +594,13 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
       await _loadCards();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('\'$name\' 카테고리가 추가되었습니다')),
+          SnackBar(content: Text(AppLocalizations.of(context).categoryAdded(name))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('카테고리 생성 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).categoryCreateFailed(e.toString()))),
         );
       }
     }
@@ -625,7 +629,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text('카테고리 지정',
+              child: Text(AppLocalizations.of(ctx).assignCategory,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   )),
@@ -635,7 +639,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                   color: currentCategoryId == null
                       ? theme.colorScheme.primary
                       : theme.colorScheme.onSurface.withOpacity(0.5)),
-              title: Text('선택 안함',
+              title: Text(AppLocalizations.of(ctx).cancel,
                   style: TextStyle(
                     fontWeight: currentCategoryId == null
                         ? FontWeight.w600 : FontWeight.w400,
@@ -687,28 +691,28 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('카테고리 지정 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).categoryAssignFailed(e.toString()))),
         );
       }
     }
   }
 
   Future<void> _unshareCard(Map<String, dynamic> card) async {
-    final name = card['name'] as String? ?? '이름 없음';
+    final name = card['name'] as String? ?? AppLocalizations.of(context).noName;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('공유 해제'),
-        content: Text('\'$name\' 명함을 팀 공유에서 제거하시겠습니까?\n개인 지갑의 명함은 유지됩니다.'),
+        title: Text(AppLocalizations.of(ctx).unshareTitle),
+        content: Text(AppLocalizations.of(ctx).unshareConfirm(name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소'),
+            child: Text(AppLocalizations.of(ctx).cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('제거'),
+            child: Text(AppLocalizations.of(ctx).remove),
           ),
         ],
       ),
@@ -721,13 +725,13 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
         await _loadCards();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('공유가 해제되었습니다')),
+            SnackBar(content: Text(AppLocalizations.of(context).unshareSuccess)),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('공유 해제 실패: $e')),
+            SnackBar(content: Text(AppLocalizations.of(context).unshareFailed(e.toString()))),
           );
         }
       }
@@ -754,16 +758,16 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
         final confirm = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('중복 명함'),
-            content: const Text('이미 존재하는 명함입니다. 복사하시겠습니까?'),
+            title: Text(AppLocalizations.of(ctx).duplicateCard),
+            content: Text(AppLocalizations.of(ctx).duplicateCardConfirm),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('취소'),
+                child: Text(AppLocalizations.of(ctx).cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('복사'),
+                child: Text(AppLocalizations.of(ctx).copy),
               ),
             ],
           ),
@@ -774,13 +778,13 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
       await service.copySharedCardToWallet(card);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('명함이 지갑에 복사되었습니다')),
+          SnackBar(content: Text(AppLocalizations.of(context).copyToWalletSuccess)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('복사 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).copyFailed(e.toString()))),
         );
       }
     }
@@ -798,18 +802,18 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('공유할 명함 선택'),
+          title: Text(AppLocalizations.of(dialogContext).selectCardToShare),
           content: SizedBox(
             width: double.maxFinite,
             height: 400,
             child: myCards.isEmpty
-                ? const Center(child: Text('지갑에 명함이 없습니다'))
+                ? Center(child: Text(AppLocalizations.of(dialogContext).noCardsInWallet))
                 : ListView.builder(
               itemCount: myCards.length,
               itemBuilder: (context, index) {
                 final card = myCards[index];
                 return ListTile(
-                  title: Text(card.name ?? '이름 없음'),
+                  title: Text(card.name ?? AppLocalizations.of(context).noName),
                   subtitle: Text(
                     [card.company, card.position]
                         .where((s) => s != null)
@@ -823,8 +827,8 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                       Navigator.pop(dialogContext);
                       if (mounted) {
                         ScaffoldMessenger.of(this.context).showSnackBar(
-                          const SnackBar(
-                              content: Text('이미 공유한 명함입니다')),
+                          SnackBar(
+                              content: Text(AppLocalizations.of(this.context).alreadyShared)),
                         );
                       }
                       return;
@@ -845,7 +849,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('취소'),
+              child: Text(AppLocalizations.of(dialogContext).cancel),
             ),
           ],
         );
@@ -875,7 +879,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text('카테고리 선택 (선택사항)',
+              child: Text(AppLocalizations.of(ctx).categorySelectOptional,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   )),
@@ -883,7 +887,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
             ListTile(
               leading: Icon(Icons.label_off_outlined,
                   color: theme.colorScheme.onSurface.withOpacity(0.5)),
-              title: const Text('카테고리 없이 공유'),
+              title: Text(AppLocalizations.of(ctx).shareWithoutCategory),
               onTap: () async {
                 Navigator.pop(ctx);
                 await _shareCard(card.id, null);
@@ -912,13 +916,13 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
       await _loadCards();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('명함이 팀에 공유되었습니다')),
+          SnackBar(content: Text(AppLocalizations.of(context).teamSharedSuccess)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('공유 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).shareFailed(e.toString()))),
         );
       }
     }
@@ -1862,7 +1866,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                   itemCount: availableCards.length,
                   itemBuilder: (_, index) {
                     final card = availableCards[index];
-                    final name = card['name'] as String? ?? '이름 없음';
+                    final name = card['name'] as String? ?? AppLocalizations.of(context).noName;
                     final company = card['company'] as String?;
                     return ListTile(
                       leading: CircleAvatar(
@@ -1942,7 +1946,7 @@ class _CrmContactCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      contact.name ?? '이름 없음',
+                      contact.name ?? AppLocalizations.of(context).noName,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),

@@ -122,8 +122,8 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                     index: 1,
                     child: _EmptyBox(
                       icon: Icons.credit_card_outlined,
-                      message: '등록된 내 명함이 없습니다',
-                      actionLabel: '명함 추가',
+                      message: l10n.noMyCards,
+                      actionLabel: l10n.addCard,
                       onAction: () => context.push('/my-card/edit'),
                       padding: hPadding,
                     ),
@@ -158,7 +158,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
               ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(20),
-                child: Text('오류: $e'),
+                child: Text(l10n.errorMsg(e.toString())),
               ),
             ),
 
@@ -173,7 +173,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '팀',
+                      l10n.team,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -182,11 +182,11 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                       children: [
                         TextButton(
                           onPressed: () => _showJoinTeamDialog(context, ref),
-                          child: const Text('팀 참가', style: TextStyle(fontSize: 13)),
+                          child: Text(l10n.joinTeam, style: const TextStyle(fontSize: 13)),
                         ),
                         TextButton(
                           onPressed: () => _showCreateTeamDialog(context, ref),
-                          child: const Text('만들기', style: TextStyle(fontSize: 13)),
+                          child: Text(l10n.create, style: const TextStyle(fontSize: 13)),
                         ),
                       ],
                     ),
@@ -202,8 +202,8 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                     index: 4,
                     child: _EmptyBox(
                       icon: Icons.group_outlined,
-                      message: '소속된 팀이 없습니다',
-                      actionLabel: '팀 만들기',
+                      message: l10n.noTeams,
+                      actionLabel: l10n.createTeam,
                       onAction: () => _showCreateTeamDialog(context, ref),
                       padding: hPadding,
                     ),
@@ -228,7 +228,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
               ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(20),
-                child: Text('오류: $e'),
+                child: Text(l10n.errorMsg(e.toString())),
               ),
             ),
 
@@ -238,8 +238,8 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
             AnimatedListItem(
               index: 6,
               child: _SectionHeader(
-                title: '상황 태그 템플릿',
-                actionLabel: '관리',
+                title: l10n.contextTagTemplate,
+                actionLabel: l10n.manage,
                 onAction: () => context.push('/tag-templates'),
                 padding: hPadding,
               ),
@@ -266,7 +266,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            '명함에 만난 상황, 특이사항 등을 기록할 태그 형식을 관리합니다',
+                            l10n.tagTemplateDescription,
                             style: TextStyle(
                               fontSize: 13,
                               color: theme.colorScheme.onSurface
@@ -410,19 +410,20 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
   }
 
   Future<bool?> _showDeleteDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('명함 삭제'),
-        content: const Text('이 명함을 삭제하시겠습니까?'),
+        title: Text(l10n.deleteConfirmTitle),
+        content: Text(l10n.deleteConfirmMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('삭제'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -430,20 +431,21 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
   }
 
   void _showCreateTeamDialog(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('팀 만들기'),
+        title: Text(l10n.createTeam),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: '팀 이름'),
+          decoration: InputDecoration(hintText: l10n.teamName),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -463,7 +465,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
               ref.invalidate(myTeamsProvider);
               if (context.mounted) Navigator.pop(context);
             },
-            child: const Text('만들기'),
+            child: Text(l10n.create),
           ),
         ],
       ),
@@ -471,6 +473,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
   }
 
   void _showJoinTeamDialog(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     bool isLoading = false;
 
@@ -478,14 +481,14 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('팀 참가'),
+          title: Text(l10n.joinTeam),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '팀 공유코드를 입력하면 팀에 Observer로 참가합니다.',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+              Text(
+                l10n.teamShareCodeHint,
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -497,7 +500,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                   LengthLimitingTextInputFormatter(8),
                 ],
                 decoration: InputDecoration(
-                  hintText: '공유코드 8자리',
+                  hintText: l10n.shareCodePlaceholder,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -512,7 +515,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
           actions: [
             TextButton(
               onPressed: isLoading ? null : () => Navigator.pop(dialogContext),
-              child: const Text('취소'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: isLoading
@@ -526,21 +529,21 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                         final result = await service.joinTeamByShareCode(code);
                         ref.invalidate(myTeamsProvider);
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
-                        final teamName = result['team_name'] as String? ?? '팀';
+                        final teamName = result['team_name'] as String? ?? l10n.team;
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('\'$teamName\'에 Observer로 참가했습니다')),
+                            SnackBar(content: Text(l10n.joinedTeam(teamName))),
                           );
                         }
                       } catch (e) {
                         setDialogState(() => isLoading = false);
                         if (dialogContext.mounted) {
-                          String message = '참가 실패: 올바른 공유코드를 입력해주세요';
+                          String message = l10n.joinFailed;
                           final errorStr = e.toString();
                           if (errorStr.contains('Already a member')) {
-                            message = '이미 해당 팀의 멤버입니다';
+                            message = l10n.alreadyMember;
                           } else if (errorStr.contains('Invalid or inactive')) {
-                            message = '유효하지 않거나 비활성화된 공유코드입니다';
+                            message = l10n.invalidShareCode;
                           }
                           ScaffoldMessenger.of(dialogContext).showSnackBar(
                             SnackBar(content: Text(message)),
@@ -554,7 +557,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('참가'),
+                  : Text(l10n.join),
             ),
           ],
         ),
@@ -757,7 +760,7 @@ class _MyCardTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      card.name ?? '이름 없음',
+                      card.name ?? AppLocalizations.of(context).noName,
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
@@ -918,12 +921,13 @@ class _PremiumTile extends ConsumerWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: padding, vertical: 4),
       child: isPremium
-          ? _buildPremiumActive(theme)
+          ? _buildPremiumActive(context, theme)
           : _buildPremiumInactive(context, ref, theme),
     );
   }
 
-  Widget _buildPremiumActive(ThemeData theme) {
+  Widget _buildPremiumActive(BuildContext context, ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
         Icon(
@@ -934,7 +938,7 @@ class _PremiumTile extends ConsumerWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            '광고 제거',
+            l10n.removeAds,
             style: const TextStyle(fontSize: 15),
           ),
         ),
@@ -945,7 +949,7 @@ class _PremiumTile extends ConsumerWidget {
             color: theme.colorScheme.onSurface.withOpacity(0.06),
           ),
           child: Text(
-            '적용됨',
+            l10n.applied,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -962,6 +966,7 @@ class _PremiumTile extends ConsumerWidget {
       WidgetRef ref,
       ThemeData theme,
       ) {
+    final l10n = AppLocalizations.of(context);
     return _TapScaleWidget(
       onTap: () => _showPremiumSheet(context, ref),
       child: Row(
@@ -974,7 +979,7 @@ class _PremiumTile extends ConsumerWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '광고 제거',
+              l10n.removeAds,
               style: const TextStyle(fontSize: 15),
             ),
           ),
@@ -1051,7 +1056,7 @@ class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
     if (isPremium && mounted) {
       Navigator.of(context).pop();
     } else {
-      _showError('복원할 구매 내역이 없습니다.');
+      _showError(AppLocalizations.of(context).noPurchaseToRestore);
     }
   }
 
@@ -1099,7 +1104,7 @@ class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '광고 없는 Mapae',
+                    AppLocalizations.of(context).premiumTitle,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 20,
@@ -1109,7 +1114,7 @@ class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
               ),
               const SizedBox(height: 8),
               Text(
-                '명함 리스트의 광고를 영구적으로 제거합니다.',
+                AppLocalizations.of(context).premiumDescription,
                 style: TextStyle(
                   fontSize: 14,
                   color: theme.colorScheme.onSurface.withOpacity(0.55),
@@ -1121,19 +1126,19 @@ class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
               // ── 혜택 목록 ──
               _BenefitRow(
                 icon: Icons.block_rounded,
-                text: '명함 리스트 광고 완전 제거',
+                text: AppLocalizations.of(context).removeAdsCompletely,
                 theme: theme,
               ),
               const SizedBox(height: 10),
               _BenefitRow(
                 icon: Icons.all_inclusive_rounded,
-                text: '1회 결제 · 평생 적용',
+                text: AppLocalizations.of(context).oneTimePurchase,
                 theme: theme,
               ),
               const SizedBox(height: 10),
               _BenefitRow(
                 icon: Icons.devices_rounded,
-                text: '동일 계정 기기 복원 가능',
+                text: AppLocalizations.of(context).restoreOnDevices,
                 theme: theme,
               ),
               const SizedBox(height: 28),
@@ -1152,7 +1157,7 @@ class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
                       color: Colors.white,
                     ),
                   )
-                      : const Text('₩1,000 · 광고 제거'),
+                      : Text(AppLocalizations.of(context).purchaseButton),
                 ),
               ),
               const SizedBox(height: 10),
@@ -1162,7 +1167,7 @@ class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
                 child: TextButton(
                   onPressed: _isLoading ? null : _handleRestore,
                   child: Text(
-                    '이전 구매 복원',
+                    AppLocalizations.of(context).restorePurchase,
                     style: TextStyle(
                       fontSize: 13,
                       color: theme.colorScheme.onSurface.withOpacity(0.4),
