@@ -1031,25 +1031,26 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
                       _onMemberAction(value, member),
                   itemBuilder: (context) {
                     final items = <PopupMenuItem<String>>[];
+                    final l10n = AppLocalizations.of(context);
                     if (member.role == TeamRole.observer) {
-                      items.add(const PopupMenuItem(
+                      items.add(PopupMenuItem(
                         value: 'promote_member',
-                        child: Text('멤버로 승격'),
+                        child: Text(l10n.promoteMember),
                       ));
                     } else if (member.role == TeamRole.member) {
-                      items.add(const PopupMenuItem(
+                      items.add(PopupMenuItem(
                         value: 'demote_observer',
-                        child: Text('관측자로 변경'),
+                        child: Text(l10n.demoteToObserver),
                       ));
                     }
-                    items.add(const PopupMenuItem(
+                    items.add(PopupMenuItem(
                       value: 'transfer_owner',
-                      child: Text('Owner 양도'),
+                      child: Text(l10n.transferOwnership),
                     ));
-                    items.add(const PopupMenuItem(
+                    items.add(PopupMenuItem(
                       value: 'kick',
-                      child: Text('팀에서 내보내기',
-                          style: TextStyle(color: Colors.red)),
+                      child: Text(l10n.kickFromTeam,
+                          style: const TextStyle(color: Colors.red)),
                     ));
                     return items;
                   },
@@ -1071,7 +1072,7 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
               child: OutlinedButton.icon(
                 onPressed: () => _showInviteDialog(),
                 icon: const Icon(Icons.person_add_outlined, size: 18),
-                label: const Text('멤버 초대'),
+                label: Text(AppLocalizations.of(context).inviteMember),
               ),
             ),
           ),
@@ -1090,7 +1091,7 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('변경 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).changeFailed(e.toString()))),
         );
       }
     } finally {
@@ -1107,13 +1108,13 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
       if (mounted) {
         setState(() => _team = updated);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('공유코드가 재생성되었습니다')),
+          SnackBar(content: Text(AppLocalizations.of(context).shareCodeRegenerated)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('재생성 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).regenFailed(e.toString()))),
         );
       }
     } finally {
@@ -1136,13 +1137,14 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
   }
 
   String _roleDisplayName(TeamRole role) {
+    final l10n = AppLocalizations.of(context);
     switch (role) {
       case TeamRole.owner:
-        return 'Owner (주인)';
+        return l10n.roleOwner;
       case TeamRole.member:
-        return 'Member (멤버)';
+        return l10n.roleMember;
       case TeamRole.observer:
-        return 'Observer (관측자)';
+        return l10n.roleObserver;
     }
   }
 
@@ -1169,21 +1171,22 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
         break;
 
       case 'kick':
+        final l10nKick = AppLocalizations.of(context);
         final confirm = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('멤버 내보내기'),
+            title: Text(l10nKick.kickMemberTitle),
             content:
-            Text('${member.userName ?? '이 멤버'}를 팀에서 내보내시겠습니까?'),
+            Text(l10nKick.kickMemberConfirm(member.userName ?? l10nKick.thisMember)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('취소'),
+                child: Text(l10nKick.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('내보내기'),
+                child: Text(l10nKick.kick),
               ),
             ],
           ),
@@ -1197,19 +1200,17 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
   }
 
   void _showTransferOwnershipDialog(TeamMember member) {
+    final l10n = AppLocalizations.of(context);
     // 1차 확인
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Owner 양도'),
-        content: Text(
-          '${member.userName ?? '이 멤버'}에게 Owner 권한을 양도하시겠습니까?\n'
-              '양도 후 본인은 Member로 변경됩니다.',
-        ),
+        title: Text(l10n.transferOwnership),
+        content: Text(l10n.transferOwnershipContent(member.userName ?? l10n.thisMember)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -1218,7 +1219,7 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
               _showTransferOwnershipConfirmDialog(member);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.orange),
-            child: const Text('양도하기'),
+            child: Text(l10n.transferProceed),
           ),
         ],
       ),
@@ -1226,18 +1227,16 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
   }
 
   void _showTransferOwnershipConfirmDialog(TeamMember member) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('최종 확인'),
-        content: Text(
-          '정말로 ${member.userName ?? '이 멤버'}에게 Owner를 양도하시겠습니까?\n'
-              '이 작업은 되돌릴 수 없습니다.',
-        ),
+        title: Text(l10n.finalConfirm),
+        content: Text(l10n.finalTransferConfirm(member.userName ?? l10n.thisMember)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -1256,19 +1255,19 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
                 widget.onRefresh();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Owner가 양도되었습니다')),
+                    SnackBar(content: Text(AppLocalizations.of(context).transferSuccess)),
                   );
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('양도 실패: $e')),
+                    SnackBar(content: Text(AppLocalizations.of(context).transferFailed(e.toString()))),
                   );
                 }
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('최종 양도'),
+            child: Text(l10n.finalTransferBtn),
           ),
         ],
       ),
@@ -1301,7 +1300,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
 
   void _showNoPermission() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('권한이 없습니다. Observer는 CRM을 수정할 수 없습니다')),
+      SnackBar(content: Text(AppLocalizations.of(context).noPermissionObserver)),
     );
   }
 
@@ -1337,7 +1336,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
         if (mounted) {
           setState(() => _loading = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('로드 실패: $e')),
+            SnackBar(content: Text(AppLocalizations.of(context).loadFailed(e.toString()))),
           );
         }
       }
@@ -1358,19 +1357,20 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (_tableNotFound) {
-      return _buildSetupScreen(theme);
+      return _buildSetupScreen(theme, l10n);
     }
 
     return Column(
       children: [
         // Pipeline summary
-        if (_showPipeline) _buildPipelineSummary(theme),
+        if (_showPipeline) _buildPipelineSummary(theme, l10n),
 
         // Search & filter bar
         Padding(
@@ -1383,7 +1383,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                   child: TextField(
                     onChanged: (v) => setState(() => _searchQuery = v),
                     decoration: InputDecoration(
-                      hintText: '검색...',
+                      hintText: l10n.searchHint,
                       prefixIcon: const Icon(Icons.search, size: 20),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                       border: OutlineInputBorder(
@@ -1405,7 +1405,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                   size: 22,
                 ),
                 onPressed: () => setState(() => _showPipeline = !_showPipeline),
-                tooltip: '파이프라인 보기',
+                tooltip: l10n.pipelineView,
               ),
             ],
           ),
@@ -1418,7 +1418,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
-              _buildFilterChip(null, '전체', theme),
+              _buildFilterChip(null, l10n.allCategories, theme),
               ...CrmStatus.values.map((s) => _buildFilterChip(s, s.label, theme)),
             ],
           ),
@@ -1440,14 +1440,14 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'CRM 연락처가 없습니다',
+                  l10n.noContacts,
                   style: TextStyle(
                     color: theme.colorScheme.onSurface.withOpacity(0.4),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '공유 명함에서 가져오거나 직접 추가하세요',
+                  l10n.addContactHint,
                   style: TextStyle(
                     fontSize: 12,
                     color: theme.colorScheme.onSurface.withOpacity(0.3),
@@ -1507,7 +1507,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                       _showImportFromSharedCards();
                     },
                     icon: const Icon(Icons.download_outlined, size: 18),
-                    label: const Text('공유 명함에서 가져오기'),
+                    label: Text(l10n.importFromSharedCards),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1521,7 +1521,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                       _showAddContactDialog();
                     },
                     icon: const Icon(Icons.person_add_outlined, size: 18),
-                    label: const Text('직접 추가'),
+                    label: Text(l10n.addManually),
                   ),
                 ),
               ],
@@ -1532,7 +1532,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
     );
   }
 
-  Widget _buildPipelineSummary(ThemeData theme) {
+  Widget _buildPipelineSummary(ThemeData theme, AppLocalizations l10n) {
     final total = _stats.values.fold<int>(0, (a, b) => a + b);
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -1554,14 +1554,14 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
               Icon(Icons.analytics_outlined, size: 20, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
               Text(
-                '파이프라인',
+                l10n.pipeline,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const Spacer(),
               Text(
-                '총 $total명',
+                l10n.totalPeople(total),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.6),
                 ),
@@ -1638,7 +1638,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
     );
   }
 
-  Widget _buildSetupScreen(ThemeData theme) {
+  Widget _buildSetupScreen(ThemeData theme, AppLocalizations l10n) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -1652,14 +1652,14 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
             ),
             const SizedBox(height: 16),
             Text(
-              'CRM 테이블 설정 필요',
+              l10n.crmSetupRequired,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Supabase SQL Editor에서\nmigration_crm.sql을 실행해 주세요.',
+              l10n.crmSetupInstruction,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -1670,7 +1670,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
             OutlinedButton.icon(
               onPressed: _loadData,
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('다시 시도'),
+              label: Text(l10n.retry),
             ),
           ],
         ),
@@ -1715,6 +1715,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
     final phoneCtrl = TextEditingController();
     final memoCtrl = TextEditingController();
 
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1730,14 +1731,14 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('CRM 연락처 추가', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+              Text(l10n.addCrmContact, style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 16),
-              _buildTextField(nameCtrl, '이름', Icons.person_outline),
-              _buildTextField(companyCtrl, '회사', Icons.business_outlined),
-              _buildTextField(positionCtrl, '직책', Icons.badge_outlined),
-              _buildTextField(emailCtrl, '이메일', Icons.email_outlined),
-              _buildTextField(phoneCtrl, '전화번호', Icons.phone_outlined),
-              _buildTextField(memoCtrl, '메모', Icons.note_outlined, maxLines: 3),
+              _buildTextField(nameCtrl, l10n.name, Icons.person_outline),
+              _buildTextField(companyCtrl, l10n.company, Icons.business_outlined),
+              _buildTextField(positionCtrl, l10n.jobTitle, Icons.badge_outlined),
+              _buildTextField(emailCtrl, l10n.email, Icons.email_outlined),
+              _buildTextField(phoneCtrl, l10n.phoneNumber, Icons.phone_outlined),
+              _buildTextField(memoCtrl, l10n.memo, Icons.note_outlined, maxLines: 3),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -1767,11 +1768,11 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                     await _loadData();
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('연락처가 추가되었습니다')),
+                        SnackBar(content: Text(AppLocalizations.of(context).contactAdded)),
                       );
                     }
                   },
-                  child: const Text('추가'),
+                  child: Text(l10n.add),
                 ),
               ),
             ],
@@ -1812,6 +1813,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
         .where((c) => !existingCardIds.contains(c['id']))
         .toList();
 
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -1826,7 +1828,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
               child: Row(
                 children: [
                   Text(
-                    '공유 명함에서 가져오기',
+                    l10n.importFromSharedCards,
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),
@@ -1840,11 +1842,11 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                         await _loadData();
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${availableCards.length}개 연락처를 가져왔습니다')),
+                            SnackBar(content: Text(AppLocalizations.of(context).importedContacts(availableCards.length))),
                           );
                         }
                       },
-                      child: const Text('전체 가져오기'),
+                      child: Text(l10n.importAll),
                     ),
                 ],
               ),
@@ -1853,7 +1855,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
               Padding(
                 padding: const EdgeInsets.all(32),
                 child: Text(
-                  '가져올 수 있는 새로운 명함이 없습니다',
+                  l10n.noNewCards,
                   style: TextStyle(
                     color: Theme.of(ctx).colorScheme.onSurface.withOpacity(0.4),
                   ),
@@ -1866,7 +1868,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                   itemCount: availableCards.length,
                   itemBuilder: (_, index) {
                     final card = availableCards[index];
-                    final name = card['name'] as String? ?? AppLocalizations.of(context).noName;
+                    final name = card['name'] as String? ?? l10n.noName;
                     final company = card['company'] as String?;
                     return ListTile(
                       leading: CircleAvatar(
@@ -1882,7 +1884,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                           await _loadData();
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('\'$name\'이(가) CRM에 추가되었습니다')),
+                              SnackBar(content: Text(AppLocalizations.of(context).contactAddedFromCard(name))),
                             );
                           }
                         },
@@ -2056,7 +2058,7 @@ class _CrmContactDetailScreenState
 
   void _showNoPermission() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('권한이 없습니다. Observer는 CRM을 수정할 수 없습니다')),
+      SnackBar(content: Text(AppLocalizations.of(context).noPermissionObserver)),
     );
   }
 
@@ -2126,7 +2128,7 @@ class _CrmContactDetailScreenState
           icon: const Icon(Icons.arrow_back_ios, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(_contact.name ?? 'CRM 연락처'),
+        title: Text(_contact.name ?? AppLocalizations.of(context).crmContact),
         actions: [
           if (!_isEditing)
             IconButton(
@@ -2156,9 +2158,9 @@ class _CrmContactDetailScreenState
               }
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
-                child: Text('삭제', style: TextStyle(color: Colors.red)),
+                child: Text(AppLocalizations.of(context).delete, style: const TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -2202,7 +2204,7 @@ class _CrmContactDetailScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '상태',
+            AppLocalizations.of(context).status,
             style: theme.textTheme.labelMedium?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
@@ -2241,15 +2243,16 @@ class _CrmContactDetailScreenState
   }
 
   Widget _buildInfoSection(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     final fields = <MapEntry<String, String?>>[];
-    if (_contact.name != null) fields.add(MapEntry('이름', _contact.name));
-    if (_contact.company != null) fields.add(MapEntry('회사', _contact.company));
-    if (_contact.position != null) fields.add(MapEntry('직책', _contact.position));
-    if (_contact.department != null) fields.add(MapEntry('부서', _contact.department));
-    if (_contact.email != null) fields.add(MapEntry('이메일', _contact.email));
-    if (_contact.phone != null) fields.add(MapEntry('전화', _contact.phone));
-    if (_contact.mobile != null) fields.add(MapEntry('휴대폰', _contact.mobile));
-    if (_contact.memo != null) fields.add(MapEntry('메모', _contact.memo));
+    if (_contact.name != null) fields.add(MapEntry(l10n.name, _contact.name));
+    if (_contact.company != null) fields.add(MapEntry(l10n.company, _contact.company));
+    if (_contact.position != null) fields.add(MapEntry(l10n.jobTitle, _contact.position));
+    if (_contact.department != null) fields.add(MapEntry(l10n.department, _contact.department));
+    if (_contact.email != null) fields.add(MapEntry(l10n.email, _contact.email));
+    if (_contact.phone != null) fields.add(MapEntry(l10n.phone, _contact.phone));
+    if (_contact.mobile != null) fields.add(MapEntry(l10n.mobileNumber, _contact.mobile));
+    if (_contact.memo != null) fields.add(MapEntry(l10n.memo, _contact.memo));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2261,13 +2264,13 @@ class _CrmContactDetailScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '연락처 정보',
+            l10n.contactInfo,
             style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           if (fields.isEmpty)
             Text(
-              '정보가 없습니다',
+              l10n.noInfo,
               style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4)),
             )
           else
@@ -2302,6 +2305,7 @@ class _CrmContactDetailScreenState
   }
 
   Widget _buildEditForm(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -2312,18 +2316,18 @@ class _CrmContactDetailScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '정보 수정',
+            l10n.editInfo,
             style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
-          _editField(_nameCtrl, '이름'),
-          _editField(_companyCtrl, '회사'),
-          _editField(_positionCtrl, '직책'),
-          _editField(_deptCtrl, '부서'),
-          _editField(_emailCtrl, '이메일'),
-          _editField(_phoneCtrl, '전화'),
-          _editField(_mobileCtrl, '휴대폰'),
-          _editField(_memoCtrl, '메모', maxLines: 3),
+          _editField(_nameCtrl, l10n.name),
+          _editField(_companyCtrl, l10n.company),
+          _editField(_positionCtrl, l10n.jobTitle),
+          _editField(_deptCtrl, l10n.department),
+          _editField(_emailCtrl, l10n.email),
+          _editField(_phoneCtrl, l10n.phone),
+          _editField(_mobileCtrl, l10n.mobileNumber),
+          _editField(_memoCtrl, l10n.memo, maxLines: 3),
         ],
       ),
     );
@@ -2346,6 +2350,7 @@ class _CrmContactDetailScreenState
   }
 
   Widget _buildQuickActions(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -2353,19 +2358,19 @@ class _CrmContactDetailScreenState
         if (_contact.phone != null)
           ActionChip(
             avatar: const Icon(Icons.phone, size: 16),
-            label: const Text('전화'),
+            label: Text(l10n.phone),
             onPressed: () => _launchUrl('tel:${_contact.phone}'),
           ),
         if (_contact.mobile != null)
           ActionChip(
             avatar: const Icon(Icons.smartphone, size: 16),
-            label: const Text('휴대폰'),
+            label: Text(l10n.mobileNumber),
             onPressed: () => _launchUrl('tel:${_contact.mobile}'),
           ),
         if (_contact.email != null)
           ActionChip(
             avatar: const Icon(Icons.email, size: 16),
-            label: const Text('이메일'),
+            label: Text(l10n.email),
             onPressed: () => _launchUrl('mailto:${_contact.email}'),
           ),
       ],
@@ -2373,6 +2378,7 @@ class _CrmContactDetailScreenState
   }
 
   Widget _buildNotesSection(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2381,12 +2387,12 @@ class _CrmContactDetailScreenState
             Icon(Icons.notes, size: 20, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
             Text(
-              '활동 노트',
+              l10n.activityNotes,
               style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const Spacer(),
             Text(
-              '${_notes.length}개',
+              l10n.noteCount(_notes.length),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),
@@ -2404,7 +2410,7 @@ class _CrmContactDetailScreenState
                 maxLines: 2,
                 minLines: 1,
                 decoration: InputDecoration(
-                  hintText: '노트를 입력하세요...',
+                  hintText: l10n.noteHint,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
@@ -2433,7 +2439,7 @@ class _CrmContactDetailScreenState
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                '아직 노트가 없습니다',
+                l10n.noNotes,
                 style: TextStyle(
                   color: theme.colorScheme.onSurface.withOpacity(0.4),
                 ),
@@ -2473,7 +2479,7 @@ class _CrmContactDetailScreenState
               ),
               const SizedBox(width: 8),
               Text(
-                note.authorName ?? '알 수 없음',
+                note.authorName ?? AppLocalizations.of(context).unknown,
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -2509,12 +2515,13 @@ class _CrmContactDetailScreenState
   }
 
   String _formatDate(DateTime date) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final diff = now.difference(date);
-    if (diff.inMinutes < 1) return '방금 전';
-    if (diff.inHours < 1) return '${diff.inMinutes}분 전';
-    if (diff.inDays < 1) return '${diff.inHours}시간 전';
-    if (diff.inDays < 7) return '${diff.inDays}일 전';
+    if (diff.inMinutes < 1) return l10n.justNow;
+    if (diff.inHours < 1) return l10n.minutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) return l10n.hoursAgo(diff.inHours);
+    if (diff.inDays < 7) return l10n.daysAgo(diff.inDays);
     return '${date.month}/${date.day}';
   }
 
@@ -2561,7 +2568,7 @@ class _CrmContactDetailScreenState
     });
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('저장되었습니다')),
+        SnackBar(content: Text(AppLocalizations.of(context).saved)),
       );
     }
   }
@@ -2591,20 +2598,21 @@ class _CrmContactDetailScreenState
   }
 
   Future<void> _deleteContact() async {
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('연락처 삭제'),
-        content: Text('\'${_contact.name ?? '이 연락처'}\'를 삭제하시겠습니까?\n모든 노트도 함께 삭제됩니다.'),
+        title: Text(l10n.deleteContact),
+        content: Text(l10n.deleteContactConfirm(_contact.name ?? l10n.thisContact)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('삭제'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -2644,6 +2652,7 @@ class _ShareCodeSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final enabled = team.shareCodeEnabled;
     final code = team.shareCode;
 
@@ -2674,7 +2683,7 @@ class _ShareCodeSection extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '팀 공유코드',
+                  l10n.teamShareCode,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: enabled
@@ -2702,8 +2711,8 @@ class _ShareCodeSection extends StatelessWidget {
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 isOwner
-                    ? '공유코드를 활성화하면 누구나 코드로 팀에 참가할 수 있습니다'
-                    : '공유코드가 비활성화되어 있습니다',
+                    ? l10n.shareCodeEnabledHint
+                    : l10n.shareCodeDisabled,
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.onSurface.withOpacity(0.45),
@@ -2728,7 +2737,7 @@ class _ShareCodeSection extends StatelessWidget {
                     child: Text(
                       code != null
                           ? _formatCode(code)
-                          : '코드 생성 중...',
+                          : l10n.codeGenerating,
                       style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 18,
@@ -2743,15 +2752,15 @@ class _ShareCodeSection extends StatelessWidget {
                 const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.copy, size: 20),
-                  tooltip: '복사',
+                  tooltip: l10n.copy,
                   onPressed: code == null
                       ? null
                       : () {
                           Clipboard.setData(ClipboardData(text: code));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('공유코드가 복사되었습니다'),
-                              duration: Duration(seconds: 2),
+                            SnackBar(
+                              content: Text(l10n.shareCodeCopied),
+                              duration: const Duration(seconds: 2),
                             ),
                           );
                         },
@@ -2759,7 +2768,7 @@ class _ShareCodeSection extends StatelessWidget {
                 if (isOwner)
                   IconButton(
                     icon: const Icon(Icons.refresh, size: 20),
-                    tooltip: '코드 재생성',
+                    tooltip: l10n.regenerateCode,
                     onPressed: isLoading ? null : onRegenerate,
                   ),
               ],
@@ -2767,7 +2776,7 @@ class _ShareCodeSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
-                '이 코드로 팀에 참가하면 Observer로 시작합니다',
+                l10n.shareCodeObserverNote,
                 style: TextStyle(
                   fontSize: 11,
                   color: theme.colorScheme.onSurface.withOpacity(0.45),

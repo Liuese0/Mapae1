@@ -242,6 +242,125 @@ abstract class AppLocalizations {
   // ── Delete confirmation ──
   String get deleteConfirmTitle;
   String get deleteConfirmMessage;
+
+  // ── Invite Member ──
+  String get inviteMember;
+  String get inviteMemberHint;
+  String get emailAddressHint;
+  String get cannotInviteSelf;
+  String get alreadyTeamMember;
+  String get searchError;
+  String get alreadyInvited;
+  String inviteSent(String name);
+  String get inviteError;
+  String get noSearchResults;
+  String get invite;
+  String get inviteConfirmTitle;
+  String inviteConfirmMessage(String name);
+
+  // ── Share / QuickShare ──
+  String get shareViaSnsSubtitle;
+  String get quickShare;
+  String get quickShareSubtitle;
+  String get startExchange;
+  String get done;
+  String get scanning;
+  String get quickShareScanningDesc;
+  String get quickShareDiscoveredDesc;
+  String get quickShareExchangingDesc;
+  String get quickShareCompletedDesc;
+  String nearbyUsers(int count);
+  String exchangeCompleted(String name);
+  String get exchangeTimeout;
+  String get exchangeInProgress;
+  String get cardExchangeComplete;
+  String get myCard;
+  String get opponent;
+  String get shareCardContent;
+  String shareCardTitle(String name);
+
+  // ── Scan Card ──
+  String get scanCard;
+  String get scanCardSubtitle;
+  String get processingCard;
+  String get recognizingText;
+  String get savingInfo;
+  String get cardAdded;
+  String recognitionFailed(String e);
+  String get loginRequired;
+
+  // ── Team Members / Roles ──
+  String get promoteMember;
+  String get demoteToObserver;
+  String get transferOwnership;
+  String get kickFromTeam;
+  String get kick;
+  String get kickMemberTitle;
+  String get thisMember;
+  String kickMemberConfirm(String name);
+  String transferOwnershipContent(String name);
+  String get transferProceed;
+  String get finalConfirm;
+  String finalTransferConfirm(String name);
+  String get transferSuccess;
+  String transferFailed(String e);
+  String get finalTransferBtn;
+  String get roleOwner;
+  String get roleMember;
+  String get roleObserver;
+  String changeFailed(String e);
+  String get shareCodeRegenerated;
+  String regenFailed(String e);
+
+  // ── CRM ──
+  String get noPermissionObserver;
+  String loadFailed(String e);
+  String get searchHint;
+  String get pipelineView;
+  String get noContacts;
+  String get addContactHint;
+  String get importFromSharedCards;
+  String get addManually;
+  String get pipeline;
+  String totalPeople(int count);
+  String get crmSetupRequired;
+  String get crmSetupInstruction;
+  String get retry;
+  String get addCrmContact;
+  String get company;
+  String get jobTitle;
+  String importedContacts(int count);
+  String get importAll;
+  String get noNewCards;
+  String contactAddedFromCard(String name);
+  String get contactAdded;
+  String get contactInfo;
+  String get noInfo;
+  String get editInfo;
+  String get activityNotes;
+  String noteCount(int count);
+  String get noteHint;
+  String get noNotes;
+  String get unknown;
+  String get justNow;
+  String minutesAgo(int n);
+  String hoursAgo(int n);
+  String daysAgo(int n);
+  String get deleteContact;
+  String get thisContact;
+  String deleteContactConfirm(String name);
+  String get status;
+  String get phone;
+  String get crmContact;
+
+  // ── Share Code ──
+  String get teamShareCode;
+  String get shareCodeEnabledHint;
+  String get shareCodeDisabled;
+  String get codeGenerating;
+  String get shareCodeCopied;
+  String get regenerateCode;
+  String get shareCodeObserverNote;
 }
 
 class _AppLocalizationsDelegate
@@ -471,6 +590,128 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override String get deleteConfirmTitle => '명함 삭제';
   @override String get deleteConfirmMessage => '이 명함을 삭제하시겠습니까?';
+
+  // ── Invite Member ──
+  @override String get inviteMember => '멤버 초대';
+  @override String get inviteMemberHint => '이메일로 유저를 검색하여 초대할 수 있습니다';
+  @override String get emailAddressHint => '이메일 주소 입력';
+  @override String get cannotInviteSelf => '자기 자신은 초대할 수 없습니다';
+  @override String get alreadyTeamMember => '이미 팀에 소속된 멤버입니다';
+  @override String get searchError => '검색 중 오류가 발생했습니다';
+  @override String get alreadyInvited => '이미 초대를 보낸 유저입니다';
+  @override String inviteSent(String name) => '${name}님에게 초대를 보냈습니다';
+  @override String get inviteError => '초대 중 오류가 발생했습니다';
+  @override String get noSearchResults => '검색 결과가 없습니다';
+  @override String get invite => '초대';
+  @override String get inviteConfirmTitle => '초대 확인';
+  @override String inviteConfirmMessage(String name) => '${name}님을 팀에 초대하시겠습니까?';
+
+  // ── Share / QuickShare ──
+  @override String get shareViaSnsSubtitle => '카카오톡, 메시지 등';
+  @override String get quickShare => '퀵쉐어';
+  @override String get quickShareSubtitle => '실시간으로 퀵쉐어 중인 사용자와 명함을 교환합니다';
+  @override String get startExchange => '명함 교환 시작';
+  @override String get done => '완료';
+  @override String get scanning => '주변 검색 중...';
+  @override String get quickShareScanningDesc => '현재 퀵쉐어 화면을 연 사용자만 실시간으로 표시됩니다.';
+  @override String get quickShareDiscoveredDesc => '감지된 사용자 중 교환할 대상을 선택하세요.';
+  @override String get quickShareExchangingDesc => '서로의 명함을 교환 중입니다.';
+  @override String get quickShareCompletedDesc => '양쪽 지갑에 상대 명함이 저장되었습니다.';
+  @override String nearbyUsers(int count) => '근처 사용자 ${count}명';
+  @override String exchangeCompleted(String name) => '${name}님과 명함 교환이 완료되었습니다.';
+  @override String get exchangeTimeout => '응답 시간이 초과되었습니다. 다시 시도해주세요.';
+  @override String get exchangeInProgress => '서로의 명함을 교환하는 중...';
+  @override String get cardExchangeComplete => '명함 교환 완료';
+  @override String get myCard => '내 명함';
+  @override String get opponent => '상대';
+  @override String get shareCardContent => '📇 Mapae 앱으로 이 명함을 저장하세요:';
+  @override String shareCardTitle(String name) => '명함 공유 - $name';
+
+  // ── Scan Card ──
+  @override String get scanCard => '명함 스캔';
+  @override String get scanCardSubtitle => '카메라로 명함을 스캔하거나 갤러리에서 선택합니다';
+  @override String get processingCard => '명함 인식 중...';
+  @override String get recognizingText => '문자 인식 중...';
+  @override String get savingInfo => '정보 저장 중...';
+  @override String get cardAdded => '명함이 추가되었습니다';
+  @override String recognitionFailed(String e) => '인식 실패: $e';
+  @override String get loginRequired => '로그인이 필요합니다';
+
+  // ── Team Members / Roles ──
+  @override String get promoteMember => '멤버로 승격';
+  @override String get demoteToObserver => '관측자로 변경';
+  @override String get transferOwnership => 'Owner 양도';
+  @override String get kickFromTeam => '팀에서 내보내기';
+  @override String get kick => '내보내기';
+  @override String get kickMemberTitle => '멤버 내보내기';
+  @override String get thisMember => '이 멤버';
+  @override String kickMemberConfirm(String name) => '${name}를 팀에서 내보내시겠습니까?';
+  @override String transferOwnershipContent(String name) =>
+      '${name}에게 Owner 권한을 양도하시겠습니까?\n양도 후 본인은 Member로 변경됩니다.';
+  @override String get transferProceed => '양도하기';
+  @override String get finalConfirm => '최종 확인';
+  @override String finalTransferConfirm(String name) =>
+      '정말로 ${name}에게 Owner를 양도하시겠습니까?\n이 작업은 되돌릴 수 없습니다.';
+  @override String get transferSuccess => 'Owner가 양도되었습니다';
+  @override String transferFailed(String e) => '양도 실패: $e';
+  @override String get finalTransferBtn => '최종 양도';
+  @override String get roleOwner => 'Owner (주인)';
+  @override String get roleMember => 'Member (멤버)';
+  @override String get roleObserver => 'Observer (관측자)';
+  @override String changeFailed(String e) => '변경 실패: $e';
+  @override String get shareCodeRegenerated => '공유코드가 재생성되었습니다';
+  @override String regenFailed(String e) => '재생성 실패: $e';
+
+  // ── CRM ──
+  @override String get noPermissionObserver => '권한이 없습니다. Observer는 CRM을 수정할 수 없습니다';
+  @override String loadFailed(String e) => '로드 실패: $e';
+  @override String get searchHint => '검색...';
+  @override String get pipelineView => '파이프라인 보기';
+  @override String get noContacts => 'CRM 연락처가 없습니다';
+  @override String get addContactHint => '공유 명함에서 가져오거나 직접 추가하세요';
+  @override String get importFromSharedCards => '공유 명함에서 가져오기';
+  @override String get addManually => '직접 추가';
+  @override String get pipeline => '파이프라인';
+  @override String totalPeople(int count) => '총 ${count}명';
+  @override String get crmSetupRequired => 'CRM 테이블 설정 필요';
+  @override String get crmSetupInstruction => 'Supabase SQL Editor에서\nmigration_crm.sql을 실행해 주세요.';
+  @override String get retry => '다시 시도';
+  @override String get addCrmContact => 'CRM 연락처 추가';
+  @override String get company => '회사';
+  @override String get jobTitle => '직책';
+  @override String importedContacts(int count) => '${count}개 연락처를 가져왔습니다';
+  @override String get importAll => '전체 가져오기';
+  @override String get noNewCards => '가져올 수 있는 새로운 명함이 없습니다';
+  @override String contactAddedFromCard(String name) => '\'$name\'이(가) CRM에 추가되었습니다';
+  @override String get contactAdded => '연락처가 추가되었습니다';
+  @override String get contactInfo => '연락처 정보';
+  @override String get noInfo => '정보가 없습니다';
+  @override String get editInfo => '정보 수정';
+  @override String get activityNotes => '활동 노트';
+  @override String noteCount(int count) => '${count}개';
+  @override String get noteHint => '노트를 입력하세요...';
+  @override String get noNotes => '아직 노트가 없습니다';
+  @override String get unknown => '알 수 없음';
+  @override String get justNow => '방금 전';
+  @override String minutesAgo(int n) => '${n}분 전';
+  @override String hoursAgo(int n) => '${n}시간 전';
+  @override String daysAgo(int n) => '${n}일 전';
+  @override String get deleteContact => '연락처 삭제';
+  @override String get thisContact => '이 연락처';
+  @override String deleteContactConfirm(String name) =>
+      '\'$name\'를 삭제하시겠습니까?\n모든 노트도 함께 삭제됩니다.';
+  @override String get status => '상태';
+  @override String get phone => '전화';
+  @override String get crmContact => 'CRM 연락처';
+
+  // ── Share Code ──
+  @override String get teamShareCode => '팀 공유코드';
+  @override String get shareCodeEnabledHint => '공유코드를 활성화하면 누구나 코드로 팀에 참가할 수 있습니다';
+  @override String get shareCodeDisabled => '공유코드가 비활성화되어 있습니다';
+  @override String get codeGenerating => '코드 생성 중...';
+  @override String get shareCodeCopied => '공유코드가 복사되었습니다';
+  @override String get regenerateCode => '코드 재생성';
+  @override String get shareCodeObserverNote => '이 코드로 팀에 참가하면 Observer로 시작합니다';
 }
 
 // ──────────────── English ────────────────
@@ -689,4 +930,126 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get deleteConfirmTitle => 'Delete Card';
   @override String get deleteConfirmMessage =>
       'Are you sure you want to delete this card?';
+
+  // ── Invite Member ──
+  @override String get inviteMember => 'Invite Member';
+  @override String get inviteMemberHint => 'Search users by email to invite';
+  @override String get emailAddressHint => 'Enter email address';
+  @override String get cannotInviteSelf => 'Cannot invite yourself';
+  @override String get alreadyTeamMember => 'Already a team member';
+  @override String get searchError => 'Error during search';
+  @override String get alreadyInvited => 'Invitation already sent';
+  @override String inviteSent(String name) => 'Invitation sent to $name';
+  @override String get inviteError => 'Error sending invitation';
+  @override String get noSearchResults => 'No results found';
+  @override String get invite => 'Invite';
+  @override String get inviteConfirmTitle => 'Confirm Invitation';
+  @override String inviteConfirmMessage(String name) => 'Invite $name to the team?';
+
+  // ── Share / QuickShare ──
+  @override String get shareViaSnsSubtitle => 'KakaoTalk, Messages, etc.';
+  @override String get quickShare => 'QuickShare';
+  @override String get quickShareSubtitle => 'Exchange cards with nearby QuickShare users in real time';
+  @override String get startExchange => 'Start Exchange';
+  @override String get done => 'Done';
+  @override String get scanning => 'Searching nearby...';
+  @override String get quickShareScanningDesc => 'Only users with QuickShare open are shown in real time.';
+  @override String get quickShareDiscoveredDesc => 'Select a user to exchange cards with.';
+  @override String get quickShareExchangingDesc => 'Exchanging cards with each other.';
+  @override String get quickShareCompletedDesc => "Each other's card has been saved to both wallets.";
+  @override String nearbyUsers(int count) => '$count nearby user(s)';
+  @override String exchangeCompleted(String name) => 'Card exchange with $name is complete.';
+  @override String get exchangeTimeout => 'Response timed out. Please try again.';
+  @override String get exchangeInProgress => 'Exchanging cards...';
+  @override String get cardExchangeComplete => 'Card Exchange Complete';
+  @override String get myCard => 'My Card';
+  @override String get opponent => 'Other';
+  @override String get shareCardContent => '📇 Save this card with the Mapae app:';
+  @override String shareCardTitle(String name) => 'Card Share - $name';
+
+  // ── Scan Card ──
+  @override String get scanCard => 'Scan Card';
+  @override String get scanCardSubtitle => 'Scan with camera or choose from gallery';
+  @override String get processingCard => 'Processing card...';
+  @override String get recognizingText => 'Recognizing text...';
+  @override String get savingInfo => 'Saving info...';
+  @override String get cardAdded => 'Card added';
+  @override String recognitionFailed(String e) => 'Recognition failed: $e';
+  @override String get loginRequired => 'Login required';
+
+  // ── Team Members / Roles ──
+  @override String get promoteMember => 'Promote to Member';
+  @override String get demoteToObserver => 'Demote to Observer';
+  @override String get transferOwnership => 'Transfer Ownership';
+  @override String get kickFromTeam => 'Remove from Team';
+  @override String get kick => 'Remove';
+  @override String get kickMemberTitle => 'Remove Member';
+  @override String get thisMember => 'this member';
+  @override String kickMemberConfirm(String name) => 'Remove $name from the team?';
+  @override String transferOwnershipContent(String name) =>
+      'Transfer Owner to $name?\nYou will become a Member.';
+  @override String get transferProceed => 'Transfer';
+  @override String get finalConfirm => 'Final Confirmation';
+  @override String finalTransferConfirm(String name) =>
+      'Really transfer Owner to $name?\nThis cannot be undone.';
+  @override String get transferSuccess => 'Ownership transferred';
+  @override String transferFailed(String e) => 'Transfer failed: $e';
+  @override String get finalTransferBtn => 'Confirm Transfer';
+  @override String get roleOwner => 'Owner';
+  @override String get roleMember => 'Member';
+  @override String get roleObserver => 'Observer';
+  @override String changeFailed(String e) => 'Change failed: $e';
+  @override String get shareCodeRegenerated => 'Share code regenerated';
+  @override String regenFailed(String e) => 'Regeneration failed: $e';
+
+  // ── CRM ──
+  @override String get noPermissionObserver => 'No permission. Observers cannot edit CRM';
+  @override String loadFailed(String e) => 'Load failed: $e';
+  @override String get searchHint => 'Search...';
+  @override String get pipelineView => 'Pipeline View';
+  @override String get noContacts => 'No CRM contacts';
+  @override String get addContactHint => 'Import from shared cards or add manually';
+  @override String get importFromSharedCards => 'Import from Shared Cards';
+  @override String get addManually => 'Add Manually';
+  @override String get pipeline => 'Pipeline';
+  @override String totalPeople(int count) => '$count total';
+  @override String get crmSetupRequired => 'CRM Setup Required';
+  @override String get crmSetupInstruction => 'Run migration_crm.sql in\nSupabase SQL Editor.';
+  @override String get retry => 'Retry';
+  @override String get addCrmContact => 'Add CRM Contact';
+  @override String get company => 'Company';
+  @override String get jobTitle => 'Job Title';
+  @override String importedContacts(int count) => '$count contacts imported';
+  @override String get importAll => 'Import All';
+  @override String get noNewCards => 'No new cards available to import';
+  @override String contactAddedFromCard(String name) => "'$name' added to CRM";
+  @override String get contactAdded => 'Contact added';
+  @override String get contactInfo => 'Contact Info';
+  @override String get noInfo => 'No info';
+  @override String get editInfo => 'Edit Info';
+  @override String get activityNotes => 'Activity Notes';
+  @override String noteCount(int count) => '$count';
+  @override String get noteHint => 'Enter a note...';
+  @override String get noNotes => 'No notes yet';
+  @override String get unknown => 'Unknown';
+  @override String get justNow => 'Just now';
+  @override String minutesAgo(int n) => '${n}m ago';
+  @override String hoursAgo(int n) => '${n}h ago';
+  @override String daysAgo(int n) => '${n}d ago';
+  @override String get deleteContact => 'Delete Contact';
+  @override String get thisContact => 'this contact';
+  @override String deleteContactConfirm(String name) =>
+      "Delete '$name'?\nAll notes will also be deleted.";
+  @override String get status => 'Status';
+  @override String get phone => 'Phone';
+  @override String get crmContact => 'CRM Contact';
+
+  // ── Share Code ──
+  @override String get teamShareCode => 'Team Share Code';
+  @override String get shareCodeEnabledHint => 'When enabled, anyone can join the team with the code';
+  @override String get shareCodeDisabled => 'Share code is disabled';
+  @override String get codeGenerating => 'Generating code...';
+  @override String get shareCodeCopied => 'Share code copied';
+  @override String get regenerateCode => 'Regenerate Code';
+  @override String get shareCodeObserverNote => 'Users who join with this code start as Observer';
 }

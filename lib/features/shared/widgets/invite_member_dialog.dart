@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/app_user.dart';
 import '../../shared/models/team.dart';
 
@@ -67,12 +68,13 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
       // 검색 결과는 있지만 필터링으로 제외된 경우 안내 메시지 표시
       String? filterMessage;
       if (results.isNotEmpty && filtered.isEmpty) {
+        final l10n = AppLocalizations.of(context);
         final hasCurrentUser = results.any((u) => u.id == currentUserId);
         final hasExistingMember = results.any((u) => memberIds.contains(u.id));
         if (hasCurrentUser && results.length == 1) {
-          filterMessage = '자기 자신은 초대할 수 없습니다';
+          filterMessage = l10n.cannotInviteSelf;
         } else if (hasExistingMember) {
-          filterMessage = '이미 팀에 소속된 멤버입니다';
+          filterMessage = l10n.alreadyTeamMember;
         }
       }
 
@@ -87,13 +89,14 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
       if (mounted) {
         setState(() {
           _searching = false;
-          _errorMessage = '검색 중 오류가 발생했습니다';
+          _errorMessage = AppLocalizations.of(context).searchError;
         });
       }
     }
   }
 
   Future<void> _sendInvitation(AppUser user) async {
+    final l10n = AppLocalizations.of(context);
     try {
       final service = ref.read(supabaseServiceProvider);
 
@@ -103,7 +106,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
       if (alreadyInvited) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('이미 초대를 보낸 유저입니다')),
+            SnackBar(content: Text(l10n.alreadyInvited)),
           );
         }
         return;
@@ -117,15 +120,16 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
       if (mounted) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${user.name ?? user.email}님에게 초대를 보냈습니다')),
+          SnackBar(content: Text(l10n.inviteSent(user.name ?? user.email ?? ''))),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10nCurrent = AppLocalizations.of(context);
         final message = e.toString().contains('duplicate key') ||
             e.toString().contains('23505')
-            ? '이미 초대를 보낸 유저입니다'
-            : '초대 중 오류가 발생했습니다';
+            ? l10nCurrent.alreadyInvited
+            : l10nCurrent.inviteError;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message)),
         );
@@ -136,6 +140,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -146,14 +151,14 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '멤버 초대',
+              l10n.inviteMember,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              '이메일로 유저를 검색하여 초대할 수 있습니다',
+              l10n.inviteMemberHint,
               style: TextStyle(
                 fontSize: 13,
                 color: theme.colorScheme.onSurface.withOpacity(0.5),
@@ -165,7 +170,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
               onChanged: _onSearchChanged,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: '이메일 주소 입력',
+                hintText: l10n.emailAddressHint,
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: _searching
                     ? const Padding(
@@ -217,7 +222,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('닫기'),
+                child: Text(l10n.close),
               ),
             ),
           ],
@@ -227,6 +232,8 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
   }
 
   Widget _buildSearchResults(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
+
     if (_searchController.text.trim().length < 2) {
       return const SizedBox.shrink();
     }
@@ -240,7 +247,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Center(
           child: Text(
-            '검색 결과가 없습니다',
+            l10n.noSearchResults,
             style: TextStyle(
               color: theme.colorScheme.onSurface.withOpacity(0.4),
               fontSize: 14,
@@ -267,7 +274,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
                 : null,
           ),
           title: Text(
-            user.name ?? '이름 없음',
+            user.name ?? l10n.noName,
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
           subtitle: Text(
@@ -283,7 +290,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               minimumSize: const Size(0, 32),
             ),
-            child: const Text('초대'),
+            child: Text(l10n.invite),
           ),
         );
       },
@@ -291,22 +298,23 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
   }
 
   void _showInviteConfirm(AppUser user) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('초대 확인'),
-        content: Text('${user.name ?? user.email}님을 팀에 초대하시겠습니까?'),
+        title: Text(l10n.inviteConfirmTitle),
+        content: Text(l10n.inviteConfirmMessage(user.name ?? user.email ?? '')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _sendInvitation(user);
             },
-            child: const Text('초대'),
+            child: Text(l10n.invite),
           ),
         ],
       ),
