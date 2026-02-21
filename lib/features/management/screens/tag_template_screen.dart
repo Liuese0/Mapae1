@@ -349,7 +349,7 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: field.nameController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: AppLocalizations.of(context).fieldName,
                           isDense: true,
                         ),

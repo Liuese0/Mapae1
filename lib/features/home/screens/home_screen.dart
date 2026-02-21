@@ -280,6 +280,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildEmptyState(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return SizedBox(
       height: Responsive.cardHeight(context),
       child: Center(
