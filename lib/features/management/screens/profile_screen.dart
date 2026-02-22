@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -40,13 +41,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (mounted) {
         setState(() => _isEditing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이름이 변경되었습니다.')),
+          SnackBar(content: Text(AppLocalizations.of(context).nameChanged)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).errorMsg(e.toString()))),
         );
       }
     } finally {
@@ -58,25 +59,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final passwordController = TextEditingController();
     String? errorText;
 
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('계정 탈퇴'),
+          title: Text(l10n.deleteAccount),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '모든 데이터가 삭제되며 복구할 수 없습니다.\n본인 확인을 위해 비밀번호를 입력해주세요.',
-              ),
+              Text(l10n.deleteAccountWarning),
               const SizedBox(height: 16),
               TextField(
                 controller: passwordController,
                 obscureText: true,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: '비밀번호',
+                  hintText: l10n.password,
                   prefixIcon: const Icon(Icons.lock_outlined, size: 20),
                   errorText: errorText,
                   border: OutlineInputBorder(
@@ -89,13 +89,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('취소'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () async {
                 final password = passwordController.text;
                 if (password.isEmpty) {
-                  setDialogState(() => errorText = '비밀번호를 입력해주세요');
+                  setDialogState(() => errorText = l10n.enterPassword);
                   return;
                 }
                 try {
@@ -109,11 +109,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   );
                   if (context.mounted) Navigator.pop(context, true);
                 } catch (_) {
-                  setDialogState(() => errorText = '비밀번호가 올바르지 않습니다');
+                  setDialogState(() => errorText = l10n.incorrectPassword);
                 }
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('탈퇴'),
+              child: Text(l10n.withdraw),
             ),
           ],
         ),
@@ -136,7 +136,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).errorMsg(e.toString()))),
         );
       }
     }
@@ -145,12 +145,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final profile = ref.watch(userProfileProvider);
     final hPadding = Responsive.horizontalPadding(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('개인정보'),
+        title: Text(l10n.personalInfo),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, size: 20),
           onPressed: () => context.pop(),
@@ -163,7 +164,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               // Email (read-only)
               Text(
-                '이메일',
+                l10n.email,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.5),
                 ),
@@ -186,7 +187,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
               // Name (editable)
               Text(
-                '이름',
+                l10n.name,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.5),
                 ),
@@ -199,7 +200,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       controller: _nameController,
                       enabled: _isEditing,
                       decoration: InputDecoration(
-                        hintText: '이름을 입력하세요',
+                        hintText: l10n.enterNameHint,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -251,12 +252,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.red.shade400,
                 ),
-                child: const Text('계정 탈퇴'),
+                child: Text(l10n.deleteAccount),
               ),
             ],
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('오류: $e')),
+          error: (e, _) => Center(child: Text(l10n.errorMsg(e.toString()))),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/utils/animated_list_item.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
 import '../widgets/card_list_tile.dart';
 import '../widgets/native_ad_card.dart';
@@ -121,6 +122,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final cards = ref.watch(collectedCardsProvider);
     final cardCount = ref.watch(cardCountProvider);
     final categories = ref.watch(categoriesProvider);
@@ -150,7 +152,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                         children: [
                           cardCount.when(
                             data: (count) => Text(
-                              '전체 명함 ${count}장',
+                              l10n.totalCards(count),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurface
                                     .withOpacity(0.5),
@@ -242,7 +244,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                     },
                     loading: () =>
                     const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('오류: $e')),
+                    error: (e, _) => Center(child: Text(l10n.errorMsg(e.toString()))),
                   ),
                 ),
               ],
@@ -266,6 +268,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
   }
 
   Widget _buildEmptyState(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -286,7 +289,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            '명함이 없습니다',
+            l10n.noCards,
             style: TextStyle(
               color: theme.colorScheme.onSurface.withOpacity(0.4),
             ),

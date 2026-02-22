@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
 import '../../shared/models/context_tag.dart';
 import '../../shared/widgets/category_picker_field.dart';
@@ -253,14 +254,14 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('저장되었습니다')),
+          SnackBar(content: Text(AppLocalizations.of(context).saved)),
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('저장 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).saveFailed(e.toString()))),
         );
       }
     } finally {
@@ -280,7 +281,7 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
           icon: const Icon(Icons.arrow_back_ios, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: const Text('명함 수정'),
+        title: Text(AppLocalizations.of(context).editCard),
         actions: [
           cardAsync.when(
             data: (card) {
@@ -293,7 +294,7 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-                    : const Text('저장'),
+                    : Text(AppLocalizations.of(context).save),
               );
             },
             loading: () => const SizedBox.shrink(),
@@ -304,7 +305,7 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
       body: cardAsync.when(
         data: (card) {
           if (card == null) {
-            return const Center(child: Text('명함을 찾을 수 없습니다'));
+            return Center(child: Text(AppLocalizations.of(context).cardNotFound));
           }
           _populateFields(card);
 
@@ -365,7 +366,7 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
                       child: DropdownButtonFormField<String>(
                         value: _selectedTemplate?.id,
                         decoration: InputDecoration(
-                          labelText: '입력 양식',
+                          labelText: AppLocalizations.of(context).inputForm,
                           labelStyle: const TextStyle(fontSize: 13),
                           prefixIcon: Icon(
                             Icons.description_outlined,
@@ -374,10 +375,10 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
                           ),
                         ),
                         items: [
-                          const DropdownMenuItem<String>(
+                          DropdownMenuItem<String>(
                             value: null,
-                            child: Text('기본 양식',
-                                style: TextStyle(fontSize: 14)),
+                            child: Text(AppLocalizations.of(context).defaultForm,
+                                style: const TextStyle(fontSize: 14)),
                           ),
                           ...templates.map((t) => DropdownMenuItem<String>(
                             value: t.id,
@@ -410,7 +411,7 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('오류: $e')),
+        error: (e, _) => Center(child: Text(AppLocalizations.of(context).errorMsg(e.toString()))),
       ),
     );
   }
@@ -419,18 +420,19 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
   List<Widget> _buildFormFields() {
     // 템플릿 없음 → 기본 전체 필드
     if (_selectedTemplate == null) {
+      final l10n = AppLocalizations.of(context);
       return [
-        _buildCardField('이름', 'name'),
-        _buildCardField('회사명', 'company'),
-        _buildCardField('직급', 'position'),
-        _buildCardField('부서', 'department'),
-        _buildCardField('이메일', 'email'),
-        _buildCardField('전화번호', 'phone'),
-        _buildCardField('휴대폰', 'mobile'),
-        _buildCardField('팩스', 'fax'),
-        _buildCardField('주소', 'address'),
-        _buildCardField('웹사이트', 'website'),
-        _buildCardField('메모', 'memo', maxLines: 3),
+        _buildCardField(l10n.name, 'name'),
+        _buildCardField(l10n.companyName, 'company'),
+        _buildCardField(l10n.position, 'position'),
+        _buildCardField(l10n.department, 'department'),
+        _buildCardField(l10n.email, 'email'),
+        _buildCardField(l10n.phoneNumber, 'phone'),
+        _buildCardField(l10n.mobileNumber, 'mobile'),
+        _buildCardField(l10n.faxNumber, 'fax'),
+        _buildCardField(l10n.address, 'address'),
+        _buildCardField(l10n.website, 'website'),
+        _buildCardField(l10n.memo, 'memo', maxLines: 3),
       ];
     }
 

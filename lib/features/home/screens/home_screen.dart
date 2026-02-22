@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
-
 import '../../../core/utils/responsive.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/widgets/notification_bell.dart';
 import '../widgets/card_3d_widget.dart';
@@ -113,6 +113,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final myCards = ref.watch(myCardsHomeProvider);
     final cardHeight = Responsive.cardHeight(context);
     final hPadding = Responsive.horizontalPadding(context);
@@ -221,7 +222,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           ),
                         const SizedBox(height: 8),
                         Text(
-                          '좌우로 스와이프하여 다른 명함을 확인하세요',
+                          l10n.swipeToSeeMore,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface.withOpacity(0.4),
                             fontSize: 12 * Responsive.fontScale(context),
@@ -236,7 +237,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                   error: (e, _) => SizedBox(
                     height: cardHeight,
-                    child: Center(child: Text('오류: $e')),
+                    child: Center(child: Text(l10n.errorMsg(e.toString()))),
                   ),
                 ),
               ),
@@ -279,6 +280,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildEmptyState(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return SizedBox(
       height: Responsive.cardHeight(context),
       child: Center(
@@ -301,14 +303,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              '등록된 내 명함이 없습니다',
+              l10n.noMyCards,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.4),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              '관리 탭에서 내 명함을 추가해보세요',
+              l10n.addMyCardHint,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.3),
               ),
@@ -369,7 +371,7 @@ class _AnimatedShareButtonState extends State<_AnimatedShareButton>
         child: OutlinedButton.icon(
           onPressed: null,
           icon: const Icon(Icons.share_outlined, size: 18),
-          label: const Text('공유'),
+          label: Text(AppLocalizations.of(context).share),
           style: OutlinedButton.styleFrom(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),

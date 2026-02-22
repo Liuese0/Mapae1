@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
 import '../../shared/models/context_tag.dart';
 import '../../wallet/screens/wallet_screen.dart';
@@ -32,6 +33,7 @@ class CardDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final cardAsync = ref.watch(cardDetailProvider(cardId));
     final tagsAsync = ref.watch(cardTagsProvider(cardId));
 
@@ -41,7 +43,7 @@ class CardDetailScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_ios, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: const Text('명함 상세'),
+        title: Text(l10n.cardDetail),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
@@ -56,7 +58,7 @@ class CardDetailScreen extends ConsumerWidget {
       body: cardAsync.when(
         data: (card) {
           if (card == null) {
-            return const Center(child: Text('명함을 찾을 수 없습니다'));
+            return Center(child: Text(l10n.cardNotFound));
           }
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -78,7 +80,7 @@ class CardDetailScreen extends ConsumerWidget {
 
                 // Name & company
                 Text(
-                  card.name ?? '이름 없음',
+                  card.name ?? l10n.noName,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -116,20 +118,20 @@ class CardDetailScreen extends ConsumerWidget {
                     if (card.phone != null || card.mobile != null)
                       _QuickAction(
                         icon: Icons.call,
-                        label: '전화',
+                        label: l10n.call,
                         onTap: () => _launchUrl(
                             'tel:${card.mobile ?? card.phone}'),
                       ),
                     if (card.email != null)
                       _QuickAction(
                         icon: Icons.email_outlined,
-                        label: '이메일',
+                        label: l10n.email,
                         onTap: () => _launchUrl('mailto:${card.email}'),
                       ),
                     if (card.phone != null || card.mobile != null)
                       _QuickAction(
                         icon: Icons.message_outlined,
-                        label: '메시지',
+                        label: l10n.sendMessage,
                         onTap: () => _launchUrl(
                             'sms:${card.mobile ?? card.phone}'),
                       ),
@@ -150,41 +152,41 @@ class CardDetailScreen extends ConsumerWidget {
                 if (card.phone != null)
                   _DetailRow(
                     icon: Icons.phone_outlined,
-                    label: '전화',
+                    label: l10n.phoneNumber,
                     value: card.phone!,
                     onTap: () => _launchUrl('tel:${card.phone}'),
                   ),
                 if (card.mobile != null)
                   _DetailRow(
                     icon: Icons.smartphone_outlined,
-                    label: '휴대폰',
+                    label: l10n.mobileNumber,
                     value: card.mobile!,
                     onTap: () => _launchUrl('tel:${card.mobile}'),
                   ),
                 if (card.fax != null)
                   _DetailRow(
                     icon: Icons.fax_outlined,
-                    label: '팩스',
+                    label: l10n.faxNumber,
                     value: card.fax!,
                   ),
                 if (card.email != null)
                   _DetailRow(
                     icon: Icons.email_outlined,
-                    label: '이메일',
+                    label: l10n.email,
                     value: card.email!,
                     onTap: () => _launchUrl('mailto:${card.email}'),
                   ),
                 if (card.website != null)
                   _DetailRow(
                     icon: Icons.language,
-                    label: '웹사이트',
+                    label: l10n.website,
                     value: card.website!,
                     onTap: () => _launchUrl(card.website!),
                   ),
                 if (card.address != null)
                   _DetailRow(
                     icon: Icons.location_on_outlined,
-                    label: '주소',
+                    label: l10n.address,
                     value: card.address!,
                   ),
                 if (card.memo != null && card.memo!.isNotEmpty) ...[
@@ -192,7 +194,7 @@ class CardDetailScreen extends ConsumerWidget {
                   const Divider(),
                   const SizedBox(height: 16),
                   Text(
-                    '메모',
+                    l10n.memo,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -214,7 +216,7 @@ class CardDetailScreen extends ConsumerWidget {
                         const Divider(),
                         const SizedBox(height: 16),
                         Text(
-                          '상황 태그',
+                          l10n.contextTag,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -281,7 +283,7 @@ class CardDetailScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('오류: $e')),
+        error: (e, _) => Center(child: Text(l10n.errorMsg(e.toString()))),
       ),
     );
   }
@@ -295,24 +297,24 @@ class CardDetailScreen extends ConsumerWidget {
 
     if (!context.mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('명함 삭제'),
+        title: Text(l10n.deleteConfirmTitle),
         content: Text(
           isShared
-              ? '이 명함은 ${sharedTeams.length}개 팀에 공유되어 있습니다.\n'
-              '개인 지갑에서만 삭제되며, 팀 공유 명함은 유지됩니다.'
-              : '이 명함을 삭제하시겠습니까?',
+              ? l10n.cardSharedTeamWarning(sharedTeams.length)
+              : l10n.deleteConfirmMessage,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('삭제'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

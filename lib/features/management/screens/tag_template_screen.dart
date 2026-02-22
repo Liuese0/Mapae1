@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/context_tag.dart';
 
 final tagTemplatesProvider =
@@ -27,7 +28,7 @@ class TagTemplateScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_ios, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: const Text('태그 템플릿'),
+        title: Text(AppLocalizations.of(context).tagTemplate),
         actions: [
           IconButton(
             icon: const Icon(Icons.add, size: 22),
@@ -49,14 +50,14 @@ class TagTemplateScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '태그 템플릿이 없습니다',
+                    AppLocalizations.of(context).noTagTemplates,
                     style: TextStyle(
                       color: theme.colorScheme.onSurface.withOpacity(0.4),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '명함에 만난 상황이나 특이사항을\n기록할 형식을 만들어보세요',
+                    AppLocalizations.of(context).tagTemplateHint,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
@@ -67,7 +68,7 @@ class TagTemplateScreen extends ConsumerWidget {
                   OutlinedButton.icon(
                     onPressed: () => _showCreateDialog(context, ref),
                     icon: const Icon(Icons.add, size: 16),
-                    label: const Text('템플릿 만들기'),
+                    label: Text(AppLocalizations.of(context).createTemplate),
                   ),
                 ],
               ),
@@ -93,7 +94,7 @@ class TagTemplateScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('오류: $e')),
+        error: (e, _) => Center(child: Text(AppLocalizations.of(context).errorMsg(e.toString()))),
       ),
     );
   }
@@ -161,13 +162,13 @@ class _TemplateTile extends StatelessWidget {
               String typeLabel;
               switch (field.type) {
                 case TagFieldType.text:
-                  typeLabel = '텍스트';
+                  typeLabel = AppLocalizations.of(context).textField;
                   break;
                 case TagFieldType.date:
-                  typeLabel = '날짜';
+                  typeLabel = AppLocalizations.of(context).dateField;
                   break;
                 case TagFieldType.check:
-                  typeLabel = '체크';
+                  typeLabel = AppLocalizations.of(context).selectField;
                   break;
               }
               return Chip(
@@ -229,16 +230,17 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('템플릿 이름을 입력해주세요')),
+        SnackBar(content: Text(l10n.enterName)),
       );
       return;
     }
 
     if (_fields.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('최소 1개 이상의 필드를 추가해주세요')),
+        SnackBar(content: Text(l10n.addField)),
       );
       return;
     }
@@ -272,13 +274,13 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('템플릿이 생성되었습니다')),
+          SnackBar(content: Text(AppLocalizations.of(context).saved)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('생성 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).saveFailed(e.toString()))),
         );
       }
     } finally {
@@ -296,7 +298,7 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
           icon: const Icon(Icons.arrow_back_ios, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('태그 템플릿 만들기'),
+        title: Text(AppLocalizations.of(context).createTagTemplate),
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _save,
@@ -306,7 +308,7 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-                : const Text('저장'),
+                : Text(AppLocalizations.of(context).save),
           ),
         ],
       ),
@@ -318,16 +320,15 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
             // Template name
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: '템플릿 이름',
-                hintText: '예: 컨퍼런스 명함, 미팅 기록',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).templateName,
               ),
             ),
             const SizedBox(height: 24),
 
             // Fields
             Text(
-              '필드',
+              AppLocalizations.of(context).addField,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -348,8 +349,8 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: field.nameController,
-                        decoration: const InputDecoration(
-                          labelText: '필드 이름',
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context).fieldName,
                           isDense: true,
                         ),
                       ),
@@ -358,19 +359,19 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
                     DropdownButton<TagFieldType>(
                       value: field.type,
                       underline: const SizedBox.shrink(),
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: TagFieldType.text,
                           child:
-                          Text('텍스트', style: TextStyle(fontSize: 13)),
+                          Text(AppLocalizations.of(context).textField, style: const TextStyle(fontSize: 13)),
                         ),
                         DropdownMenuItem(
                           value: TagFieldType.date,
-                          child: Text('날짜', style: TextStyle(fontSize: 13)),
+                          child: Text(AppLocalizations.of(context).dateField, style: const TextStyle(fontSize: 13)),
                         ),
                         DropdownMenuItem(
                           value: TagFieldType.check,
-                          child: Text('체크', style: TextStyle(fontSize: 13)),
+                          child: Text(AppLocalizations.of(context).selectField, style: const TextStyle(fontSize: 13)),
                         ),
                       ],
                       onChanged: (value) {
@@ -398,7 +399,7 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
               child: OutlinedButton.icon(
                 onPressed: _addField,
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('필드 추가'),
+                label: Text(AppLocalizations.of(context).addField),
               ),
             ),
 

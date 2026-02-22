@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -120,6 +121,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final hPadding = Responsive.horizontalPadding(context);
     final fontScale = Responsive.fontScale(context);
 
@@ -177,16 +179,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            hintText: '이메일',
-                            prefixIcon: Icon(Icons.email_outlined, size: 20),
+                          decoration: InputDecoration(
+                            hintText: l10n.email,
+                            prefixIcon: const Icon(Icons.email_outlined, size: 20),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return '이메일을 입력해주세요';
+                              return l10n.enterEmail;
                             }
                             if (!value.contains('@')) {
-                              return '올바른 이메일을 입력해주세요';
+                              return l10n.enterValidEmail;
                             }
                             return null;
                           },
@@ -197,7 +199,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           controller: _passwordController,
                           obscureText: _obscurePassword,
                           decoration: InputDecoration(
-                            hintText: '비밀번호',
+                            hintText: l10n.password,
                             prefixIcon: const Icon(Icons.lock_outlined, size: 20),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -212,7 +214,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return '비밀번호를 입력해주세요';
+                              return l10n.enterPassword;
                             }
                             return null;
                           },
@@ -242,7 +244,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    '자동 로그인',
+                                    l10n.autoLogin,
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: theme.colorScheme.onSurface
@@ -255,7 +257,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             TextButton(
                               onPressed: () {},
                               child: Text(
-                                '비밀번호 찾기',
+                                l10n.forgotPassword,
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: theme.colorScheme.onSurface
@@ -273,7 +275,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           child: _AnimatedButton(
                             isLoading: _isLoading,
                             onPressed: _signInWithEmail,
-                            child: const Text('로그인'),
+                            child: Text(l10n.login),
                           ),
                         ),
                       ],
@@ -297,7 +299,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             padding:
                             const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              '또는',
+                              l10n.orDivider,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: theme.colorScheme.onSurface
@@ -322,7 +324,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          label: const Text('Google로 로그인'),
+                          label: Text(l10n.loginWithGoogle),
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -332,7 +334,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '계정이 없으신가요? ',
+                            '${l10n.noAccount} ',
                             style: TextStyle(
                               fontSize: 14,
                               color: theme.colorScheme.onSurface
@@ -341,10 +343,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           ),
                           TextButton(
                             onPressed: () => context.push('/signup'),
-                            child: const Text(
-                              '회원가입',
+                            child: Text(
+                              l10n.signUp,
                               style:
-                              TextStyle(fontWeight: FontWeight.w600),
+                              const TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],

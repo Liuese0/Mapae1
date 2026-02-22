@@ -8,6 +8,7 @@ import '../../../core/providers/app_providers.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/supabase_service.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/collected_card.dart';
 
@@ -41,6 +42,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   }
 
   Future<void> _shareViaSns() async {
+    final l10n = AppLocalizations.of(context);
     final card = widget.card;
     final text = StringBuffer('${card.name ?? ""}');
     if (card.company != null) text.write(' | ${card.company}');
@@ -53,13 +55,13 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
       final token = await _supabaseService.createSharedLink(card);
       final shareUrl =
           '${AppConstants.supabaseUrl}/functions/v1/share-redirect?token=$token';
-      text.write('\n\n📇 Mapae 앱으로 이 명함을 저장하세요:');
+      text.write('\n\n${l10n.shareCardContent}');
       text.write('\n$shareUrl');
     } catch (_) {
       // 링크 생성 실패 시 텍스트만 공유
     }
 
-    Share.share(text.toString(), subject: '명함 공유 - ${card.name ?? ""}');
+    Share.share(text.toString(), subject: l10n.shareCardTitle(card.name ?? ''));
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -157,6 +159,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   }
 
   Future<void> _waitForResponse(String exchangeId) async {
+    final l10n = AppLocalizations.of(context);
     final service = _supabaseService;
     final startedAt = DateTime.now();
 
@@ -184,7 +187,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
           _quickShareStage = _QuickShareStage.discovered;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('응답 시간이 초과되었습니다. 다시 시도해주세요.')),
+          SnackBar(content: Text(l10n.exchangeTimeout)),
         );
         return;
       }
@@ -246,9 +249,10 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     if (_quickShareMode) {
-      return _buildQuickShareMode(theme);
+      return _buildQuickShareMode(theme, l10n);
     }
 
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
@@ -272,7 +276,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
           ),
           const SizedBox(height: 24),
           Text(
-            '명함 공유',
+            l10n.shareCard,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -280,15 +284,15 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
           const SizedBox(height: 24),
           _ShareOption(
             icon: Icons.share_outlined,
-            title: 'SNS로 공유',
-            subtitle: '카카오톡, 메시지 등',
+            title: l10n.shareViaSns,
+            subtitle: l10n.shareViaSnsSubtitle,
             onTap: _shareViaSns,
           ),
           const SizedBox(height: 12),
           _ShareOption(
             icon: Icons.devices,
-            title: '퀵쉐어',
-            subtitle: '실시간으로 퀵쉐어 중인 사용자와 명함을 교환합니다',
+            title: l10n.quickShare,
+            subtitle: l10n.quickShareSubtitle,
             onTap: _shareViaQuickShare,
           ),
           const SizedBox(height: 16),
@@ -297,7 +301,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
     );
   }
 
-  Widget _buildQuickShareMode(ThemeData theme) {
+  Widget _buildQuickShareMode(ThemeData theme, AppLocalizations l10n) {
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 
     return Container(
@@ -318,10 +322,10 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
             ),
           ),
           const SizedBox(height: 18),
-          Text('퀵쉐어', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text(l10n.quickShare, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Text(
-            _quickShareDescription,
+            _quickShareDescription(l10n),
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.65)),
             textAlign: TextAlign.center,
           ),
@@ -330,15 +334,15 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
             child: _quickShareStage == _QuickShareStage.scanning
                 ? _buildScanningView(theme)
                 : _quickShareStage == _QuickShareStage.discovered
-                ? _buildDiscoveredView(theme)
-                : _buildExchangeView(theme),
+                ? _buildDiscoveredView(theme, l10n)
+                : _buildExchangeView(theme, l10n),
           ),
           const SizedBox(height: 12),
           if (_quickShareStage == _QuickShareStage.discovered)
             ElevatedButton(
               onPressed: _nearbyPeers.isEmpty ? null : _startExchange,
               style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-              child: const Text('명함 교환 시작'),
+              child: Text(l10n.startExchange),
             )
           else if (_quickShareStage == _QuickShareStage.completed)
             ElevatedButton(
@@ -347,17 +351,17 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
                 if (!mounted) return;
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${_exchangePeerName ?? '상대'}님과 명함 교환이 완료되었습니다.')),
+                  SnackBar(content: Text(l10n.exchangeCompleted(_exchangePeerName ?? l10n.opponent))),
                 );
               },
               style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-              child: const Text('완료'),
+              child: Text(l10n.done),
             )
           else
             OutlinedButton(
               onPressed: null,
               style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-              child: const Text('주변 검색 중...'),
+              child: Text(l10n.scanning),
             ),
           const SizedBox(height: 8),
           TextButton(
@@ -365,23 +369,23 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
               await _stopQuickShareSession();
               if (mounted) Navigator.of(context).pop();
             },
-            child: const Text('닫기'),
+            child: Text(l10n.close),
           ),
         ],
       ),
     );
   }
 
-  String get _quickShareDescription {
+  String _quickShareDescription(AppLocalizations l10n) {
     switch (_quickShareStage) {
       case _QuickShareStage.scanning:
-        return '현재 퀵쉐어 화면을 연 사용자만 실시간으로 표시됩니다.';
+        return l10n.quickShareScanningDesc;
       case _QuickShareStage.discovered:
-        return '감지된 사용자 중 교환할 대상을 선택하세요.';
+        return l10n.quickShareDiscoveredDesc;
       case _QuickShareStage.exchanging:
-        return '서로의 명함을 교환 중입니다.';
+        return l10n.quickShareExchangingDesc;
       case _QuickShareStage.completed:
-        return '양쪽 지갑에 상대 명함이 저장되었습니다.';
+        return l10n.quickShareCompletedDesc;
     }
   }
 
@@ -410,12 +414,12 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
     );
   }
 
-  Widget _buildDiscoveredView(ThemeData theme) {
+  Widget _buildDiscoveredView(ThemeData theme, AppLocalizations l10n) {
     return Column(
       children: [
         Align(
           alignment: Alignment.centerLeft,
-          child: Text('근처 사용자 ${_nearbyPeers.length}명', style: theme.textTheme.labelLarge),
+          child: Text(l10n.nearbyUsers(_nearbyPeers.length), style: theme.textTheme.labelLarge),
         ),
         const SizedBox(height: 12),
         Expanded(
@@ -449,7 +453,8 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(peer.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                            Text(peer.name.isNotEmpty ? peer.name : l10n.noName,
+                                style: const TextStyle(fontWeight: FontWeight.w700)),
                             Text('${peer.company ?? ''} · ${peer.position ?? ''}', style: theme.textTheme.bodySmall),
                           ],
                         ),
@@ -466,11 +471,11 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
     );
   }
 
-  Widget _buildExchangeView(ThemeData theme) {
+  Widget _buildExchangeView(ThemeData theme, AppLocalizations l10n) {
     final peer = _nearbyPeers.isNotEmpty ? _nearbyPeers[_selectedPeerIndex] : null;
     return _ExchangeAnimationView(
       myCard: widget.card,
-      peerName: peer?.name ?? _exchangePeerName ?? '상대',
+      peerName: peer?.name.isNotEmpty == true ? peer!.name : (_exchangePeerName ?? l10n.opponent),
       peerSubtitle: '${peer?.company ?? ''} ${peer?.position ?? ''}'.trim(),
       done: _quickShareStage == _QuickShareStage.completed,
     );
@@ -491,7 +496,7 @@ class _QuickSharePeer {
   factory _QuickSharePeer.fromJson(Map<String, dynamic> json) {
     return _QuickSharePeer(
       userId: json['user_id'] as String,
-      name: (json['name'] as String?) ?? '이름 없음',
+      name: (json['name'] as String?) ?? '',
       company: json['company'] as String?,
       position: json['position'] as String?,
     );
@@ -534,6 +539,7 @@ class _ExchangeAnimationViewState extends State<_ExchangeAnimationView> with Sin
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return AnimatedBuilder(
       animation: _controller,
@@ -554,7 +560,7 @@ class _ExchangeAnimationViewState extends State<_ExchangeAnimationView> with Sin
                     child: Transform.rotate(
                       angle: lerpDouble(0, -math.pi / 2, 1)!,
                       child: _AnimatedCardFace(
-                        title: widget.myCard.name ?? '내 명함',
+                        title: widget.myCard.name ?? l10n.myCard,
                         subtitle: '${widget.myCard.company ?? ''} ${widget.myCard.position ?? ''}'.trim(),
                         alignRight: false,
                         color: theme.colorScheme.primary.withOpacity(0.08),
@@ -577,7 +583,10 @@ class _ExchangeAnimationViewState extends State<_ExchangeAnimationView> with Sin
               ),
             ),
             const SizedBox(height: 16),
-            Text(widget.done ? '명함 교환 완료' : '서로의 명함을 교환하는 중...', style: theme.textTheme.titleSmall),
+            Text(
+              widget.done ? l10n.cardExchangeComplete : l10n.exchangeInProgress,
+              style: theme.textTheme.titleSmall,
+            ),
           ],
         );
       },

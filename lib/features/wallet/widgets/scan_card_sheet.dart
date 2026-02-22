@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
 
 class ScanCardSheet extends ConsumerStatefulWidget {
@@ -17,7 +18,7 @@ class ScanCardSheet extends ConsumerStatefulWidget {
 
 class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   bool _isProcessing = false;
-  String _processingStatus = '명함 인식 중...';
+  String _processingStatus = '';
 
   Future<void> _scanWithDocumentScanner() async {
     final scannerService = ref.read(documentScannerServiceProvider);
@@ -32,9 +33,10 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   }
 
   Future<void> _processImage(File imageFile) async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _isProcessing = true;
-      _processingStatus = '명함 인식 중...';
+      _processingStatus = l10n.processingCard;
     });
 
     try {
@@ -42,7 +44,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
       final supabaseService = ref.read(supabaseServiceProvider);
       final user = supabaseService.currentUser;
       if (user == null) {
-        throw Exception('로그인이 필요합니다');
+        throw Exception(l10n.loginRequired);
       }
 
       // users 테이블에 프로필이 없으면 자동 생성 (FK 제약조건 충족)
@@ -52,13 +54,13 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
       final locale = ref.read(localeProvider).languageCode;
 
       // Perform OCR (includes preprocessing: white balance, shadow removal, contrast, sharpening)
-      _updateStatus('문자 인식 중...');
+      _updateStatus(l10n.recognizingText);
       final result = await ocrService.scanBusinessCard(
         imageFile,
         language: locale,
       );
 
-      _updateStatus('정보 저장 중...');
+      _updateStatus(l10n.savingInfo);
 
       // Upload image
       final imageBytes = await imageFile.readAsBytes();
@@ -90,11 +92,12 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
       await supabaseService.addCollectedCard(card);
 
       if (mounted) {
+        final l10nCurrent = AppLocalizations.of(context);
         Navigator.of(context).pop();
         widget.onScanComplete?.call();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('명함이 추가되었습니다')),
+          SnackBar(content: Text(l10nCurrent.cardAdded)),
         );
 
         // Navigate to edit to review OCR results
@@ -103,7 +106,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('인식 실패: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).recognitionFailed(e.toString()))),
         );
       }
     } finally {
@@ -114,6 +117,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 
@@ -150,7 +154,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
             const SizedBox(height: 32),
           ] else ...[
             Text(
-              '명함 추가',
+              l10n.addCard,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -160,8 +164,8 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
             // Document Scanner option
             _OptionTile(
               icon: Icons.document_scanner_outlined,
-              title: '명함 스캔',
-              subtitle: '카메라로 명함을 스캔하거나 갤러리에서 선택합니다',
+              title: l10n.scanCard,
+              subtitle: l10n.scanCardSubtitle,
               onTap: _scanWithDocumentScanner,
             ),
             const SizedBox(height: 16),
