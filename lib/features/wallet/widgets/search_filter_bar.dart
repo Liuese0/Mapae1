@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/category.dart';
 import '../screens/wallet_screen.dart';
 
@@ -54,12 +55,13 @@ class _SearchFilterBarState extends ConsumerState<SearchFilterBar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final selectedCategory = ref.watch(walletCategoryProvider);
     final sortMode = ref.watch(walletSortProvider);
     final searchQuery = ref.watch(walletSearchQueryProvider);
 
     // Find selected category name
-    String categoryLabel = '전체';
+    String categoryLabel = l10n.allCategories;
     if (selectedCategory != null) {
       final match = widget.categories
           .where((c) => c.id == selectedCategory)
@@ -85,7 +87,7 @@ class _SearchFilterBarState extends ConsumerState<SearchFilterBar> {
             },
             style: theme.textTheme.bodyMedium,
             decoration: InputDecoration(
-              hintText: '이름, 회사, 직함으로 검색',
+              hintText: l10n.searchCardHint,
               hintStyle: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.4),
               ),
@@ -96,21 +98,20 @@ class _SearchFilterBarState extends ConsumerState<SearchFilterBar> {
               ),
               suffixIcon: searchQuery.isNotEmpty
                   ? IconButton(
-                icon: Icon(
-                  Icons.close,
-                  size: 18,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
-                ),
-                onPressed: () {
-                  _searchController.clear();
-                  ref.read(walletSearchQueryProvider.notifier).state = '';
-                  _focusNode.unfocus();
-                },
-              )
+                      icon: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                      onPressed: () {
+                        _searchController.clear();
+                        ref.read(walletSearchQueryProvider.notifier).state = '';
+                        _focusNode.unfocus();
+                      },
+                    )
                   : null,
               filled: true,
-              fillColor: theme.colorScheme.surfaceContainerHighest
-                  .withOpacity(0.5),
+              fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 10,
@@ -150,22 +151,22 @@ class _SearchFilterBarState extends ConsumerState<SearchFilterBar> {
                 onTap: _showCategorySheet,
                 onClear: hasCategoryFilter
                     ? () {
-                  ref.read(walletCategoryProvider.notifier).state = null;
-                }
+                        ref.read(walletCategoryProvider.notifier).state = null;
+                      }
                     : null,
               ),
               const SizedBox(width: 8),
 
               // Sort chip
               _FilterChip(
-                label: sortMode == SortMode.byDate ? '등록순' : '이름순',
+                label: sortMode == SortMode.byDate ? l10n.sortByDate : l10n.sortByName,
                 icon: Icons.sort,
                 isActive: sortMode != SortMode.byDate,
                 onTap: () {
                   ref.read(walletSortProvider.notifier).state =
-                  sortMode == SortMode.byDate
-                      ? SortMode.byName
-                      : SortMode.byDate;
+                      sortMode == SortMode.byDate
+                          ? SortMode.byName
+                          : SortMode.byDate;
                 },
               ),
             ],
@@ -317,6 +318,7 @@ class _CategorySelectionSheetState
   }
 
   Future<void> _createCategory() async {
+    final l10n = AppLocalizations.of(context);
     final name = _newCategoryController.text.trim();
     if (name.isEmpty) return;
 
@@ -351,27 +353,28 @@ class _CategorySelectionSheetState
       setState(() => _isCreating = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('카테고리 생성 실패: $e')),
+          SnackBar(content: Text(l10n.categoryCreateFailed(e.toString()))),
         );
       }
     }
   }
 
   Future<void> _deleteCategory(CardCategory category) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('카테고리 삭제'),
-        content: Text("'${category.name}' 카테고리를 삭제하시겠습니까?\n해당 카테고리의 명함은 삭제되지 않습니다."),
+        title: Text(l10n.deleteCategoryTitle),
+        content: Text(l10n.deleteCategoryConfirm(category.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('삭제'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -397,7 +400,7 @@ class _CategorySelectionSheetState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('카테고리 삭제 실패: $e')),
+          SnackBar(content: Text(l10n.categoryDeleteFailed(e.toString()))),
         );
       }
     }
@@ -406,6 +409,7 @@ class _CategorySelectionSheetState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -413,8 +417,7 @@ class _CategorySelectionSheetState
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius:
-          const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -437,7 +440,7 @@ class _CategorySelectionSheetState
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '카테고리 선택',
+                    l10n.selectCategory,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -457,7 +460,7 @@ class _CategorySelectionSheetState
                         _isAddingCategory = !_isAddingCategory;
                         if (_isAddingCategory) {
                           Future.delayed(const Duration(milliseconds: 100),
-                                  () => _newCategoryFocus.requestFocus());
+                              () => _newCategoryFocus.requestFocus());
                         } else {
                           _newCategoryController.clear();
                         }
@@ -474,70 +477,66 @@ class _CategorySelectionSheetState
               curve: Curves.easeInOut,
               child: _isAddingCategory
                   ? Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _newCategoryController,
-                        focusNode: _newCategoryFocus,
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => _createCategory(),
-                        decoration: InputDecoration(
-                          hintText: '새 카테고리 이름',
-                          hintStyle: TextStyle(
-                            color: theme.colorScheme.onSurface
-                                .withOpacity(0.4),
-                          ),
-                          filled: true,
-                          fillColor: theme
-                              .colorScheme.surfaceContainerHighest
-                              .withOpacity(0.5),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: theme.colorScheme.primary
-                                  .withOpacity(0.5),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _newCategoryController,
+                              focusNode: _newCategoryFocus,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => _createCategory(),
+                              decoration: InputDecoration(
+                                hintText: l10n.categoryName,
+                                hintStyle: TextStyle(
+                                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                                ),
+                                filled: true,
+                                fillColor: theme.colorScheme.surfaceContainerHighest
+                                    .withOpacity(0.5),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: theme.colorScheme.primary.withOpacity(0.5),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      height: 42,
-                      child: FilledButton(
-                        onPressed: _isCreating ? null : _createCategory,
-                        style: FilledButton.styleFrom(
-                          padding:
-                          const EdgeInsets.symmetric(horizontal: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            height: 42,
+                            child: FilledButton(
+                              onPressed: _isCreating ? null : _createCategory,
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: _isCreating
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(l10n.add),
+                            ),
                           ),
-                        ),
-                        child: _isCreating
-                            ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                            : const Text('추가'),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-              )
+                    )
                   : const SizedBox.shrink(),
             ),
 
@@ -561,7 +560,7 @@ class _CategorySelectionSheetState
                             : theme.colorScheme.onSurface.withOpacity(0.5),
                       ),
                       title: Text(
-                        '전체',
+                        l10n.allCategories,
                         style: TextStyle(
                           fontWeight: widget.selectedCategoryId == null
                               ? FontWeight.w600
@@ -573,7 +572,7 @@ class _CategorySelectionSheetState
                       ),
                       trailing: widget.selectedCategoryId == null
                           ? Icon(Icons.check,
-                          color: theme.colorScheme.primary, size: 20)
+                              color: theme.colorScheme.primary, size: 20)
                           : null,
                       onTap: () => widget.onSelected(null),
                     ),
@@ -583,11 +582,10 @@ class _CategorySelectionSheetState
                       Padding(
                         padding: const EdgeInsets.all(24),
                         child: Text(
-                          '카테고리가 없습니다\n위의 + 버튼으로 추가해 보세요',
+                          l10n.noCategoriesHint,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color:
-                            theme.colorScheme.onSurface.withOpacity(0.4),
+                            color: theme.colorScheme.onSurface.withOpacity(0.4),
                             height: 1.5,
                           ),
                         ),
@@ -601,8 +599,7 @@ class _CategorySelectionSheetState
                             Icons.label_outline,
                             color: isSelected
                                 ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurface
-                                .withOpacity(0.5),
+                                : theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                           title: Text(
                             category.name,
@@ -620,8 +617,7 @@ class _CategorySelectionSheetState
                             children: [
                               if (isSelected)
                                 Icon(Icons.check,
-                                    color: theme.colorScheme.primary,
-                                    size: 20),
+                                    color: theme.colorScheme.primary, size: 20),
                               const SizedBox(width: 4),
                               GestureDetector(
                                 onTap: () => _deleteCategory(category),
@@ -645,8 +641,7 @@ class _CategorySelectionSheetState
               ),
             ),
 
-            SizedBox(
-                height: MediaQuery.of(context).padding.bottom + 16),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
         ),
       ),

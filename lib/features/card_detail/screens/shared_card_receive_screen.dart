@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/collected_card.dart';
 
@@ -20,7 +21,7 @@ class _SharedCardReceiveScreenState
   bool _loading = true;
   bool _saving = false;
   bool _saved = false;
-  String? _error;
+  String? _errorKey; // 'expired' or 'cannotLoad'
   Map<String, dynamic>? _cardData;
 
   @override
@@ -37,18 +38,19 @@ class _SharedCardReceiveScreenState
       setState(() {
         _cardData = data;
         _loading = false;
-        if (data == null) _error = '만료되었거나 존재하지 않는 공유 링크입니다.';
+        if (data == null) _errorKey = 'expired';
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = '명함을 불러올 수 없습니다.';
+        _errorKey = 'cannotLoad';
       });
     }
   }
 
   Future<void> _saveToWallet() async {
+    final l10n = AppLocalizations.of(context);
     final service = ref.read(supabaseServiceProvider);
     final user = service.currentUser;
     if (user == null || _cardData == null) return;
@@ -86,13 +88,13 @@ class _SharedCardReceiveScreenState
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('명함이 지갑에 저장되었습니다.')),
+        SnackBar(content: Text(l10n.cardAdded)),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('저장 실패: $e')),
+        SnackBar(content: Text(l10n.saveFailed(e.toString()))),
       );
     }
   }
@@ -100,6 +102,13 @@ class _SharedCardReceiveScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    final errorMessage = _errorKey == 'expired'
+        ? l10n.expiredShareLink
+        : _errorKey == 'cannotLoad'
+            ? l10n.cannotLoadCard
+            : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -113,71 +122,68 @@ class _SharedCardReceiveScreenState
             }
           },
         ),
-        title: const Text('공유된 명함'),
+        title: Text(l10n.sharedCards),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.link_off,
-                  size: 56,
-                  color:
-                  theme.colorScheme.onSurface.withOpacity(0.3)),
-              const SizedBox(height: 16),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color:
-                  theme.colorScheme.onSurface.withOpacity(0.6),
+          : errorMessage != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.link_off,
+                            size: 56,
+                            color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                        const SizedBox(height: 16),
+                        Text(
+                          errorMessage,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        OutlinedButton(
+                          onPressed: () {
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.go('/home');
+                            }
+                          },
+                          child: Text(l10n.goBack),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _buildCardContent(theme, l10n),
+      bottomNavigationBar: (!_loading && errorMessage == null)
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: ElevatedButton(
+                  onPressed: _saving || _saved ? null : _saveToWallet,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(_saved ? l10n.saved : l10n.saveToWallet),
                 ),
               ),
-              const SizedBox(height: 24),
-              OutlinedButton(
-                onPressed: () {
-                  if (context.canPop()) {
-                    context.pop();
-                  } else {
-                    context.go('/home');
-                  }
-                },
-                child: const Text('돌아가기'),
-              ),
-            ],
-          ),
-        ),
-      )
-          : _buildCardContent(theme),
-      bottomNavigationBar: (!_loading && _error == null)
-          ? SafeArea(
-        child: Padding(
-          padding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: ElevatedButton(
-            onPressed: _saving || _saved ? null : _saveToWallet,
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(52),
-            ),
-            child: _saving
-                ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
             )
-                : Text(_saved ? '저장 완료' : '내 지갑에 저장'),
-          ),
-        ),
-      )
           : null,
     );
   }
 
-  Widget _buildCardContent(ThemeData theme) {
+  Widget _buildCardContent(ThemeData theme, AppLocalizations l10n) {
     final data = _cardData!;
     final name = data['name'] as String?;
     final company = data['company'] as String?;
@@ -218,7 +224,7 @@ class _SharedCardReceiveScreenState
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              '공유된 명함',
+              l10n.sharedCards,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -230,7 +236,7 @@ class _SharedCardReceiveScreenState
 
           // Name & company
           Text(
-            name ?? '이름 없음',
+            name ?? l10n.noName,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -264,41 +270,17 @@ class _SharedCardReceiveScreenState
 
           // Contact details
           if (phone != null)
-            _DetailRow(
-              icon: Icons.phone_outlined,
-              label: '전화',
-              value: phone,
-            ),
+            _DetailRow(icon: Icons.phone_outlined, label: l10n.phone, value: phone),
           if (mobile != null)
-            _DetailRow(
-              icon: Icons.smartphone_outlined,
-              label: '휴대폰',
-              value: mobile,
-            ),
+            _DetailRow(icon: Icons.smartphone_outlined, label: l10n.mobileNumber, value: mobile),
           if (fax != null)
-            _DetailRow(
-              icon: Icons.fax_outlined,
-              label: '팩스',
-              value: fax,
-            ),
+            _DetailRow(icon: Icons.fax_outlined, label: l10n.faxNumber, value: fax),
           if (email != null)
-            _DetailRow(
-              icon: Icons.email_outlined,
-              label: '이메일',
-              value: email,
-            ),
+            _DetailRow(icon: Icons.email_outlined, label: l10n.email, value: email),
           if (website != null)
-            _DetailRow(
-              icon: Icons.language,
-              label: '웹사이트',
-              value: website,
-            ),
+            _DetailRow(icon: Icons.language, label: l10n.website, value: website),
           if (address != null)
-            _DetailRow(
-              icon: Icons.location_on_outlined,
-              label: '주소',
-              value: address,
-            ),
+            _DetailRow(icon: Icons.location_on_outlined, label: l10n.address, value: address),
 
           const SizedBox(height: 40),
         ],
