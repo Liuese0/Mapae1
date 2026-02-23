@@ -361,6 +361,36 @@ abstract class AppLocalizations {
   String get shareCodeCopied;
   String get regenerateCode;
   String get shareCodeObserverNote;
+
+  // ── Notifications ──
+  String get noNotifications;
+  String get teamInvitation;
+  String inviteAccepted(String teamName);
+  String get declineInvite;
+  String declineInviteConfirm(String teamName);
+  String get decline;
+  String get inviteDeclined;
+  String get accept;
+  String inviterDescription(String inviterName, String teamName);
+
+  // ── Shared Card Receive ──
+  String get expiredShareLink;
+  String get cannotLoadCard;
+  String get saveToWallet;
+  String get goBack;
+
+  // ── Search / Category ──
+  String get selectCategory;
+  String get noCategoriesHint;
+  String get searchCardHint;
+
+  // ── CRM Pipeline Status ──
+  String get crmStatusLead;
+  String get crmStatusContact;
+  String get crmStatusMeeting;
+  String get crmStatusProposal;
+  String get crmStatusContract;
+  String get crmStatusClosed;
 }
 
 class _AppLocalizationsDelegate
@@ -712,6 +742,37 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get shareCodeCopied => '공유코드가 복사되었습니다';
   @override String get regenerateCode => '코드 재생성';
   @override String get shareCodeObserverNote => '이 코드로 팀에 참가하면 Observer로 시작합니다';
+
+  // ── Notifications ──
+  @override String get noNotifications => '새로운 알림이 없습니다';
+  @override String get teamInvitation => '팀 초대';
+  @override String inviteAccepted(String teamName) => '$teamName 초대를 수락했습니다';
+  @override String get declineInvite => '초대 거절';
+  @override String declineInviteConfirm(String teamName) => '$teamName 초대를 거절하시겠습니까?';
+  @override String get decline => '거절';
+  @override String get inviteDeclined => '초대를 거절했습니다';
+  @override String get accept => '수락';
+  @override String inviterDescription(String inviterName, String teamName) =>
+      '$inviterName님이 \'$teamName\' 팀에 초대했습니다.';
+
+  // ── Shared Card Receive ──
+  @override String get expiredShareLink => '만료되었거나 존재하지 않는 공유 링크입니다.';
+  @override String get cannotLoadCard => '명함을 불러올 수 없습니다.';
+  @override String get saveToWallet => '내 지갑에 저장';
+  @override String get goBack => '돌아가기';
+
+  // ── Search / Category ──
+  @override String get selectCategory => '카테고리 선택';
+  @override String get noCategoriesHint => '카테고리가 없습니다\n위의 + 버튼으로 추가해 보세요';
+  @override String get searchCardHint => '이름, 회사, 직함으로 검색';
+
+  // ── CRM Pipeline Status ──
+  @override String get crmStatusLead => '리드';
+  @override String get crmStatusContact => '연락';
+  @override String get crmStatusMeeting => '미팅';
+  @override String get crmStatusProposal => '제안';
+  @override String get crmStatusContract => '계약';
+  @override String get crmStatusClosed => '완료';
 }
 
 // ──────────────── English ────────────────
@@ -1052,4 +1113,35 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get shareCodeCopied => 'Share code copied';
   @override String get regenerateCode => 'Regenerate Code';
   @override String get shareCodeObserverNote => 'Users who join with this code start as Observer';
+
+  // ── Notifications ──
+  @override String get noNotifications => 'No new notifications';
+  @override String get teamInvitation => 'Team Invitation';
+  @override String inviteAccepted(String teamName) => 'Accepted invitation to $teamName';
+  @override String get declineInvite => 'Decline Invitation';
+  @override String declineInviteConfirm(String teamName) => 'Decline invitation to $teamName?';
+  @override String get decline => 'Decline';
+  @override String get inviteDeclined => 'Invitation declined';
+  @override String get accept => 'Accept';
+  @override String inviterDescription(String inviterName, String teamName) =>
+      '$inviterName invited you to the \'$teamName\' team.';
+
+  // ── Shared Card Receive ──
+  @override String get expiredShareLink => 'This share link has expired or does not exist.';
+  @override String get cannotLoadCard => 'Cannot load the card.';
+  @override String get saveToWallet => 'Save to Wallet';
+  @override String get goBack => 'Go Back';
+
+  // ── Search / Category ──
+  @override String get selectCategory => 'Select Category';
+  @override String get noCategoriesHint => 'No categories\nUse the + button above to add one';
+  @override String get searchCardHint => 'Search by name, company, or title';
+
+  // ── CRM Pipeline Status ──
+  @override String get crmStatusLead => 'Lead';
+  @override String get crmStatusContact => 'Contact';
+  @override String get crmStatusMeeting => 'Meeting';
+  @override String get crmStatusProposal => 'Proposal';
+  @override String get crmStatusContract => 'Contract';
+  @override String get crmStatusClosed => 'Closed';
 }

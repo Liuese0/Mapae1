@@ -137,7 +137,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       const SizedBox(width: 40),
                       Expanded(
                         child: Text(
-                          'Mapae',
+                          l10n.appTitle,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,

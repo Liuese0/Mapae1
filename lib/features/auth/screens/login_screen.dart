@@ -144,7 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     child: Column(
                       children: [
                         Text(
-                          'Mapae',
+                          l10n.appTitle,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.headlineLarge?.copyWith(
                             fontWeight: FontWeight.w700,
@@ -154,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Business Card Manager',
+                          l10n.startCardManagement,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurface.withOpacity(0.5),

@@ -12,6 +12,18 @@ import '../../shared/models/category.dart';
 import '../../shared/models/crm_contact.dart';
 import '../../shared/widgets/invite_member_dialog.dart';
 
+/// CRM 파이프라인 상태를 현재 언어로 반환합니다.
+String _crmStatusLabel(CrmStatus s, AppLocalizations l10n) {
+  switch (s) {
+    case CrmStatus.lead:     return l10n.crmStatusLead;
+    case CrmStatus.contact:  return l10n.crmStatusContact;
+    case CrmStatus.meeting:  return l10n.crmStatusMeeting;
+    case CrmStatus.proposal: return l10n.crmStatusProposal;
+    case CrmStatus.contract: return l10n.crmStatusContract;
+    case CrmStatus.closed:   return l10n.crmStatusClosed;
+  }
+}
+
 class TeamManagementScreen extends ConsumerStatefulWidget {
   final String teamId;
 
@@ -1419,7 +1431,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
               _buildFilterChip(null, l10n.allCategories, theme),
-              ...CrmStatus.values.map((s) => _buildFilterChip(s, s.label, theme)),
+              ...CrmStatus.values.map((s) => _buildFilterChip(s, _crmStatusLabel(s, l10n), theme)),
             ],
           ),
         ),
@@ -1606,7 +1618,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${s.label} $count',
+                    '${_crmStatusLabel(s, l10n)} $count',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: 11,
                       color: theme.colorScheme.onSurface.withOpacity(0.7),
@@ -1916,6 +1928,7 @@ class _CrmContactCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final initial = (contact.name?.isNotEmpty == true) ? contact.name![0] : '?';
 
     return Card(
@@ -1975,7 +1988,7 @@ class _CrmContactCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    contact.status.label,
+                    _crmStatusLabel(contact.status, l10n),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -1997,7 +2010,7 @@ class _CrmContactCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(s.label),
+                        Text(_crmStatusLabel(s, l10n)),
                       ],
                     ),
                   );
@@ -2194,6 +2207,7 @@ class _CrmContactDetailScreenState
   }
 
   Widget _buildStatusSelector(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -2204,7 +2218,7 @@ class _CrmContactDetailScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppLocalizations.of(context).status,
+            l10n.status,
             style: theme.textTheme.labelMedium?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
@@ -2218,7 +2232,7 @@ class _CrmContactDetailScreenState
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: ChoiceChip(
-                    label: Text(s.label, style: const TextStyle(fontSize: 12)),
+                    label: Text(_crmStatusLabel(s, l10n), style: const TextStyle(fontSize: 12)),
                     selected: selected,
                     onSelected: (_) {
                       if (_isObserver) {

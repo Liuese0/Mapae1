@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/team_invitation.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -41,6 +42,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Future<void> _acceptInvitation(TeamInvitation invitation) async {
+    final l10n = AppLocalizations.of(context);
     try {
       final service = ref.read(supabaseServiceProvider);
       await service.acceptInvitation(invitation);
@@ -50,34 +52,35 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${invitation.teamName ?? '팀'} 초대를 수락했습니다'),
+            content: Text(l10n.inviteAccepted(invitation.teamName ?? l10n.team)),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('수락 실패: $e')),
+          SnackBar(content: Text(l10n.errorMsg(e.toString()))),
         );
       }
     }
   }
 
   Future<void> _declineInvitation(TeamInvitation invitation) async {
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('초대 거절'),
-        content: Text('${invitation.teamName ?? '팀'} 초대를 거절하시겠습니까?'),
+        title: Text(l10n.declineInvite),
+        content: Text(l10n.declineInviteConfirm(invitation.teamName ?? l10n.team)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('거절'),
+            child: Text(l10n.decline),
           ),
         ],
       ),
@@ -93,13 +96,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       await _loadInvitations();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('초대를 거절했습니다')),
+          SnackBar(content: Text(l10n.inviteDeclined)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('거절 실패: $e')),
+          SnackBar(content: Text(l10n.errorMsg(e.toString()))),
         );
       }
     }
@@ -108,6 +111,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -115,18 +119,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           icon: const Icon(Icons.arrow_back_ios, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: const Text('알림'),
+        title: Text(l10n.notifications),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
         onRefresh: _loadInvitations,
-        child: _buildBody(theme),
+        child: _buildBody(theme, l10n),
       ),
     );
   }
 
-  Widget _buildBody(ThemeData theme) {
+  Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
     final invitations = _invitations ?? [];
 
     if (invitations.isEmpty) {
@@ -141,7 +145,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              '새로운 알림이 없습니다',
+              l10n.noNotifications,
               style: TextStyle(
                 color: theme.colorScheme.onSurface.withOpacity(0.4),
               ),
@@ -181,7 +185,8 @@ class _InvitationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final timeAgo = _formatTimeAgo(invitation.createdAt);
+    final l10n = AppLocalizations.of(context);
+    final timeAgo = _formatTimeAgo(invitation.createdAt, l10n);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -213,7 +218,7 @@ class _InvitationCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '팀 초대',
+                      l10n.teamInvitation,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -233,8 +238,10 @@ class _InvitationCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '${invitation.inviterName ?? '알 수 없음'}님이 '
-                '\'${invitation.teamName ?? '팀'}\' 팀에 초대했습니다.',
+            l10n.inviterDescription(
+              invitation.inviterName ?? l10n.unknown,
+              invitation.teamName ?? l10n.team,
+            ),
             style: const TextStyle(fontSize: 14, height: 1.4),
           ),
           const SizedBox(height: 16),
@@ -251,7 +258,7 @@ class _InvitationCard extends StatelessWidget {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  child: const Text('거절'),
+                  child: Text(l10n.decline),
                 ),
               ),
               const SizedBox(width: 12),
@@ -264,7 +271,7 @@ class _InvitationCard extends StatelessWidget {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  child: const Text('수락'),
+                  child: Text(l10n.accept),
                 ),
               ),
             ],
@@ -274,14 +281,14 @@ class _InvitationCard extends StatelessWidget {
     );
   }
 
-  String _formatTimeAgo(DateTime dateTime) {
+  String _formatTimeAgo(DateTime dateTime, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
 
-    if (diff.inMinutes < 1) return '방금 전';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
-    if (diff.inHours < 24) return '${diff.inHours}시간 전';
-    if (diff.inDays < 7) return '${diff.inDays}일 전';
+    if (diff.inMinutes < 1) return l10n.justNow;
+    if (diff.inMinutes < 60) return l10n.minutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return l10n.hoursAgo(diff.inHours);
+    if (diff.inDays < 7) return l10n.daysAgo(diff.inDays);
     return '${dateTime.month}/${dateTime.day}';
   }
 }
