@@ -383,6 +383,14 @@ abstract class AppLocalizations {
   String get selectCategory;
   String get noCategoriesHint;
   String get searchCardHint;
+
+  // ── CRM Pipeline Status ──
+  String get crmStatusLead;
+  String get crmStatusContact;
+  String get crmStatusMeeting;
+  String get crmStatusProposal;
+  String get crmStatusContract;
+  String get crmStatusClosed;
 }
 
 class _AppLocalizationsDelegate
@@ -757,6 +765,14 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get selectCategory => '카테고리 선택';
   @override String get noCategoriesHint => '카테고리가 없습니다\n위의 + 버튼으로 추가해 보세요';
   @override String get searchCardHint => '이름, 회사, 직함으로 검색';
+
+  // ── CRM Pipeline Status ──
+  @override String get crmStatusLead => '리드';
+  @override String get crmStatusContact => '연락';
+  @override String get crmStatusMeeting => '미팅';
+  @override String get crmStatusProposal => '제안';
+  @override String get crmStatusContract => '계약';
+  @override String get crmStatusClosed => '완료';
 }
 
 // ──────────────── English ────────────────
@@ -1120,4 +1136,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get selectCategory => 'Select Category';
   @override String get noCategoriesHint => 'No categories\nUse the + button above to add one';
   @override String get searchCardHint => 'Search by name, company, or title';
+
+  // ── CRM Pipeline Status ──
+  @override String get crmStatusLead => 'Lead';
+  @override String get crmStatusContact => 'Contact';
+  @override String get crmStatusMeeting => 'Meeting';
+  @override String get crmStatusProposal => 'Proposal';
+  @override String get crmStatusContract => 'Contract';
+  @override String get crmStatusClosed => 'Closed';
 }
