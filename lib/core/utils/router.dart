@@ -42,6 +42,19 @@ class AppRouter {
   static final _router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: _initialLocation,
+    redirect: (context, state) {
+      // GoRouter receives the raw OS deep link URI via PlatformRouteInformationProvider.
+      // Custom-scheme URIs (com.namecard.app://share/<token>) must be mapped to an
+      // in-app path before route matching, otherwise GoRouter throws:
+      //   GoException: no routes for location: com.namecard.app://share/<token>
+      final uri = state.uri;
+      if (uri.scheme == 'com.namecard.app' &&
+          uri.host == 'share' &&
+          uri.pathSegments.isNotEmpty) {
+        return '/shared-card/${uri.pathSegments.first}';
+      }
+      return null;
+    },
     routes: [
       // Language selection (first run only)
       GoRoute(
