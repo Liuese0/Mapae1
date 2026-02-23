@@ -42,6 +42,18 @@ class AppRouter {
   static final _router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: _initialLocation,
+    onException: (context, state, router) {
+      // When the OS delivers a deep link (e.g. com.namecard.app://share/TOKEN),
+      // Flutter's platform routing passes the raw URI to GoRouter before
+      // app_links can intercept it. GoRouter cannot match the custom-scheme URI
+      // against path-based routes, so it calls onException instead of crashing.
+      final uri = state.uri;
+      if (uri.host == 'share' && uri.pathSegments.isNotEmpty) {
+        router.go('/shared-card/${uri.pathSegments.first}');
+      } else {
+        router.go(_initialLocation);
+      }
+    },
     routes: [
       // Language selection (first run only)
       GoRoute(
