@@ -70,6 +70,9 @@ Card: "삼성전자" top, "김민수" large, "수석연구원 AI연구소", T.02
     return imageFile; // fallback to original
   }
 
+  /// Max retry attempts for rate-limited (429) requests.
+  static const _maxRetries = 3;
+
   /// Scan a business card image using Gemini Vision.
   Future<OcrResult> scanBusinessCard(File imageFile) async {
     if (AppConstants.geminiApiKey.isEmpty) {
@@ -85,14 +88,28 @@ Card: "삼성전자" top, "김민수" large, "수석연구원 AI연구소", T.02
       DataPart('image/jpeg', imageBytes),
     ]);
 
-    final response = await _model.generateContent([content]);
-    final text = response.text;
+    // Retry with exponential backoff on 429 (rate limit)
+    for (var attempt = 0; attempt < _maxRetries; attempt++) {
+      try {
+        final response = await _model.generateContent([content]);
+        final text = response.text;
 
-    if (text == null || text.trim().isEmpty) {
-      throw Exception('Gemini returned empty response');
+        if (text == null || text.trim().isEmpty) {
+          throw Exception('Gemini returned empty response');
+        }
+
+        return _parseResponse(text);
+      } catch (e) {
+        final is429 = e.toString().contains('429') ||
+            e.toString().contains('Too Many Requests') ||
+            e.toString().contains('RESOURCE_EXHAUSTED');
+        if (!is429 || attempt == _maxRetries - 1) rethrow;
+        // Exponential backoff: 2s, 4s
+        await Future.delayed(Duration(seconds: 2 << attempt));
+      }
     }
 
-    return _parseResponse(text);
+    throw Exception('Gemini request failed after $_maxRetries retries');
   }
 
   /// Parse JSON response from Gemini into OcrResult.

@@ -15,7 +15,7 @@ class SmartOcrService {
     try {
       return await _gemini
           .scanBusinessCard(imageFile)
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 15));
     } catch (_) {
       // Gemini failed — fall back to OCR.space + regex parser
       return _fallback.scanBusinessCard(imageFile, language: language);
