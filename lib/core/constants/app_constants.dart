@@ -11,6 +11,9 @@ class AppConstants {
   static String get ocrApiKey => dotenv.env['OCR_API_KEY'] ?? '';
   static const String ocrApiUrl = 'https://api.ocr.space/parse/image';
 
+  // Gemini AI
+  static String get geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+
   // App
   static const String appName = 'Mapae';
   static const int maxMyCards = 10;

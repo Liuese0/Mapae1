@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../services/ocr_service.dart';
+import '../services/gemini_ocr_service.dart';
+import '../services/smart_ocr_service.dart';
 import '../services/premium_service.dart';
 
 import '../services/auto_login_service.dart';
@@ -19,8 +21,8 @@ final supabaseServiceProvider = Provider<SupabaseService>((ref) {
   return SupabaseService();
 });
 
-final ocrServiceProvider = Provider<OcrService>((ref) {
-  return OcrService();
+final ocrServiceProvider = Provider<SmartOcrService>((ref) {
+  return SmartOcrService(GeminiOcrService(), OcrService());
 });
 
 

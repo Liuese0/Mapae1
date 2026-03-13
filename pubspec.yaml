@@ -47,6 +47,9 @@ dependencies:
   http: ^1.2.0
   dio: ^5.4.0
 
+  # Gemini AI (Vision OCR)
+  google_generative_ai: ^0.4.6
+
   # Sharing
   share_plus: ^7.2.2
   app_links: ^6.3.2
