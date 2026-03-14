@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -20,6 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _autoLogin = false;
+  StreamSubscription<AuthState>? _authSubscription;
 
   late AnimationController _entranceController;
   late Animation<double> _logoFade;
@@ -69,10 +72,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
 
     _entranceController.forward();
+
+    // OAuth 콜백(카카오 등) 브라우저 복귀 시 자동 네비게이션
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.signedIn && mounted) {
+        context.go('/home');
+      }
+    });
   }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     _entranceController.dispose();
@@ -90,6 +101,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       );
       await ref.read(autoLoginServiceProvider).setEnabled(_autoLogin);
       if (mounted) context.go('/home');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithKakao() async {
+    setState(() => _isLoading = true);
+    try {
+      final launched = await ref.read(supabaseServiceProvider).signInWithKakao();
+      if (!launched) {
+        throw Exception('카카오 로그인 페이지를 열 수 없습니다.');
+      }
+      // OAuth 브라우저 플로우: 딥링크 콜백으로 복귀 시 authStateChanges가 처리
+      await ref.read(autoLoginServiceProvider).setEnabled(_autoLogin);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -325,6 +356,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             ),
                           ),
                           label: Text(l10n.loginWithGoogle),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      SizedBox(
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          onPressed: _isLoading ? null : _signInWithKakao,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFEE500),
+                            foregroundColor: const Color(0xFF191919),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(Icons.chat_bubble, size: 20),
+                          label: Text(l10n.loginWithKakao),
                         ),
                       ),
                       const SizedBox(height: 32),

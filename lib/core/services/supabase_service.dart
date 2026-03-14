@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/app_constants.dart';
 import '../constants/supabase_constants.dart';
@@ -44,10 +45,39 @@ class SupabaseService {
   }
 
   Future<AuthResponse> signInWithGoogle() async {
+    final webClientId = AppConstants.googleWebClientId;
+    final iosClientId = AppConstants.googleIosClientId;
+
+    final googleSignIn = GoogleSignIn(
+      clientId: iosClientId,
+      serverClientId: webClientId,
+    );
+
+    final googleUser = await googleSignIn.signIn();
+    if (googleUser == null) {
+      throw Exception('Google 로그인이 취소되었습니다.');
+    }
+
+    final googleAuth = await googleUser.authentication;
+    final idToken = googleAuth.idToken;
+    final accessToken = googleAuth.accessToken;
+
+    if (idToken == null) {
+      throw Exception('Google ID 토큰을 가져올 수 없습니다.');
+    }
+
+    return await _client.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: accessToken,
+    );
+  }
+
+  Future<bool> signInWithKakao() async {
     return await _client.auth.signInWithOAuth(
-      OAuthProvider.google,
+      OAuthProvider.kakao,
       redirectTo: 'com.namecard.app://login-callback',
-    ) as AuthResponse;
+    );
   }
 
   Future<void> signOut() async {

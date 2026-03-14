@@ -7,6 +7,7 @@
   "login": "Log In",
   "signUp": "Sign Up",
   "loginWithGoogle": "Sign in with Google",
+  "loginWithKakao": "Sign in with Kakao",
   "email": "Email",
   "password": "Password",
   "name": "Name",

@@ -18,6 +18,10 @@ class AppConstants {
   static String get azureDiEndpoint => dotenv.env['AZURE_DI_ENDPOINT'] ?? '';
   static String get azureDiKey => dotenv.env['AZURE_DI_KEY'] ?? '';
 
+  // Google Sign-In
+  static String get googleWebClientId => dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? '';
+  static String get googleIosClientId => dotenv.env['GOOGLE_IOS_CLIENT_ID'] ?? '';
+
   // App
   static const String appName = 'Mapae';
   static const int maxMyCards = 10;

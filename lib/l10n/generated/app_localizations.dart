@@ -62,6 +62,7 @@ abstract class AppLocalizations {
   String get login;
   String get signUp;
   String get loginWithGoogle;
+  String get loginWithKakao;
   String get signUpWithGoogle;
   String get email;
   String get password;
@@ -448,6 +449,7 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get login => '로그인';
   @override String get signUp => '회원가입';
   @override String get loginWithGoogle => 'Google로 로그인';
+  @override String get loginWithKakao => '카카오로 로그인';
   @override String get signUpWithGoogle => 'Google로 가입';
   @override String get email => '이메일';
   @override String get password => '비밀번호';
@@ -812,6 +814,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get login => 'Log In';
   @override String get signUp => 'Sign Up';
   @override String get loginWithGoogle => 'Sign in with Google';
+  @override String get loginWithKakao => 'Sign in with Kakao';
   @override String get signUpWithGoogle => 'Sign up with Google';
   @override String get email => 'Email';
   @override String get password => 'Password';
