@@ -18,13 +18,6 @@ class SmartOcrService {
   /// Scan a business card image using the multi-stage pipeline.
   Future<OcrResult> scanBusinessCard(File imageFile, {String language = 'kor'}) async {
     try {
-<<<<<<< HEAD
-      return await _gemini
-          .scanBusinessCard(imageFile)
-          .timeout(const Duration(seconds: 15));
-    } catch (_) {
-      // Gemini failed — fall back to OCR.space + regex parser
-=======
       // Step 1: Extract text using Azure DI Read (Korean supported, ~2-5s)
       debugPrint('[SmartOCR] Step 1: Azure DI Read starting...');
       String? referenceText;
@@ -53,7 +46,6 @@ class SmartOcrService {
     } catch (e) {
       debugPrint('[SmartOCR] Gemini failed: $e');
       debugPrint('[SmartOCR] Step 3: Falling back to OCR.space...');
->>>>>>> 0b3dad6 (ocr_azure)
       return _fallback.scanBusinessCard(imageFile, language: language);
     }
   }
