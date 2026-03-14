@@ -14,6 +14,10 @@ class AppConstants {
   // Gemini AI
   static String get geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
+  // Azure AI Document Intelligence
+  static String get azureDiEndpoint => dotenv.env['AZURE_DI_ENDPOINT'] ?? '';
+  static String get azureDiKey => dotenv.env['AZURE_DI_KEY'] ?? '';
+
   // App
   static const String appName = 'Mapae';
   static const int maxMyCards = 10;

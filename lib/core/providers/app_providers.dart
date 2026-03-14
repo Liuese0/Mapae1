@@ -6,6 +6,7 @@ import '../services/supabase_service.dart';
 import '../services/ocr_service.dart';
 import '../services/gemini_ocr_service.dart';
 import '../services/smart_ocr_service.dart';
+import '../services/azure_ocr_service.dart';
 import '../services/premium_service.dart';
 
 import '../services/auto_login_service.dart';
@@ -22,7 +23,11 @@ final supabaseServiceProvider = Provider<SupabaseService>((ref) {
 });
 
 final ocrServiceProvider = Provider<SmartOcrService>((ref) {
-  return SmartOcrService(GeminiOcrService(), OcrService());
+  return SmartOcrService(
+    GeminiOcrService(),
+    OcrService(),
+    AzureOcrService(),
+  );
 });
 
 

@@ -16,6 +16,7 @@ class OcrResult {
   final String? fax;
   final String? address;
   final String? website;
+  final String? instagram;
   final String rawText;
   final double confidence;
 
@@ -30,6 +31,7 @@ class OcrResult {
     this.fax,
     this.address,
     this.website,
+    this.instagram,
     required this.rawText,
     this.confidence = 0.0,
   });

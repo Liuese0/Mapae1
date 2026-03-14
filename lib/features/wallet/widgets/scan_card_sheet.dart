@@ -84,6 +84,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
         fax: result.fax,
         address: result.address,
         website: result.website,
+        snsUrl: result.instagram,
         imageUrl: imageUrl,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
