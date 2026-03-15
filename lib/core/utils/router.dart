@@ -19,6 +19,54 @@ import '../../features/card_detail/screens/shared_card_receive_screen.dart';
 import '../../features/shared/widgets/main_shell.dart';
 import '../services/auto_login_service.dart';
 
+/// Wraps GoRouter's [RouteInformationParser] to gracefully handle
+/// custom-scheme deep links (e.g. `com.namecard.app://login-callback`).
+///
+/// GoRouter v13 calls `Uri.origin` during parsing, which throws a [StateError]
+/// for non-http/https schemes. This wrapper intercepts such URIs and replaces
+/// them with a safe fallback path before they reach the inner parser.
+class SafeRouteInformationParser
+    extends RouteInformationParser<RouteMatchList> {
+  SafeRouteInformationParser(this._router);
+  final GoRouter _router;
+
+  RouteInformationParser<RouteMatchList> get _delegate =>
+      _router.routeInformationParser;
+
+  @override
+  Future<RouteMatchList> parseRouteInformationWithDependencies(
+      RouteInformation routeInformation,
+      BuildContext context,
+      ) {
+    final uri = routeInformation.uri;
+    if (uri.scheme.isNotEmpty &&
+        uri.scheme != 'http' &&
+        uri.scheme != 'https') {
+      // Custom-scheme URI — replace with a safe path so GoRouter won't crash.
+      final session = Supabase.instance.client.auth.currentSession;
+      final fallback = session != null ? '/home' : '/login';
+      return _delegate.parseRouteInformationWithDependencies(
+        RouteInformation(uri: Uri.parse(fallback)),
+        context,
+      );
+    }
+    return _delegate.parseRouteInformationWithDependencies(
+        routeInformation, context);
+  }
+
+  @override
+  Future<RouteMatchList> parseRouteInformation(
+      RouteInformation routeInformation) {
+    return _delegate.parseRouteInformation(routeInformation);
+  }
+
+  @override
+  RouteInformation? restoreRouteInformation(RouteMatchList configuration) {
+    return _delegate.restoreRouteInformation(configuration);
+  }
+}
+
+
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
   static final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -50,6 +98,11 @@ class AppRouter {
       final uri = state.uri;
       if (uri.host == 'share' && uri.pathSegments.isNotEmpty) {
         router.go('/shared-card/${uri.pathSegments.first}');
+      } else if (uri.host == 'login-callback') {
+        // OAuth callback (Kakao, etc.) — Supabase handles the auth exchange
+        // via its own deep link listener. Just navigate to the appropriate page.
+        final session = Supabase.instance.client.auth.currentSession;
+        router.go(session != null ? '/home' : '/login');
       } else {
         router.go(_initialLocation);
       }

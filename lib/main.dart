@@ -97,6 +97,10 @@ class _NameCardAppState extends ConsumerState<NameCardApp> {
   }
 
   void _handleDeepLink(Uri uri) {
+    // OAuth callbacks (login-callback) are handled by Supabase's own
+    // deep link listener — skip them here to avoid conflicts.
+    if (uri.host == 'login-callback') return;
+
     // com.namecard.app://share/TOKEN
     if (uri.host == 'share' && uri.pathSegments.isNotEmpty) {
       final token = uri.pathSegments.first;
@@ -115,6 +119,7 @@ class _NameCardAppState extends ConsumerState<NameCardApp> {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
 
+    final goRouter = AppRouter.router;
     return MaterialApp.router(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
@@ -124,7 +129,10 @@ class _NameCardAppState extends ConsumerState<NameCardApp> {
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      routerConfig: AppRouter.router,
+      routeInformationProvider: goRouter.routeInformationProvider,
+      routeInformationParser: SafeRouteInformationParser(goRouter),
+      routerDelegate: goRouter.routerDelegate,
+      backButtonDispatcher: goRouter.backButtonDispatcher,
     );
   }
 }
