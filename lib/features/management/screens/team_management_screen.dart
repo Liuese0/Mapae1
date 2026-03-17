@@ -353,6 +353,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                   .firstOrNull;
 
               return ListTile(
+                onTap: _canShare ? () => _showEditSharedCardSheet(card) : null,
                 title: Text(name),
                 subtitle: Text(
                   [
@@ -707,6 +708,96 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
         );
       }
     }
+  }
+
+  void _showEditSharedCardSheet(Map<String, dynamic> card) {
+    final l10n = AppLocalizations.of(context);
+    final nameCtrl = TextEditingController(text: card['name'] as String? ?? '');
+    final companyCtrl = TextEditingController(text: card['company'] as String? ?? '');
+    final positionCtrl = TextEditingController(text: card['position'] as String? ?? '');
+    final deptCtrl = TextEditingController(text: card['department'] as String? ?? '');
+    final emailCtrl = TextEditingController(text: card['email'] as String? ?? '');
+    final phoneCtrl = TextEditingController(text: card['phone'] as String? ?? '');
+    final mobileCtrl = TextEditingController(text: card['mobile'] as String? ?? '');
+    final memoCtrl = TextEditingController(text: card['memo'] as String? ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16, right: 16, top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Text(l10n.edit, style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () async {
+                        final sharedCardId = card['id'] as String;
+                        final fields = <String, dynamic>{
+                          'name': nameCtrl.text.isEmpty ? null : nameCtrl.text,
+                          'company': companyCtrl.text.isEmpty ? null : companyCtrl.text,
+                          'position': positionCtrl.text.isEmpty ? null : positionCtrl.text,
+                          'department': deptCtrl.text.isEmpty ? null : deptCtrl.text,
+                          'email': emailCtrl.text.isEmpty ? null : emailCtrl.text,
+                          'phone': phoneCtrl.text.isEmpty ? null : phoneCtrl.text,
+                          'mobile': mobileCtrl.text.isEmpty ? null : mobileCtrl.text,
+                          'memo': memoCtrl.text.isEmpty ? null : memoCtrl.text,
+                        };
+                        try {
+                          await ref.read(supabaseServiceProvider).updateSharedCard(sharedCardId, fields);
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          await _loadCards();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l10n.saved)),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
+                          }
+                        }
+                      },
+                      child: Text(l10n.save),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(controller: nameCtrl, decoration: InputDecoration(labelText: l10n.name)),
+                const SizedBox(height: 8),
+                TextField(controller: companyCtrl, decoration: InputDecoration(labelText: l10n.company)),
+                const SizedBox(height: 8),
+                TextField(controller: positionCtrl, decoration: InputDecoration(labelText: l10n.jobTitle)),
+                const SizedBox(height: 8),
+                TextField(controller: deptCtrl, decoration: InputDecoration(labelText: l10n.department)),
+                const SizedBox(height: 8),
+                TextField(controller: emailCtrl, decoration: InputDecoration(labelText: l10n.email)),
+                const SizedBox(height: 8),
+                TextField(controller: phoneCtrl, decoration: InputDecoration(labelText: l10n.phone)),
+                const SizedBox(height: 8),
+                TextField(controller: mobileCtrl, decoration: InputDecoration(labelText: l10n.mobileNumber)),
+                const SizedBox(height: 8),
+                TextField(controller: memoCtrl, decoration: InputDecoration(labelText: l10n.memo), maxLines: 2),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _unshareCard(Map<String, dynamic> card) async {
@@ -2575,7 +2666,10 @@ class _CrmContactDetailScreenState
       updatedAt: DateTime.now(),
     );
 
-    final result = await ref.read(supabaseServiceProvider).updateCrmContact(updated);
+    final service = ref.read(supabaseServiceProvider);
+    final result = await service.updateCrmContact(updated);
+    // 연결된 공유 명함도 동기화
+    await service.syncCrmToSharedCard(result);
     setState(() {
       _contact = result;
       _isEditing = false;

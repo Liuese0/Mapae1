@@ -500,10 +500,61 @@ class SupabaseService {
   }
 
   Future<void> unshareCardFromTeam(String sharedCardId) async {
+    // 연결된 CRM 연락처도 함께 삭제
+    await _client
+        .from(SupabaseConstants.crmContactsTable)
+        .delete()
+        .eq('shared_card_id', sharedCardId);
+
     await _client
         .from(SupabaseConstants.teamSharedCardsTable)
         .delete()
         .eq('id', sharedCardId);
+  }
+
+  /// 공유 명함 정보 수정 + 연결된 CRM 연락처 동기화
+  Future<void> updateSharedCard(String sharedCardId, Map<String, dynamic> fields) async {
+    // 공유 명함 업데이트
+    await _client
+        .from(SupabaseConstants.teamSharedCardsTable)
+        .update(fields)
+        .eq('id', sharedCardId);
+
+    // 연결된 CRM 연락처도 동기화
+    final syncFields = <String, dynamic>{};
+    const syncKeys = ['name', 'company', 'position', 'department', 'email', 'phone', 'mobile'];
+    for (final key in syncKeys) {
+      if (fields.containsKey(key)) {
+        syncFields[key] = fields[key];
+      }
+    }
+    if (syncFields.isNotEmpty) {
+      syncFields['updated_at'] = DateTime.now().toIso8601String();
+      await _client
+          .from(SupabaseConstants.crmContactsTable)
+          .update(syncFields)
+          .eq('shared_card_id', sharedCardId);
+    }
+  }
+
+  /// CRM 연락처 수정 시 연결된 공유 명함도 동기화
+  Future<void> syncCrmToSharedCard(CrmContact contact) async {
+    if (contact.sharedCardId == null) return;
+
+    final syncFields = <String, dynamic>{
+      'name': contact.name,
+      'company': contact.company,
+      'position': contact.position,
+      'department': contact.department,
+      'email': contact.email,
+      'phone': contact.phone,
+      'mobile': contact.mobile,
+    };
+
+    await _client
+        .from(SupabaseConstants.teamSharedCardsTable)
+        .update(syncFields)
+        .eq('id', contact.sharedCardId!);
   }
 
   /// 팀 공유 명함 목록 (스냅샷 데이터에서 직접 읽기)
