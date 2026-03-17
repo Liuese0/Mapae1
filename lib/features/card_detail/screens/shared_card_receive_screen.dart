@@ -135,13 +135,13 @@ class _SharedCardReceiveScreenState
             children: [
               Icon(Icons.link_off,
                   size: 56,
-                  color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
               const SizedBox(height: 16),
               Text(
                 errorMessage,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 24),
@@ -220,7 +220,7 @@ class _SharedCardReceiveScreenState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
@@ -248,7 +248,7 @@ class _SharedCardReceiveScreenState
                 [company, position].where((s) => s != null).join(' · '),
                 style: TextStyle(
                   fontSize: 15,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ),
@@ -259,7 +259,7 @@ class _SharedCardReceiveScreenState
                 department,
                 style: TextStyle(
                   fontSize: 14,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -310,7 +310,7 @@ class _DetailRow extends StatelessWidget {
           Icon(
             icon,
             size: 18,
-            color: theme.colorScheme.onSurface.withOpacity(0.4),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
           ),
           const SizedBox(width: 12),
           SizedBox(
@@ -319,7 +319,7 @@ class _DetailRow extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 12,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ),

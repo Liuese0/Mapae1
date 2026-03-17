@@ -270,7 +270,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -317,7 +317,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -326,7 +326,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
           const SizedBox(height: 6),
           Text(
             _quickShareDescription(l10n),
-            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.65)),
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.65)),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 18),
@@ -403,7 +403,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
             height: 110,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: theme.colorScheme.primary.withOpacity(0.08),
+              color: theme.colorScheme.primary.withValues(alpha: 0.08),
             ),
             child: Icon(Icons.radar, color: theme.colorScheme.primary, size: 54),
           ),
@@ -445,7 +445,7 @@ class _ShareBottomSheetState extends ConsumerState<ShareBottomSheet> {
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
                         child: Text(peer.name.isNotEmpty ? peer.name.substring(0, 1) : '?'),
                       ),
                       const SizedBox(width: 12),
@@ -563,7 +563,7 @@ class _ExchangeAnimationViewState extends State<_ExchangeAnimationView> with Sin
                         title: widget.myCard.name ?? l10n.myCard,
                         subtitle: '${widget.myCard.company ?? ''} ${widget.myCard.position ?? ''}'.trim(),
                         alignRight: false,
-                        color: theme.colorScheme.primary.withOpacity(0.08),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.08),
                       ),
                     ),
                   ),
@@ -575,7 +575,7 @@ class _ExchangeAnimationViewState extends State<_ExchangeAnimationView> with Sin
                         title: widget.peerName,
                         subtitle: widget.peerSubtitle,
                         alignRight: true,
-                        color: theme.colorScheme.secondary.withOpacity(0.08),
+                        color: theme.colorScheme.secondary.withValues(alpha: 0.08),
                       ),
                     ),
                   ),
@@ -619,7 +619,7 @@ class _AnimatedCardFace extends StatelessWidget {
         color: color,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.colorScheme.outline),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12)],
       ),
       child: Column(
         crossAxisAlignment: alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -679,12 +679,12 @@ class _ShareOption extends StatelessWidget {
                     Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                     Text(
                       subtitle,
-                      style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                      style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: theme.colorScheme.onSurface.withOpacity(0.3)),
+              Icon(Icons.chevron_right, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
             ],
           ),
         ),

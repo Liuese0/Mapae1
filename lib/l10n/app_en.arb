@@ -106,5 +106,17 @@
         "type": "String"
       }
     }
-  }
+  },
+  "duplicateCard": "Duplicate Card",
+  "duplicateCardConfirm": "This card already exists. Copy anyway?",
+  "passwordWeak": "Weak",
+  "passwordMedium": "Medium",
+  "passwordStrong": "Strong",
+  "nameTooLong": "Name is too long",
+  "copied": "Copied",
+  "favorites": "Favorites",
+  "favoritesOnly": "Favorites only",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeSystem": "System"
 }

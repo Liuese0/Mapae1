@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -94,7 +95,7 @@ class CardDetailScreen extends ConsumerWidget {
                           .join(' · '),
                       style: TextStyle(
                         fontSize: 15,
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -105,7 +106,7 @@ class CardDetailScreen extends ConsumerWidget {
                       card.department!,
                       style: TextStyle(
                         fontSize: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -155,6 +156,7 @@ class CardDetailScreen extends ConsumerWidget {
                     label: l10n.phoneNumber,
                     value: card.phone!,
                     onTap: () => _launchUrl('tel:${card.phone}'),
+                    onLongPress: () => _copyToClipboard(context, card.phone!, l10n.phoneNumber),
                   ),
                 if (card.mobile != null)
                   _DetailRow(
@@ -162,12 +164,14 @@ class CardDetailScreen extends ConsumerWidget {
                     label: l10n.mobileNumber,
                     value: card.mobile!,
                     onTap: () => _launchUrl('tel:${card.mobile}'),
+                    onLongPress: () => _copyToClipboard(context, card.mobile!, l10n.mobileNumber),
                   ),
                 if (card.fax != null)
                   _DetailRow(
                     icon: Icons.fax_outlined,
                     label: l10n.faxNumber,
                     value: card.fax!,
+                    onLongPress: () => _copyToClipboard(context, card.fax!, l10n.faxNumber),
                   ),
                 if (card.email != null)
                   _DetailRow(
@@ -175,6 +179,7 @@ class CardDetailScreen extends ConsumerWidget {
                     label: l10n.email,
                     value: card.email!,
                     onTap: () => _launchUrl('mailto:${card.email}'),
+                    onLongPress: () => _copyToClipboard(context, card.email!, l10n.email),
                   ),
                 if (card.website != null)
                   _DetailRow(
@@ -182,12 +187,14 @@ class CardDetailScreen extends ConsumerWidget {
                     label: l10n.website,
                     value: card.website!,
                     onTap: () => _launchUrl(card.website!),
+                    onLongPress: () => _copyToClipboard(context, card.website!, l10n.website),
                   ),
                 if (card.address != null)
                   _DetailRow(
                     icon: Icons.location_on_outlined,
                     label: l10n.address,
                     value: card.address!,
+                    onLongPress: () => _copyToClipboard(context, card.address!, l10n.address),
                   ),
                 if (card.memo != null && card.memo!.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -198,7 +205,7 @@ class CardDetailScreen extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -221,7 +228,7 @@ class CardDetailScreen extends ConsumerWidget {
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: theme.colorScheme.onSurface
-                                .withOpacity(0.5),
+                                .withValues(alpha: 0.5),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -252,7 +259,7 @@ class CardDetailScreen extends ConsumerWidget {
                                             fontSize: 12,
                                             color: theme
                                                 .colorScheme.onSurface
-                                                .withOpacity(0.5),
+                                                .withValues(alpha: 0.5),
                                           ),
                                         ),
                                       ),
@@ -284,6 +291,17 @@ class CardDetailScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(l10n.errorMsg(e.toString()))),
+      ),
+    );
+  }
+
+  void _copyToClipboard(BuildContext context, String value, String label) {
+    Clipboard.setData(ClipboardData(text: value));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$label 복사됨'),
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -359,7 +377,7 @@ class _QuickAction extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: theme.colorScheme.primary.withOpacity(0.08),
+            color: theme.colorScheme.primary.withValues(alpha: 0.08),
           ),
           child: Column(
             children: [
@@ -386,12 +404,14 @@ class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const _DetailRow({
     required this.icon,
     required this.label,
     required this.value,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -401,6 +421,7 @@ class _DetailRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -409,7 +430,7 @@ class _DetailRow extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               const SizedBox(width: 12),
               SizedBox(
@@ -418,7 +439,7 @@ class _DetailRow extends StatelessWidget {
                   label,
                   style: TextStyle(
                     fontSize: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
               ),

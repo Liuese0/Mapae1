@@ -96,7 +96,7 @@ class _LanguageSelectScreenState extends ConsumerState<LanguageSelectScreen>
                     '사용할 언어를 선택해 주세요\nPlease select your language',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.55),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                       height: 1.6,
                     ),
                   ),
@@ -185,13 +185,13 @@ class _LanguageCard extends StatelessWidget {
       curve: Curves.easeOut,
       decoration: BoxDecoration(
         color: selected
-            ? theme.colorScheme.primaryContainer.withOpacity(0.6)
-            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.6)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: selected
               ? theme.colorScheme.primary
-              : theme.colorScheme.outline.withOpacity(0.25),
+              : theme.colorScheme.outline.withValues(alpha: 0.25),
           width: selected ? 2 : 1,
         ),
       ),
@@ -222,7 +222,7 @@ class _LanguageCard extends StatelessWidget {
                       Text(
                         sublabel,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -240,7 +240,7 @@ class _LanguageCard extends StatelessWidget {
                     border: Border.all(
                       color: selected
                           ? theme.colorScheme.primary
-                          : theme.colorScheme.outline.withOpacity(0.4),
+                          : theme.colorScheme.outline.withValues(alpha: 0.4),
                       width: 2,
                     ),
                   ),

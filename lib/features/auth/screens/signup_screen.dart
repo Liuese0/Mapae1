@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../core/utils/validators.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -22,6 +23,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  int _passwordStrength = 0;
 
   late AnimationController _entranceController;
   late Animation<double> _headerFade;
@@ -63,6 +65,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
       curve: const Interval(0.3, 0.8, curve: Curves.easeOutCubic),
     ));
     _entranceController.forward();
+    _passwordController.addListener(() {
+      final strength = Validators.passwordStrength(_passwordController.text);
+      if (strength != _passwordStrength) {
+        setState(() => _passwordStrength = strength);
+      }
+    });
   }
 
   @override
@@ -141,7 +149,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                         Text(
                           l10n.startCardManagement,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
                         ),
                       ],
@@ -168,6 +176,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                             if (value == null || value.trim().isEmpty) {
                               return l10n.enterName;
                             }
+                            if (value.trim().length > Validators.maxNameLength) {
+                              return l10n.nameTooLong;
+                            }
                             return null;
                           },
                         ),
@@ -185,7 +196,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                             if (value == null || value.isEmpty) {
                               return l10n.enterEmail;
                             }
-                            if (!value.contains('@')) {
+                            if (!Validators.isValidEmail(value)) {
                               return l10n.enterValidEmail;
                             }
                             return null;
@@ -222,7 +233,48 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                             return null;
                           },
                         ),
-                        const SizedBox(height: 12),
+                        // 비밀번호 강도 표시
+                        if (_passwordController.text.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6, bottom: 6),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: LinearProgressIndicator(
+                                    value: _passwordStrength / 3.0,
+                                    backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                    color: _passwordStrength <= 1
+                                        ? Colors.red.shade400
+                                        : _passwordStrength == 2
+                                        ? Colors.orange.shade400
+                                        : Colors.green.shade400,
+                                    minHeight: 4,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _passwordStrength <= 0
+                                      ? ''
+                                      : _passwordStrength == 1
+                                      ? l10n.passwordWeak
+                                      : _passwordStrength == 2
+                                      ? l10n.passwordMedium
+                                      : l10n.passwordStrong,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: _passwordStrength <= 1
+                                        ? Colors.red.shade400
+                                        : _passwordStrength == 2
+                                        ? Colors.orange.shade400
+                                        : Colors.green.shade400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 6),
 
                         // Confirm password
                         TextFormField(
@@ -282,7 +334,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: theme.colorScheme.onSurface
-                                      .withOpacity(0.4),
+                                      .withValues(alpha: 0.4),
                                 ),
                               ),
                             ),

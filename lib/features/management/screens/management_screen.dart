@@ -261,7 +261,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                       children: [
                         Icon(
                           Icons.label_outlined,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -270,14 +270,14 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                             style: TextStyle(
                               fontSize: 13,
                               color: theme.colorScheme.onSurface
-                                  .withOpacity(0.6),
+                                  .withValues(alpha: 0.6),
                             ),
                           ),
                         ),
                         Icon(
                           Icons.chevron_right,
                           color:
-                          theme.colorScheme.onSurface.withOpacity(0.3),
+                          theme.colorScheme.onSurface.withValues(alpha: 0.3),
                         ),
                       ],
                     ),
@@ -313,13 +313,13 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                   child: Row(
                     children: [
                       Icon(Icons.person_outlined, size: 20,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(l10n.profile, style: const TextStyle(fontSize: 15)),
                       ),
                       Icon(Icons.chevron_right,
-                          color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
                     ],
                   ),
                 ),
@@ -337,7 +337,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
               ),
             ),
 
-            // Dark mode
+            // Dark mode (2단 선택: 라이트/다크)
             AnimatedListItem(
               index: 11,
               child: _SettingsTile(
@@ -346,12 +346,25 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                 trailing: Consumer(
                   builder: (context, ref, _) {
                     final themeMode = ref.watch(themeModeProvider);
-                    return Switch(
-                      value: themeMode == ThemeMode.dark,
-                      onChanged: (value) {
-                        ref.read(themeModeProvider.notifier).state =
-                        value ? ThemeMode.dark : ThemeMode.light;
+                    return SegmentedButton<ThemeMode>(
+                      segments: const [
+                        ButtonSegment(
+                          value: ThemeMode.light,
+                          icon: Icon(Icons.light_mode, size: 16),
+                        ),
+                        ButtonSegment(
+                          value: ThemeMode.dark,
+                          icon: Icon(Icons.dark_mode, size: 16),
+                        ),
+                      ],
+                      selected: {themeMode == ThemeMode.system ? ThemeMode.light : themeMode},
+                      onSelectionChanged: (selected) {
+                        ref.read(themeModeProvider.notifier).setThemeMode(selected.first);
                       },
+                      style: SegmentedButton.styleFrom(
+                        visualDensity: const VisualDensity(horizontal: -3, vertical: -3),
+                        textStyle: const TextStyle(fontSize: 11),
+                      ),
                     );
                   },
                 ),
@@ -685,7 +698,7 @@ class _EmptyBox extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.5),
+            color: theme.colorScheme.outline.withValues(alpha: 0.5),
             style: BorderStyle.solid,
           ),
         ),
@@ -702,14 +715,14 @@ class _EmptyBox extends StatelessWidget {
               child: Icon(
                 icon,
                 size: 36,
-                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
               ),
             ),
             const SizedBox(height: 12),
             Text(
               message,
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 fontSize: 13,
               ),
             ),
@@ -771,7 +784,7 @@ class _MyCardTile extends StatelessWidget {
                         '${card.company} ${card.position ?? ""}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                   ],
@@ -827,7 +840,7 @@ class _TeamTile extends StatelessWidget {
             children: [
               Icon(
                 Icons.group,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -841,7 +854,7 @@ class _TeamTile extends StatelessWidget {
               ),
               Icon(
                 Icons.chevron_right,
-                color: theme.colorScheme.onSurface.withOpacity(0.3),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               ),
             ],
           ),
@@ -872,7 +885,7 @@ class _SettingsTile extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: 20,
-              color: theme.colorScheme.onSurface.withOpacity(0.5)),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(title, style: const TextStyle(fontSize: 15)),
@@ -933,7 +946,7 @@ class _PremiumTile extends ConsumerWidget {
         Icon(
           Icons.star_rounded,
           size: 20,
-          color: theme.colorScheme.onSurface.withOpacity(0.5),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -946,14 +959,14 @@ class _PremiumTile extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: theme.colorScheme.onSurface.withOpacity(0.06),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
           ),
           child: Text(
             l10n.applied,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurface.withOpacity(0.45),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
             ),
           ),
         ),
@@ -974,7 +987,7 @@ class _PremiumTile extends ConsumerWidget {
           Icon(
             Icons.star_outline_rounded,
             size: 20,
-            color: theme.colorScheme.onSurface.withOpacity(0.5),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -987,7 +1000,7 @@ class _PremiumTile extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              color: theme.colorScheme.primary.withOpacity(0.08),
+              color: theme.colorScheme.primary.withValues(alpha: 0.08),
             ),
             child: Text(
               '₩1,000',
@@ -1001,7 +1014,7 @@ class _PremiumTile extends ConsumerWidget {
           const SizedBox(width: 4),
           Icon(
             Icons.chevron_right,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
         ],
       ),
@@ -1100,7 +1113,7 @@ class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
                   Icon(
                     Icons.star_rounded,
                     size: 22,
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -1117,7 +1130,7 @@ class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
                 AppLocalizations.of(context).premiumDescription,
                 style: TextStyle(
                   fontSize: 14,
-                  color: theme.colorScheme.onSurface.withOpacity(0.55),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                   height: 1.5,
                 ),
               ),
@@ -1170,7 +1183,7 @@ class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
                     AppLocalizations.of(context).restorePurchase,
                     style: TextStyle(
                       fontSize: 13,
-                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ),
@@ -1201,14 +1214,14 @@ class _BenefitRow extends StatelessWidget {
         Icon(
           icon,
           size: 17,
-          color: theme.colorScheme.onSurface.withOpacity(0.55),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
         ),
         const SizedBox(width: 10),
         Text(
           text,
           style: TextStyle(
             fontSize: 14,
-            color: theme.colorScheme.onSurface.withOpacity(0.75),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
           ),
         ),
       ],

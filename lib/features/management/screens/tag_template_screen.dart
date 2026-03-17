@@ -46,13 +46,13 @@ class TagTemplateScreen extends ConsumerWidget {
                   Icon(
                     Icons.label_outlined,
                     size: 48,
-                    color: theme.colorScheme.onSurface.withOpacity(0.2),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     AppLocalizations.of(context).noTagTemplates,
                     style: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -61,7 +61,7 @@ class TagTemplateScreen extends ConsumerWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
-                      color: theme.colorScheme.onSurface.withOpacity(0.3),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -134,7 +134,7 @@ class _TemplateTile extends StatelessWidget {
               Icon(
                 Icons.label_outlined,
                 size: 18,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -437,7 +437,7 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
                               style: TextStyle(
                                 fontSize: 12,
                                 color: theme.colorScheme.onSurface
-                                    .withOpacity(0.5),
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                           ),
@@ -446,7 +446,7 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
                               Icons.check_box_outline_blank,
                               size: 20,
                               color: theme.colorScheme.onSurface
-                                  .withOpacity(0.3),
+                                  .withValues(alpha: 0.3),
                             )
                           else
                             Expanded(
@@ -456,7 +456,7 @@ class _CreateTemplateScreenState extends ConsumerState<_CreateTemplateScreen> {
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: theme.colorScheme.outline
-                                        .withOpacity(0.5),
+                                        .withValues(alpha: 0.5),
                                   ),
                                 ),
                               ),

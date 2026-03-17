@@ -17,6 +17,7 @@ class CollectedCard {
   final String? categoryId;
   final String? categoryName;
   final String? sourceCardId; // reference to original BusinessCard if shared
+  final bool isFavorite;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -39,6 +40,7 @@ class CollectedCard {
     this.categoryId,
     this.categoryName,
     this.sourceCardId,
+    this.isFavorite = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -64,6 +66,7 @@ class CollectedCard {
       categoryName: json['category_name'] as String? ??
           (json['categories'] is Map ? (json['categories'] as Map)['name'] as String? : null),
       sourceCardId: json['source_card_id'] as String?,
+      isFavorite: json['is_favorite'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -88,6 +91,7 @@ class CollectedCard {
       'image_url': imageUrl,
       'category_id': categoryId,
       'source_card_id': sourceCardId,
+      'is_favorite': isFavorite,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -112,6 +116,7 @@ class CollectedCard {
     String? categoryId,
     String? categoryName,
     String? sourceCardId,
+    bool? isFavorite,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -134,6 +139,7 @@ class CollectedCard {
       categoryId: categoryId ?? this.categoryId,
       categoryName: categoryName ?? this.categoryName,
       sourceCardId: sourceCardId ?? this.sourceCardId,
+      isFavorite: isFavorite ?? this.isFavorite,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

@@ -106,5 +106,17 @@
         "type": "String"
       }
     }
-  }
+  },
+  "duplicateCard": "重复名片",
+  "duplicateCardConfirm": "此名片已存在。是否仍要复制？",
+  "nameTooLong": "姓名太长",
+  "passwordWeak": "弱",
+  "passwordMedium": "中等",
+  "passwordStrong": "强",
+  "copied": "已复制",
+  "favorites": "收藏夹",
+  "favoritesOnly": "仅收藏",
+  "themeLight": "浅色",
+  "themeDark": "深色",
+  "themeSystem": "系统"
 }

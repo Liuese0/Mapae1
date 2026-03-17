@@ -90,6 +90,53 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
         updatedAt: DateTime.now(),
       );
 
+      // 중복 명함 검사
+      final duplicates = await supabaseService.findDuplicates(
+        user.id,
+        email: result.email,
+        phone: result.phone,
+        mobile: result.mobile,
+      );
+
+      if (duplicates.isNotEmpty && mounted) {
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(l10n.duplicateCard),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.duplicateCardConfirm),
+                const SizedBox(height: 12),
+                ...duplicates.take(3).map((d) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    '• ${d.name ?? ""} ${d.company != null ? "(${d.company})" : ""}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                )),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l10n.confirm),
+              ),
+            ],
+          ),
+        );
+
+        if (proceed != true) {
+          if (mounted) setState(() => _isProcessing = false);
+          return;
+        }
+      }
+
       await supabaseService.addCollectedCard(card);
 
       if (mounted) {
@@ -136,7 +183,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -149,7 +196,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
             Text(
               _processingStatus,
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 32),
@@ -218,7 +265,7 @@ class _OptionTile extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -226,7 +273,7 @@ class _OptionTile extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
           ],
         ),

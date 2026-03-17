@@ -100,7 +100,7 @@ class _NativeAdCardState extends State<NativeAdCard> {
     }
 
     final theme = Theme.of(context);
-    final dividerColor = theme.colorScheme.outline.withOpacity(0.22);
+    final dividerColor = theme.colorScheme.outline.withValues(alpha: 0.22);
 
     return Padding(
       // 명함 카드 좌우 패딩은 부모(ListView)에서 이미 적용됨
@@ -119,7 +119,7 @@ class _NativeAdCardState extends State<NativeAdCard> {
             style: TextStyle(
               fontSize: 10,
               height: 1.2,
-              color: theme.colorScheme.onSurface.withOpacity(0.30),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.30),
               fontWeight: FontWeight.w400,
               fontFamily: 'Pretendard',
               letterSpacing: 0.4,
@@ -136,7 +136,7 @@ class _NativeAdCardState extends State<NativeAdCard> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: theme.colorScheme.outline.withOpacity(0.40),
+                    color: theme.colorScheme.outline.withValues(alpha: 0.40),
                   ),
                 ),
                 child: AdWidget(ad: _nativeAd!),

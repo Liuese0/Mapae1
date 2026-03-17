@@ -89,19 +89,19 @@ class _SearchFilterBarState extends ConsumerState<SearchFilterBar> {
             decoration: InputDecoration(
               hintText: l10n.searchCardHint,
               hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               prefixIcon: Icon(
                 Icons.search,
                 size: 20,
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               suffixIcon: searchQuery.isNotEmpty
                   ? IconButton(
                 icon: Icon(
                   Icons.close,
                   size: 18,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
                 onPressed: () {
                   _searchController.clear();
@@ -111,7 +111,7 @@ class _SearchFilterBarState extends ConsumerState<SearchFilterBar> {
               )
                   : null,
               filled: true,
-              fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 10,
@@ -127,7 +127,7 @@ class _SearchFilterBarState extends ConsumerState<SearchFilterBar> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: theme.colorScheme.primary.withOpacity(0.5),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
               ),
@@ -200,9 +200,9 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final activeBg = theme.colorScheme.primary.withOpacity(0.12);
+    final activeBg = theme.colorScheme.primary.withValues(alpha: 0.12);
     final activeFg = theme.colorScheme.primary;
-    final inactiveFg = theme.colorScheme.onSurface.withOpacity(0.6);
+    final inactiveFg = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     return Material(
       color: Colors.transparent,
@@ -222,8 +222,8 @@ class _FilterChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isActive
-                  ? activeFg.withOpacity(0.4)
-                  : theme.colorScheme.outline.withOpacity(0.5),
+                  ? activeFg.withValues(alpha: 0.4)
+                  : theme.colorScheme.outline.withValues(alpha: 0.5),
             ),
           ),
           child: Row(
@@ -259,7 +259,7 @@ class _FilterChip extends StatelessWidget {
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: activeFg.withOpacity(0.15),
+                      color: activeFg.withValues(alpha: 0.15),
                     ),
                     child: Icon(
                       Icons.close,
@@ -428,7 +428,7 @@ class _CategorySelectionSheetState
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -489,11 +489,11 @@ class _CategorySelectionSheetState
                         decoration: InputDecoration(
                           hintText: l10n.categoryName,
                           hintStyle: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.4),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
                           filled: true,
                           fillColor: theme.colorScheme.surfaceContainerHighest
-                              .withOpacity(0.5),
+                              .withValues(alpha: 0.5),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 10,
@@ -505,7 +505,7 @@ class _CategorySelectionSheetState
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                              color: theme.colorScheme.primary.withOpacity(0.5),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.5),
                             ),
                           ),
                         ),
@@ -557,7 +557,7 @@ class _CategorySelectionSheetState
                         Icons.grid_view_rounded,
                         color: widget.selectedCategoryId == null
                             ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurface.withOpacity(0.5),
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                       title: Text(
                         l10n.allCategories,
@@ -585,7 +585,7 @@ class _CategorySelectionSheetState
                           l10n.noCategoriesHint,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.4),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                             height: 1.5,
                           ),
                         ),
@@ -599,7 +599,7 @@ class _CategorySelectionSheetState
                             Icons.label_outline,
                             color: isSelected
                                 ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurface.withOpacity(0.5),
+                                : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
                           title: Text(
                             category.name,
@@ -627,7 +627,7 @@ class _CategorySelectionSheetState
                                     Icons.delete_outline,
                                     size: 18,
                                     color: theme.colorScheme.onSurface
-                                        .withOpacity(0.3),
+                                        .withValues(alpha: 0.3),
                                   ),
                                 ),
                               ),

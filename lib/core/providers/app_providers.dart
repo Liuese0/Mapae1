@@ -50,6 +50,8 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
 });
 
 final currentUserProvider = Provider<User?>((ref) {
+  // auth 상태 변화를 감시하여 로그인/로그아웃에 반응
+  ref.watch(authStateProvider);
   return ref.read(supabaseServiceProvider).currentUser;
 });
 
@@ -65,6 +67,16 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<AppUser?>> {
 
   UserProfileNotifier(this._ref) : super(const AsyncValue.loading()) {
     _loadProfile();
+    // auth 상태 변화 감시 → 로그아웃 시 프로필 리셋
+    _ref.listen(authStateProvider, (previous, next) {
+      next.whenData((authState) {
+        if (authState.event == AuthChangeEvent.signedOut) {
+          state = const AsyncValue.data(null);
+        } else if (authState.event == AuthChangeEvent.signedIn) {
+          _loadProfile();
+        }
+      });
+    });
   }
 
   Future<void> _loadProfile() async {
@@ -148,9 +160,40 @@ class PremiumNotifier extends StateNotifier<bool> {
 
 // ──────────────── Theme Mode ────────────────
 
-final themeModeProvider = StateProvider<ThemeMode>((ref) {
-  return ThemeMode.light;
+const _kThemeModeKey = 'app_theme_mode';
+
+/// 앱 시작 시 저장된 테마 모드를 로드합니다.
+Future<ThemeMode> loadSavedThemeMode() async {
+  final prefs = await SharedPreferences.getInstance();
+  final value = prefs.getString(_kThemeModeKey);
+  switch (value) {
+    case 'light':
+      return ThemeMode.light;
+    case 'dark':
+      return ThemeMode.dark;
+    default:
+      return ThemeMode.light;
+  }
+}
+
+final themeModeProvider =
+StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
+  return ThemeModeNotifier();
 });
+
+class ThemeModeNotifier extends StateNotifier<ThemeMode> {
+  ThemeModeNotifier() : super(ThemeMode.light);
+
+  void init(ThemeMode mode) {
+    state = mode;
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    state = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kThemeModeKey, mode.name);
+  }
+}
 
 // ──────────────── Locale ────────────────
 

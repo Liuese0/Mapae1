@@ -120,160 +120,172 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            SizedBox(height: Responsive.value(context, mobile: 12.0, tablet: 20.0)),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(myCardsHomeProvider);
+          },
+          child: CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Column(
+                  children: [
+                    SizedBox(height: Responsive.value(context, mobile: 12.0, tablet: 20.0)),
 
-            // App title + notification bell
-            SlideTransition(
-              position: _titleSlide,
-              child: FadeTransition(
-                opacity: _titleFade,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: hPadding),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(width: 40),
-                      Expanded(
-                        child: Text(
-                          l10n.appTitle,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.5,
-                            fontSize: 18 * Responsive.fontScale(context),
-                          ),
-                        ),
-                      ),
-                      const NotificationBell(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const Spacer(flex: 2),
-
-            // 3D Card display area
-            FadeTransition(
-              opacity: _cardFade,
-              child: ScaleTransition(
-                scale: _cardScale,
-                child: myCards.when(
-                  data: (cards) {
-                    if (cards.isEmpty) {
-                      return _buildEmptyState(theme);
-                    }
-                    return Column(
-                      children: [
-                        SizedBox(
-                          height: cardHeight,
-                          child: PageView.builder(
-                            controller: _pageController,
-                            itemCount: cards.length,
-                            onPageChanged: (index) {
-                              setState(() => _currentPage = index);
-                            },
-                            itemBuilder: (context, index) {
-                              return AnimatedBuilder(
-                                animation: _pageController,
-                                builder: (context, child) {
-                                  double value = 1.0;
-                                  if (_pageController
-                                      .position.haveDimensions) {
-                                    value = (_pageController.page ?? 0) - index;
-                                    value = (1 - (value.abs() * 0.3))
-                                        .clamp(0.0, 1.0);
-                                  }
-                                  return Center(
-                                    child: Transform.scale(
-                                      scale: Curves.easeOut.transform(value),
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                                child: Card3DWidget(card: cards[index]),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        // Page indicator
-                        if (cards.length > 1)
-                          Row(
+                    // App title + notification bell
+                    SlideTransition(
+                      position: _titleSlide,
+                      child: FadeTransition(
+                        opacity: _titleFade,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: hPadding),
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              cards.length,
-                                  (index) => AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                                margin: const EdgeInsets.symmetric(horizontal: 3),
-                                width: _currentPage == index ? 20 : 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: _currentPage == index
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.primary
-                                      .withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(3),
+                            children: [
+                              const SizedBox(width: 40),
+                              Expanded(
+                                child: Text(
+                                  l10n.appTitle,
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.5,
+                                    fontSize: 18 * Responsive.fontScale(context),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.swipeToSeeMore,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.4),
-                            fontSize: 12 * Responsive.fontScale(context),
+                              const NotificationBell(),
+                            ],
                           ),
                         ),
-                      ],
-                    );
-                  },
-                  loading: () => SizedBox(
-                    height: cardHeight,
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (e, _) => SizedBox(
-                    height: cardHeight,
-                    child: Center(child: Text(l10n.errorMsg(e.toString()))),
-                  ),
-                ),
-              ),
-            ),
-
-            const Spacer(flex: 1),
-
-            // Share button
-            SlideTransition(
-              position: _buttonSlide,
-              child: FadeTransition(
-                opacity: _buttonFade,
-                child: myCards.when(
-                  data: (cards) {
-                    if (cards.isEmpty) return const SizedBox.shrink();
-                    return Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: Responsive.value(context, mobile: 48.0, tablet: 120.0),
                       ),
-                      child: SizedBox(
-                        height: 48,
-                        width: double.infinity,
-                        child: _AnimatedShareButton(
-                          onPressed: () => _showShareSheet(cards[_currentPage]),
+                    ),
+                    const Spacer(flex: 2),
+
+                    // 3D Card display area
+                    FadeTransition(
+                      opacity: _cardFade,
+                      child: ScaleTransition(
+                        scale: _cardScale,
+                        child: myCards.when(
+                          data: (cards) {
+                            if (cards.isEmpty) {
+                              return _buildEmptyState(theme);
+                            }
+                            return Column(
+                              children: [
+                                SizedBox(
+                                  height: cardHeight,
+                                  child: PageView.builder(
+                                    controller: _pageController,
+                                    itemCount: cards.length,
+                                    onPageChanged: (index) {
+                                      setState(() => _currentPage = index);
+                                    },
+                                    itemBuilder: (context, index) {
+                                      return AnimatedBuilder(
+                                        animation: _pageController,
+                                        builder: (context, child) {
+                                          double value = 1.0;
+                                          if (_pageController
+                                              .position.haveDimensions) {
+                                            value = (_pageController.page ?? 0) - index;
+                                            value = (1 - (value.abs() * 0.3))
+                                                .clamp(0.0, 1.0);
+                                          }
+                                          return Center(
+                                            child: Transform.scale(
+                                              scale: Curves.easeOut.transform(value),
+                                              child: child,
+                                            ),
+                                          );
+                                        },
+                                        child: Card3DWidget(card: cards[index]),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Page indicator
+                                if (cards.length > 1)
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(
+                                      cards.length,
+                                          (index) => AnimatedContainer(
+                                        duration: const Duration(milliseconds: 300),
+                                        curve: Curves.easeInOut,
+                                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                                        width: _currentPage == index ? 20 : 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          color: _currentPage == index
+                                              ? theme.colorScheme.primary
+                                              : theme.colorScheme.primary
+                                              .withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(3),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  l10n.swipeToSeeMore,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                    fontSize: 12 * Responsive.fontScale(context),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                          loading: () => SizedBox(
+                            height: cardHeight,
+                            child: const Center(child: CircularProgressIndicator()),
+                          ),
+                          error: (e, _) => SizedBox(
+                            height: cardHeight,
+                            child: Center(child: Text(l10n.errorMsg(e.toString()))),
+                          ),
                         ),
                       ),
-                    );
-                  },
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                    ),
+
+                    const Spacer(flex: 1),
+
+                    // Share button
+                    SlideTransition(
+                      position: _buttonSlide,
+                      child: FadeTransition(
+                        opacity: _buttonFade,
+                        child: myCards.when(
+                          data: (cards) {
+                            if (cards.isEmpty) return const SizedBox.shrink();
+                            return Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Responsive.value(context, mobile: 48.0, tablet: 120.0),
+                              ),
+                              child: SizedBox(
+                                height: 48,
+                                width: double.infinity,
+                                child: _AnimatedShareButton(
+                                  onPressed: () => _showShareSheet(cards[_currentPage]),
+                                ),
+                              ),
+                            );
+                          },
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: Responsive.value(context, mobile: 100.0, tablet: 120.0)),
+                  ],
                 ),
               ),
-            ),
-
-            SizedBox(height: Responsive.value(context, mobile: 100.0, tablet: 120.0)),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -298,21 +310,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               child: Icon(
                 Icons.credit_card_outlined,
                 size: 64,
-                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               l10n.noMyCards,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               l10n.addMyCardHint,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.3),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               ),
             ),
           ],

@@ -17,9 +17,9 @@ class AppTheme {
   static const Color _grey700 = Color(0xFF616161);
   static const Color _grey800 = Color(0xFF424242);
   static const Color _grey900 = Color(0xFF212121);
-  static const Color _darkSurface = Color(0xFF121212);
-  static const Color _darkCard = Color(0xFF1E1E1E);
-  static const Color _darkElevated = Color(0xFF2C2C2C);
+  static const Color _darkSurface = Color(0xFF202020);
+  static const Color _darkCard = Color(0xFF2A2A2A);
+  static const Color _darkElevated = Color(0xFF333333);
 
   // Light Theme
   static ThemeData get lightTheme {
@@ -190,21 +190,21 @@ class AppTheme {
       brightness: Brightness.dark,
       fontFamily: 'Pretendard',
       colorScheme: const ColorScheme.dark(
-        primary: _white,
-        onPrimary: _black,
+        primary: Color(0xFFE8E8E8),
+        onPrimary: _darkSurface,
         secondary: _grey400,
-        onSecondary: _black,
+        onSecondary: _darkSurface,
         surface: _darkSurface,
-        onSurface: _white,
-        error: Color(0xFFCF6679),
-        onError: _black,
-        outline: _grey700,
+        onSurface: Color(0xFFE0E0E0),
+        error: Color(0xFFFF8A8A),
+        onError: _darkSurface,
+        outline: Color(0xFF505050),
         surfaceContainerHighest: _darkCard,
       ),
       scaffoldBackgroundColor: _darkSurface,
       appBarTheme: const AppBarTheme(
         backgroundColor: _darkSurface,
-        foregroundColor: _white,
+        foregroundColor: Color(0xFFE0E0E0),
         elevation: 0,
         scrolledUnderElevation: 0.5,
         systemOverlayStyle: SystemUiOverlayStyle.light,
@@ -213,14 +213,14 @@ class AppTheme {
           fontFamily: 'Pretendard',
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: _white,
+          color: Color(0xFFE0E0E0),
         ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        selectedItemColor: _white,
-        unselectedItemColor: _grey600,
+        selectedItemColor: Color(0xFFE8E8E8),
+        unselectedItemColor: Color(0xFF909090),
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle: TextStyle(
           fontFamily: 'Pretendard',
@@ -238,13 +238,13 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: _grey800),
+          side: const BorderSide(color: Color(0xFF3D3D3D)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: _white,
-          foregroundColor: _black,
+          backgroundColor: const Color(0xFFE8E8E8),
+          foregroundColor: _darkSurface,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
@@ -259,13 +259,13 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: _white,
+          foregroundColor: const Color(0xFFE0E0E0),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          side: const BorderSide(color: _grey700),
+          side: const BorderSide(color: Color(0xFF505050)),
           textStyle: const TextStyle(
             fontFamily: 'Pretendard',
             fontSize: 15,
@@ -275,7 +275,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: _white,
+          foregroundColor: const Color(0xFFE0E0E0),
           textStyle: const TextStyle(
             fontFamily: 'Pretendard',
             fontSize: 14,
@@ -293,21 +293,21 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: _grey800),
+          borderSide: const BorderSide(color: Color(0xFF3D3D3D)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: _white, width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 1.5),
         ),
         hintStyle: const TextStyle(
           fontFamily: 'Pretendard',
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          color: _grey600,
+          color: Color(0xFF909090),
         ),
       ),
       dividerTheme: const DividerThemeData(
-        color: _grey800,
+        color: Color(0xFF3D3D3D),
         thickness: 1,
         space: 1,
       ),
@@ -324,8 +324,8 @@ class AppTheme {
         ),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: _white,
-        foregroundColor: _black,
+        backgroundColor: Color(0xFFE8E8E8),
+        foregroundColor: _darkSurface,
         elevation: 4,
         shape: CircleBorder(),
       ),

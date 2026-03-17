@@ -17,7 +17,7 @@ import 'core/services/auto_login_service.dart';
 import 'l10n/generated/app_localizations.dart';
 
 // re-export helpers used in main()
-export 'core/providers/app_providers.dart' show loadSavedLocale, LocaleNotifier;
+export 'core/providers/app_providers.dart' show loadSavedLocale, LocaleNotifier, loadSavedThemeMode, ThemeModeNotifier;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,8 +47,9 @@ Future<void> main() async {
     }
   }
 
-  // 저장된 언어 로드 + 첫 실행 여부 확인
+  // 저장된 언어 + 테마 모드 로드
   final savedLocale = await loadSavedLocale();
+  final savedThemeMode = await loadSavedThemeMode();
   await AppRouter.preload();
 
   // Set preferred orientations
@@ -61,6 +62,7 @@ Future<void> main() async {
     ProviderScope(
       overrides: [
         localeProvider.overrideWith((ref) => LocaleNotifier()..init(savedLocale)),
+        themeModeProvider.overrideWith((ref) => ThemeModeNotifier()..init(savedThemeMode)),
       ],
       child: const NameCardApp(),
     ),

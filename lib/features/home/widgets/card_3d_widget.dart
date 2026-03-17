@@ -95,7 +95,7 @@ class _Card3DWidgetState extends State<Card3DWidget>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.4 : 0.15),
+                  color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.15),
                   blurRadius: 24,
                   offset: Offset(_rotateY * 20, _rotateX * -20 + 8),
                   spreadRadius: 2,
@@ -103,8 +103,8 @@ class _Card3DWidgetState extends State<Card3DWidget>
               ],
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.05),
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.05),
               ),
             ),
             child: ClipRRect(
@@ -144,7 +144,7 @@ class _Card3DWidgetState extends State<Card3DWidget>
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 letterSpacing: 1,
               ),
             ),
@@ -165,7 +165,7 @@ class _Card3DWidgetState extends State<Card3DWidget>
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -179,7 +179,7 @@ class _Card3DWidgetState extends State<Card3DWidget>
                     widget.card.email!,
                     style: TextStyle(
                       fontSize: 11,
-                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -189,7 +189,7 @@ class _Card3DWidgetState extends State<Card3DWidget>
                   widget.card.phone!,
                   style: TextStyle(
                     fontSize: 11,
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
             ],

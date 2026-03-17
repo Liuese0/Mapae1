@@ -337,7 +337,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                           Icons.add_a_photo_outlined,
                           size: 32,
                           color: theme.colorScheme.onSurface
-                              .withOpacity(0.3),
+                              .withValues(alpha: 0.3),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -345,7 +345,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             color: theme.colorScheme.onSurface
-                                .withOpacity(0.4),
+                                .withValues(alpha: 0.4),
                           ),
                         ),
                       ],
@@ -368,7 +368,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                       AppLocalizations.of(context).scanningText,
                       style: TextStyle(
                         fontSize: 13,
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -388,7 +388,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                       prefixIcon: Icon(
                         Icons.description_outlined,
                         size: 20,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                     items: [

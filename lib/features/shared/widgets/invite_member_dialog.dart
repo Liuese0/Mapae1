@@ -161,7 +161,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
               l10n.inviteMemberHint,
               style: TextStyle(
                 fontSize: 13,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(height: 16),
@@ -249,7 +249,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
           child: Text(
             l10n.noSearchResults,
             style: TextStyle(
-              color: theme.colorScheme.onSurface.withOpacity(0.4),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               fontSize: 14,
             ),
           ),
@@ -266,7 +266,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
         return ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
           leading: CircleAvatar(
-            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
             backgroundImage:
             user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
             child: user.avatarUrl == null
@@ -281,7 +281,7 @@ class _InviteMemberDialogState extends ConsumerState<InviteMemberDialog> {
             user.email ?? '',
             style: TextStyle(
               fontSize: 13,
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
           trailing: OutlinedButton(

@@ -708,7 +708,7 @@ class _CardCropScreenState extends State<CardCropScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: _perspectiveMode
-                      ? theme.colorScheme.primary.withOpacity(0.2)
+                      ? theme.colorScheme.primary.withValues(alpha: 0.2)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
@@ -751,7 +751,7 @@ class _CardCropScreenState extends State<CardCropScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: !_perspectiveMode
-                      ? theme.colorScheme.primary.withOpacity(0.2)
+                      ? theme.colorScheme.primary.withValues(alpha: 0.2)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
@@ -868,9 +868,9 @@ class _CardCropScreenState extends State<CardCropScreen> {
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.15),
+                    color: Colors.green.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.withOpacity(0.5)),
+                    border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -895,8 +895,8 @@ class _CardCropScreenState extends State<CardCropScreen> {
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: _enhance
-                        ? theme.colorScheme.primary.withOpacity(0.2)
-                        : Colors.white.withOpacity(0.1),
+                        ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                        : Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color:
@@ -999,7 +999,7 @@ class _CardCropScreenState extends State<CardCropScreen> {
               activeTrackColor: theme.colorScheme.primary,
               inactiveTrackColor: Colors.white24,
               thumbColor: Colors.white,
-              overlayColor: theme.colorScheme.primary.withOpacity(0.2),
+              overlayColor: theme.colorScheme.primary.withValues(alpha: 0.2),
               trackHeight: 2,
               thumbShape:
               const RoundSliderThumbShape(enabledThumbRadius: 5),
@@ -1134,7 +1134,7 @@ class _PerspectivePainter extends CustomPainter {
 
     // Draw grid inside the quad (3x3)
     final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.2)
+      ..color = Colors.white.withValues(alpha: 0.2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.5;
 
@@ -1315,7 +1315,7 @@ class _CropPainter extends CustomPainter {
 
     // Grid lines (rule of thirds)
     final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = Colors.white.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.5;
     final thirdW = cropRect.width / 3;

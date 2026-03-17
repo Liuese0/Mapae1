@@ -46,8 +46,8 @@ class MainShell extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              theme.scaffoldBackgroundColor.withOpacity(0.0),
-              theme.scaffoldBackgroundColor.withOpacity(0.8),
+              theme.scaffoldBackgroundColor.withValues(alpha: 0.0),
+              theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
               theme.scaffoldBackgroundColor,
             ],
           ),
@@ -177,7 +177,7 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
                   key: ValueKey(widget.isActive),
                   color: widget.isActive
                       ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.4),
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   size: 24,
                 ),
               ),
@@ -190,7 +190,7 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
                   fontWeight: widget.isActive ? FontWeight.w600 : FontWeight.w400,
                   color: widget.isActive
                       ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.4),
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
                 child: Text(widget.label),
               ),

@@ -11,6 +11,7 @@ import '../../features/shared/models/team.dart';
 import '../../features/shared/models/context_tag.dart';
 import '../../features/shared/models/team_invitation.dart';
 import '../../features/shared/models/crm_contact.dart';
+import 'app_exception.dart' as app;
 
 class SupabaseService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -55,7 +56,7 @@ class SupabaseService {
 
     final googleUser = await googleSignIn.signIn();
     if (googleUser == null) {
-      throw Exception('Google 로그인이 취소되었습니다.');
+      throw app.AuthException.googleCancelled();
     }
 
     final googleAuth = await googleUser.authentication;
@@ -63,7 +64,7 @@ class SupabaseService {
     final accessToken = googleAuth.accessToken;
 
     if (idToken == null) {
-      throw Exception('Google ID 토큰을 가져올 수 없습니다.');
+      throw app.AuthException.googleTokenMissing();
     }
 
     return await _client.auth.signInWithIdToken(
@@ -86,7 +87,7 @@ class SupabaseService {
 
   Future<void> deleteAccount() async {
     final user = currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다.');
+    if (user == null) throw app.AuthException.notLoggedIn();
 
     // Call DB function that deletes all user data + auth.users row
     await _client.rpc('delete_user_account');
@@ -96,7 +97,7 @@ class SupabaseService {
 
   Future<void> updateUserName(String name) async {
     final user = currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다.');
+    if (user == null) throw app.AuthException.notLoggedIn();
 
     await _client
         .from(SupabaseConstants.usersTable)
@@ -126,7 +127,7 @@ class SupabaseService {
   /// 로그인 후 프로필이 없으면 자동 생성
   Future<AppUser> ensureUserProfile() async {
     final user = currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다.');
+    if (user == null) throw app.AuthException.notLoggedIn();
 
     final existing = await getUserProfile(user.id);
     if (existing != null) return existing;
@@ -211,6 +212,9 @@ class SupabaseService {
         String? categoryId,
         String sortBy = 'created_at',
         bool ascending = false,
+        int offset = 0,
+        int limit = 20,
+        bool? isFavorite,
       }) async {
     var query = _client
         .from(SupabaseConstants.collectedCardsTable)
@@ -221,7 +225,14 @@ class SupabaseService {
       query = query.eq('category_id', categoryId);
     }
 
-    final data = await query.order(sortBy, ascending: ascending);
+    if (isFavorite == true) {
+      query = query.eq('is_favorite', true);
+    }
+
+    final data = await query
+        .order('is_favorite', ascending: false)
+        .order(sortBy, ascending: ascending)
+        .range(offset, offset + limit - 1);
     return data.map((json) => CollectedCard.fromJson(json)).toList();
   }
 
@@ -251,6 +262,13 @@ class SupabaseService {
         .eq('id', cardId);
   }
 
+  Future<void> toggleFavorite(String cardId, bool isFavorite) async {
+    await _client
+        .from(SupabaseConstants.collectedCardsTable)
+        .update({'is_favorite': isFavorite})
+        .eq('id', cardId);
+  }
+
   Future<int> getCollectedCardCount(String userId) async {
     final result = await _client
         .from(SupabaseConstants.collectedCardsTable)
@@ -258,6 +276,27 @@ class SupabaseService {
         .eq('user_id', userId)
         .count(CountOption.exact);
     return result.count;
+  }
+
+  /// 이메일 또는 전화번호로 중복 명함 조회
+  Future<List<CollectedCard>> findDuplicates(String userId, {String? email, String? phone, String? mobile}) async {
+    if (email == null && phone == null && mobile == null) return [];
+
+    var query = _client
+        .from(SupabaseConstants.collectedCardsTable)
+        .select()
+        .eq('user_id', userId);
+
+    // OR 조건으로 이메일/전화번호 매칭
+    final orConditions = <String>[];
+    if (email != null && email.isNotEmpty) orConditions.add('email.eq.$email');
+    if (phone != null && phone.isNotEmpty) orConditions.add('phone.eq.$phone');
+    if (mobile != null && mobile.isNotEmpty) orConditions.add('mobile.eq.$mobile');
+
+    if (orConditions.isEmpty) return [];
+
+    final data = await query.or(orConditions.join(','));
+    return data.map((json) => CollectedCard.fromJson(json)).toList();
   }
 
   // ──────────────── Categories ────────────────
@@ -384,25 +423,11 @@ class SupabaseService {
 
   /// Owner 권한 양도
   Future<void> transferOwnership(String teamId, String currentOwnerId, String newOwnerId) async {
-    // 새 오너로 변경
-    await _client
-        .from(SupabaseConstants.teamMembersTable)
-        .update({'role': TeamRole.owner.name})
-        .eq('team_id', teamId)
-        .eq('user_id', newOwnerId);
-
-    // 기존 오너를 멤버로 변경
-    await _client
-        .from(SupabaseConstants.teamMembersTable)
-        .update({'role': TeamRole.member.name})
-        .eq('team_id', teamId)
-        .eq('user_id', currentOwnerId);
-
-    // teams 테이블의 owner_id도 변경
-    await _client
-        .from(SupabaseConstants.teamsTable)
-        .update({'owner_id': newOwnerId})
-        .eq('id', teamId);
+    await _client.rpc('transfer_team_ownership', params: {
+      'p_team_id': teamId,
+      'p_current_owner_id': currentOwnerId,
+      'p_new_owner_id': newOwnerId,
+    });
   }
 
   Future<void> deleteTeam(String teamId) async {
@@ -460,33 +485,13 @@ class SupabaseService {
   /// 명함을 팀에 공유 (스냅샷 저장 — 원본 삭제 시에도 유지)
   Future<void> shareCardToTeam(String cardId, String teamId, {String? categoryId}) async {
     final userId = currentUser?.id;
+    if (userId == null) throw app.AuthException.notLoggedIn();
 
-    // 원본 명함 데이터를 가져와 스냅샷으로 저장
-    final cardData = await _client
-        .from(SupabaseConstants.collectedCardsTable)
-        .select()
-        .eq('id', cardId)
-        .single();
-
-    await _client.from(SupabaseConstants.teamSharedCardsTable).insert({
-      'card_id': cardId,
-      'team_id': teamId,
-      'shared_by': userId,
-      'shared_at': DateTime.now().toIso8601String(),
-      'name': cardData['name'],
-      'company': cardData['company'],
-      'position': cardData['position'],
-      'department': cardData['department'],
-      'email': cardData['email'],
-      'phone': cardData['phone'],
-      'mobile': cardData['mobile'],
-      'fax': cardData['fax'],
-      'address': cardData['address'],
-      'website': cardData['website'],
-      'sns_url': cardData['sns_url'],
-      'memo': cardData['memo'],
-      'image_url': cardData['image_url'],
-      if (categoryId != null) 'category_id': categoryId,
+    await _client.rpc('share_card_to_team', params: {
+      'p_card_id': cardId,
+      'p_team_id': teamId,
+      'p_user_id': userId,
+      'p_category_id': categoryId,
     });
   }
 
@@ -500,32 +505,31 @@ class SupabaseService {
   }
 
   Future<void> unshareCardFromTeam(String sharedCardId) async {
-    // 연결된 CRM 연락처도 함께 삭제
-    await _client
-        .from(SupabaseConstants.crmContactsTable)
-        .delete()
-        .eq('shared_card_id', sharedCardId);
-
-    await _client
-        .from(SupabaseConstants.teamSharedCardsTable)
-        .delete()
-        .eq('id', sharedCardId);
+    await _client.rpc('unshare_card_from_team', params: {
+      'p_shared_card_id': sharedCardId,
+    });
   }
 
   /// 공유 명함 정보 수정 + 연결된 CRM 연락처 동기화
   Future<void> updateSharedCard(String sharedCardId, Map<String, dynamic> fields) async {
+    const allowedFields = {'name', 'company', 'position', 'department', 'email', 'phone', 'mobile', 'fax', 'address', 'website', 'sns_url', 'memo'};
+    final sanitized = Map.fromEntries(
+      fields.entries.where((e) => allowedFields.contains(e.key)),
+    );
+    if (sanitized.isEmpty) return;
+
     // 공유 명함 업데이트
     await _client
         .from(SupabaseConstants.teamSharedCardsTable)
-        .update(fields)
+        .update(sanitized)
         .eq('id', sharedCardId);
 
     // 연결된 CRM 연락처도 동기화
     final syncFields = <String, dynamic>{};
     const syncKeys = ['name', 'company', 'position', 'department', 'email', 'phone', 'mobile'];
     for (final key in syncKeys) {
-      if (fields.containsKey(key)) {
-        syncFields[key] = fields[key];
+      if (sanitized.containsKey(key)) {
+        syncFields[key] = sanitized[key];
       }
     }
     if (syncFields.isNotEmpty) {
@@ -558,19 +562,20 @@ class SupabaseService {
   }
 
   /// 팀 공유 명함 목록 (스냅샷 데이터에서 직접 읽기)
-  Future<List<Map<String, dynamic>>> getTeamSharedCards(String teamId) async {
+  Future<List<Map<String, dynamic>>> getTeamSharedCards(String teamId, {int offset = 0, int limit = 20}) async {
     final data = await _client
         .from(SupabaseConstants.teamSharedCardsTable)
         .select()
         .eq('team_id', teamId)
-        .order('shared_at', ascending: false);
+        .order('shared_at', ascending: false)
+        .range(offset, offset + limit - 1);
     return data;
   }
 
   /// 공유된 명함을 내 지갑으로 복사
   Future<CollectedCard> copySharedCardToWallet(Map<String, dynamic> sharedCard) async {
     final userId = currentUser?.id;
-    if (userId == null) throw Exception('로그인이 필요합니다.');
+    if (userId == null) throw app.AuthException.notLoggedIn();
 
     final newCard = CollectedCard(
       id: '',
@@ -615,7 +620,7 @@ class SupabaseService {
     required String inviteeId,
   }) async {
     final userId = currentUser?.id;
-    if (userId == null) throw Exception('로그인이 필요합니다.');
+    if (userId == null) throw app.AuthException.notLoggedIn();
 
     final data = await _client
         .from(SupabaseConstants.teamInvitationsTable)
@@ -819,7 +824,7 @@ class SupabaseService {
   /// 공유 명함에서 CRM 연락처로 가져오기
   Future<CrmContact> importSharedCardToCrm(Map<String, dynamic> sharedCard, String teamId) async {
     final userId = currentUser?.id;
-    if (userId == null) throw Exception('로그인이 필요합니다.');
+    if (userId == null) throw app.AuthException.notLoggedIn();
 
     final contact = CrmContact(
       id: '',
@@ -896,7 +901,7 @@ class SupabaseService {
 
   Future<void> upsertQuickShareSession(BusinessCard card) async {
     final user = currentUser;
-    if (user == null) throw Exception('로그인이 필요합니다.');
+    if (user == null) throw app.AuthException.notLoggedIn();
 
     final profile = await getUserProfile(user.id);
     await _client.from(SupabaseConstants.quickShareSessionsTable).upsert({
@@ -939,7 +944,7 @@ class SupabaseService {
     required BusinessCard fromCard,
   }) async {
     final userId = currentUser?.id;
-    if (userId == null) throw Exception('로그인이 필요합니다.');
+    if (userId == null) throw app.AuthException.notLoggedIn();
 
     final data = await _client.from(SupabaseConstants.quickShareExchangesTable).insert({
       'from_user_id': userId,
@@ -1035,7 +1040,7 @@ class SupabaseService {
 
   Future<String> uploadCardImage(String fileName, Uint8List bytes) async {
     final userId = currentUser?.id;
-    if (userId == null) throw Exception('로그인이 필요합니다.');
+    if (userId == null) throw app.AuthException.notLoggedIn();
 
     final path = '$userId/$fileName';
     await _client.storage

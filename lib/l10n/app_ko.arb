@@ -106,5 +106,17 @@
         "type": "String"
       }
     }
-  }
+  },
+  "duplicateCard": "중복 명함",
+  "duplicateCardConfirm": "이미 존재하는 명함입니다. 복사하시겠습니까?",
+  "passwordWeak": "약함",
+  "passwordMedium": "보통",
+  "passwordStrong": "강함",
+  "nameTooLong": "이름이 너무 깁니다",
+  "copied": "복사됨",
+  "favorites": "즐겨찾기",
+  "favoritesOnly": "즐겨찾기만",
+  "themeLight": "라이트",
+  "themeDark": "다크",
+  "themeSystem": "시스템"
 }

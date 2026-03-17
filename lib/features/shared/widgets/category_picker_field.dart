@@ -41,7 +41,7 @@ class CategoryPickerField extends ConsumerWidget {
                   style: TextStyle(
                     color: hasCategory
                         ? theme.textTheme.bodyLarge?.color
-                        : theme.colorScheme.onSurface.withOpacity(0.4),
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
               ),
@@ -53,14 +53,14 @@ class CategoryPickerField extends ConsumerWidget {
                     child: Icon(
                       Icons.close,
                       size: 18,
-                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 )
               else
                 Icon(
                   Icons.arrow_drop_down,
-                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
             ],
           ),
@@ -189,7 +189,7 @@ class _FormCategorySheetState extends ConsumerState<_FormCategorySheet> {
               margin: const EdgeInsets.only(top: 12),
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -248,11 +248,11 @@ class _FormCategorySheetState extends ConsumerState<_FormCategorySheet> {
                         decoration: InputDecoration(
                           hintText: '새 카테고리 이름',
                           hintStyle: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.4),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
                           filled: true,
                           fillColor: theme.colorScheme.surfaceContainerHighest
-                              .withOpacity(0.5),
+                              .withValues(alpha: 0.5),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 10),
                           border: OutlineInputBorder(
@@ -262,7 +262,7 @@ class _FormCategorySheetState extends ConsumerState<_FormCategorySheet> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                              color: theme.colorScheme.primary.withOpacity(0.5),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.5),
                             ),
                           ),
                         ),
@@ -320,7 +320,7 @@ class _FormCategorySheetState extends ConsumerState<_FormCategorySheet> {
                       leading: Icon(Icons.label_off_outlined,
                           color: widget.selectedCategoryId == null
                               ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurface.withOpacity(0.5)),
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                       title: Text('선택 안함',
                           style: TextStyle(
                             fontWeight: widget.selectedCategoryId == null
@@ -342,7 +342,7 @@ class _FormCategorySheetState extends ConsumerState<_FormCategorySheet> {
                           '카테고리가 없습니다\n위의 + 버튼으로 추가해 보세요',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.4),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                             height: 1.5,
                           ),
                         ),
@@ -354,7 +354,7 @@ class _FormCategorySheetState extends ConsumerState<_FormCategorySheet> {
                           leading: Icon(Icons.label_outline,
                               color: selected
                                   ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurface.withOpacity(0.5)),
+                                  : theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                           title: Text(cat.name,
                               style: TextStyle(
                                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,

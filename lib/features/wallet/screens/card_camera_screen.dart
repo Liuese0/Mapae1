@@ -132,7 +132,7 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
@@ -148,7 +148,7 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
                   Text(
                     '기울어져도 자동으로 보정됩니다',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 12,
                     ),
                   ),
@@ -231,7 +231,7 @@ class _OverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Semi-transparent dark overlay outside card area
-    final overlayPaint = Paint()..color = Colors.black.withOpacity(0.5);
+    final overlayPaint = Paint()..color = Colors.black.withValues(alpha: 0.5);
     final fullRect = Rect.fromLTWH(0, 0, size.width, size.height);
 
     // Draw overlay with hole
@@ -246,7 +246,7 @@ class _OverlayPainter extends CustomPainter {
 
     // Draw card border
     final borderPaint = Paint()
-      ..color = Colors.white.withOpacity(0.8)
+      ..color = Colors.white.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawRRect(rrect, borderPaint);

@@ -183,7 +183,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     color: Theme.of(dialogContext)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.6),
+                        .withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -299,7 +299,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           l10n.startCardManagement,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                             letterSpacing: 1,
                           ),
                         ),
@@ -390,7 +390,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: theme.colorScheme.onSurface
-                                          .withOpacity(0.6),
+                                          .withValues(alpha: 0.6),
                                     ),
                                   ),
                                 ],
@@ -403,7 +403,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: theme.colorScheme.onSurface
-                                      .withOpacity(0.5),
+                                      .withValues(alpha: 0.5),
                                 ),
                               ),
                             ),
@@ -445,7 +445,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               style: TextStyle(
                                 fontSize: 13,
                                 color: theme.colorScheme.onSurface
-                                    .withOpacity(0.4),
+                                    .withValues(alpha: 0.4),
                               ),
                             ),
                           ),
@@ -498,7 +498,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             style: TextStyle(
                               fontSize: 14,
                               color: theme.colorScheme.onSurface
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                             ),
                           ),
                           TextButton(

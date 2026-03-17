@@ -50,12 +50,12 @@ class _CategoryRadialMenuState extends State<CategoryRadialMenu>
       return GestureDetector(
         onTap: widget.onDismiss,
         child: Container(
-          color: Colors.black.withOpacity(0.3),
+          color: Colors.black.withValues(alpha: 0.3),
           child: Center(
             child: Text(
               '카테고리가 없습니다',
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ),
@@ -66,7 +66,7 @@ class _CategoryRadialMenuState extends State<CategoryRadialMenu>
     return GestureDetector(
       onTap: widget.onDismiss,
       child: Container(
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha: 0.3),
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
@@ -101,7 +101,7 @@ class _CategoryRadialMenuState extends State<CategoryRadialMenu>
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
+                              color: Colors.black.withValues(alpha: 0.15),
                               blurRadius: 8,
                             ),
                           ],

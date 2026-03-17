@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/utils/validators.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
 import '../../shared/models/context_tag.dart';
@@ -371,7 +372,7 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
                           prefixIcon: Icon(
                             Icons.description_outlined,
                             size: 20,
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
                         ),
                         items: [
@@ -517,16 +518,42 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
 
   /// 표준 카드 필드 위젯
   Widget _buildCardField(String label, String fieldKey, {int maxLines = 1}) {
+    // 필드별 최대 길이
+    final maxLength = switch (fieldKey) {
+      'name' => Validators.maxNameLength,
+      'company' => Validators.maxCompanyLength,
+      'position' => Validators.maxPositionLength,
+      'department' => Validators.maxDepartmentLength,
+      'email' => Validators.maxEmailLength,
+      'phone' || 'mobile' || 'fax' => Validators.maxPhoneLength,
+      'address' => Validators.maxAddressLength,
+      'website' => Validators.maxWebsiteLength,
+      'memo' => Validators.maxMemoLength,
+      _ => null,
+    };
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: _cardControllers[fieldKey],
         keyboardType: _fieldKeyboard[fieldKey] ?? TextInputType.text,
         maxLines: maxLines,
+        maxLength: fieldKey == 'memo' ? Validators.maxMemoLength : null,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(fontSize: 13),
+          counterText: fieldKey == 'memo' ? null : '',
         ),
+        validator: (value) {
+          if (value != null && maxLength != null && value.length > maxLength) {
+            return '$label: ${maxLength}자 이내로 입력해주세요';
+          }
+          if (fieldKey == 'email' && value != null && value.isNotEmpty && !Validators.isValidEmail(value)) {
+            return '올바른 이메일 형식을 입력해주세요';
+          }
+          return null;
+        },
+        autovalidateMode: AutovalidateMode.onUserInteraction,
       ),
     );
   }

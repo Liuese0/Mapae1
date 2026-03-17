@@ -114,7 +114,7 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
         bottom: TabBar(
           controller: _tabController,
           labelColor: theme.colorScheme.primary,
-          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.4),
+          unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.4),
           indicatorColor: theme.colorScheme.primary,
           tabs: [
             Tab(text: AppLocalizations.of(context).sharedCards),
@@ -282,18 +282,18 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                       onPressed: () => _showCreateCategoryDialog(context),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
+                      side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
                     child: ActionChip(
-                      avatar: Icon(Icons.settings, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.5)),
-                      label: Text(AppLocalizations.of(context).manage, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6))),
+                      avatar: Icon(Icons.settings, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                      label: Text(AppLocalizations.of(context).manage, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
                       onPressed: () => _showManageCategoriesSheet(),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                      side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
                     ),
                   ),
                 ],
@@ -309,7 +309,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 avatar: Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
                 label: Text(AppLocalizations.of(context).createTeamCategory, style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
                 onPressed: () => _showCreateCategoryDialog(context),
-                side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
+                side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
               ),
             ),
           ),
@@ -323,7 +323,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 Icon(
                   Icons.folder_shared_outlined,
                   size: 48,
-                  color: theme.colorScheme.onSurface.withOpacity(0.2),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -331,7 +331,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                       ? AppLocalizations.of(context).noCardsInCategory
                       : AppLocalizations.of(context).noSharedCards,
                   style: TextStyle(
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
               ],
@@ -462,7 +462,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               margin: const EdgeInsets.only(top: 12),
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -476,10 +476,10 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
             ..._teamCategories.map((cat) {
               return ListTile(
                 leading: Icon(Icons.label_outline,
-                    color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                 title: Text(cat.name),
                 trailing: IconButton(
-                  icon: Icon(Icons.delete_outline, color: Colors.red.withOpacity(0.7), size: 20),
+                  icon: Icon(Icons.delete_outline, color: Colors.red.withValues(alpha: 0.7), size: 20),
                   onPressed: () {
                     Navigator.pop(ctx);
                     _showDeleteCategoryDialog(cat.id, cat.name);
@@ -491,7 +491,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(AppLocalizations.of(ctx).noCategories,
-                    style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4))),
+                    style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4))),
               ),
             SizedBox(height: MediaQuery.of(ctx).padding.bottom + 16),
           ],
@@ -636,7 +636,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               margin: const EdgeInsets.only(top: 12),
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -651,7 +651,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               leading: Icon(Icons.label_off_outlined,
                   color: currentCategoryId == null
                       ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.5)),
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.5)),
               title: Text(AppLocalizations.of(ctx).cancel,
                   style: TextStyle(
                     fontWeight: currentCategoryId == null
@@ -673,7 +673,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 leading: Icon(Icons.label_outline,
                     color: selected
                         ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withOpacity(0.5)),
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                 title: Text(cat.name,
                     style: TextStyle(
                       fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
@@ -976,7 +976,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               margin: const EdgeInsets.only(top: 12),
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -989,7 +989,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
             ),
             ListTile(
               leading: Icon(Icons.label_off_outlined,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
               title: Text(AppLocalizations.of(ctx).shareWithoutCategory),
               onTap: () async {
                 Navigator.pop(ctx);
@@ -1113,7 +1113,7 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor:
-                  theme.colorScheme.primary.withOpacity(0.1),
+                  theme.colorScheme.primary.withValues(alpha: 0.1),
                   child: Icon(
                     member.role == TeamRole.owner
                         ? Icons.star
@@ -1495,7 +1495,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.colorScheme.outline.withOpacity(0.5)),
+                        borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
                       ),
                     ),
                   ),
@@ -1539,13 +1539,13 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                 Icon(
                   Icons.contact_phone_outlined,
                   size: 48,
-                  color: theme.colorScheme.onSurface.withOpacity(0.2),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   l10n.noContacts,
                   style: TextStyle(
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1553,7 +1553,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                   l10n.addContactHint,
                   style: TextStyle(
                     fontSize: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 ),
               ],
@@ -1644,8 +1644,8 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
           colors: [
-            theme.colorScheme.primaryContainer.withOpacity(0.5),
-            theme.colorScheme.secondaryContainer.withOpacity(0.3),
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+            theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
           ],
         ),
       ),
@@ -1666,7 +1666,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
               Text(
                 l10n.totalPeople(total),
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -1712,7 +1712,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                     '${_crmStatusLabel(s, l10n)} $count',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: 11,
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -1751,7 +1751,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
             Icon(
               Icons.construction_outlined,
               size: 48,
-              color: theme.colorScheme.primary.withOpacity(0.5),
+              color: theme.colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -1766,7 +1766,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(height: 24),
@@ -1960,7 +1960,7 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                 child: Text(
                   l10n.noNewCards,
                   style: TextStyle(
-                    color: Theme.of(ctx).colorScheme.onSurface.withOpacity(0.4),
+                    color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
               )
@@ -2026,7 +2026,7 @@ class _CrmContactCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outline.withOpacity(0.3)),
+        side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -2037,7 +2037,7 @@ class _CrmContactCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: _statusColor(contact.status).withOpacity(0.15),
+                backgroundColor: _statusColor(contact.status).withValues(alpha: 0.15),
                 child: Text(
                   initial,
                   style: TextStyle(
@@ -2063,7 +2063,7 @@ class _CrmContactCard extends StatelessWidget {
                             .where((s) => s != null)
                             .join(' · '),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                   ],
@@ -2075,7 +2075,7 @@ class _CrmContactCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _statusColor(contact.status).withOpacity(0.12),
+                    color: _statusColor(contact.status).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -2303,7 +2303,7 @@ class _CrmContactDetailScreenState
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2311,7 +2311,7 @@ class _CrmContactDetailScreenState
           Text(
             l10n.status,
             style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 8),
@@ -2333,9 +2333,9 @@ class _CrmContactDetailScreenState
                       _updateStatus(s);
                     },
                     visualDensity: VisualDensity.compact,
-                    selectedColor: _statusColor(s).withOpacity(0.2),
+                    selectedColor: _statusColor(s).withValues(alpha: 0.2),
                     side: BorderSide(
-                      color: selected ? _statusColor(s) : theme.colorScheme.outline.withOpacity(0.3),
+                      color: selected ? _statusColor(s) : theme.colorScheme.outline.withValues(alpha: 0.3),
                     ),
                   ),
                 );
@@ -2363,7 +2363,7 @@ class _CrmContactDetailScreenState
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2376,7 +2376,7 @@ class _CrmContactDetailScreenState
           if (fields.isEmpty)
             Text(
               l10n.noInfo,
-              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4)),
+              style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
             )
           else
             ...fields.map((f) => Padding(
@@ -2389,7 +2389,7 @@ class _CrmContactDetailScreenState
                     child: Text(
                       f.key,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -2415,7 +2415,7 @@ class _CrmContactDetailScreenState
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2499,7 +2499,7 @@ class _CrmContactDetailScreenState
             Text(
               l10n.noteCount(_notes.length),
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -2546,7 +2546,7 @@ class _CrmContactDetailScreenState
               child: Text(
                 l10n.noNotes,
                 style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
               ),
             ),
@@ -2567,7 +2567,7 @@ class _CrmContactDetailScreenState
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2576,7 +2576,7 @@ class _CrmContactDetailScreenState
             children: [
               CircleAvatar(
                 radius: 12,
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                 child: Text(
                   (note.authorName ?? '?')[0],
                   style: TextStyle(fontSize: 10, color: theme.colorScheme.primary),
@@ -2593,7 +2593,7 @@ class _CrmContactDetailScreenState
               Text(
                 dateStr,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   fontSize: 11,
                 ),
               ),
@@ -2607,7 +2607,7 @@ class _CrmContactDetailScreenState
                   child: Icon(
                     Icons.close,
                     size: 16,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 ),
             ],
@@ -2768,12 +2768,12 @@ class _ShareCodeSection extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: enabled
-              ? theme.colorScheme.primary.withOpacity(0.35)
-              : theme.colorScheme.outline.withOpacity(0.3),
+              ? theme.colorScheme.primary.withValues(alpha: 0.35)
+              : theme.colorScheme.outline.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -2786,7 +2786,7 @@ class _ShareCodeSection extends StatelessWidget {
                 size: 18,
                 color: enabled
                     ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.4),
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -2796,7 +2796,7 @@ class _ShareCodeSection extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: enabled
                         ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withOpacity(0.6),
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ),
@@ -2823,7 +2823,7 @@ class _ShareCodeSection extends StatelessWidget {
                     : l10n.shareCodeDisabled,
                 style: TextStyle(
                   fontSize: 12,
-                  color: theme.colorScheme.onSurface.withOpacity(0.45),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
                 ),
               ),
             )
@@ -2839,7 +2839,7 @@ class _ShareCodeSection extends StatelessWidget {
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: theme.colorScheme.primary.withOpacity(0.3),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Text(
@@ -2887,7 +2887,7 @@ class _ShareCodeSection extends StatelessWidget {
                 l10n.shareCodeObserverNote,
                 style: TextStyle(
                   fontSize: 11,
-                  color: theme.colorScheme.onSurface.withOpacity(0.45),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
                 ),
               ),
             ),

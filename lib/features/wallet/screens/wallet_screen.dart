@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/utils/animated_list_item.dart';
@@ -18,6 +20,10 @@ final walletSortProvider = StateProvider<SortMode>((ref) => SortMode.byDate);
 final walletCategoryProvider = StateProvider<String?>((ref) => null);
 final walletSearchQueryProvider = StateProvider<String>((ref) => '');
 
+final _debouncedSearchProvider = StateProvider<String>((ref) => '');
+
+final walletFavoritesOnlyProvider = StateProvider<bool>((ref) => false);
+
 final collectedCardsProvider =
 FutureProvider.autoDispose<List<CollectedCard>>((ref) async {
   final service = ref.read(supabaseServiceProvider);
@@ -26,12 +32,15 @@ FutureProvider.autoDispose<List<CollectedCard>>((ref) async {
 
   final sortMode = ref.watch(walletSortProvider);
   final categoryId = ref.watch(walletCategoryProvider);
+  final favoritesOnly = ref.watch(walletFavoritesOnlyProvider);
 
   return service.getCollectedCards(
     user.id,
     categoryId: categoryId,
     sortBy: sortMode == SortMode.byName ? 'name' : 'created_at',
     ascending: sortMode == SortMode.byName,
+    limit: 100,
+    isFavorite: favoritesOnly ? true : null,
   );
 });
 
@@ -54,6 +63,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
   late AnimationController _headerController;
   late Animation<double> _headerFade;
   late Animation<Offset> _headerSlide;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -79,6 +89,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
   @override
   void dispose() {
     _headerController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -95,6 +106,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
         },
       ),
     );
+  }
+
+  void _onSearchChanged(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      ref.read(walletSearchQueryProvider.notifier).state = query;
+    });
   }
 
   /// 명함 리스트에 광고 슬롯을 삽입한 혼합 아이템 목록을 생성합니다.
@@ -155,7 +173,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                               l10n.totalCards(count),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurface
-                                    .withOpacity(0.5),
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                             loading: () => const SizedBox.shrink(),
@@ -174,77 +192,93 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
 
                 // Card list
                 Expanded(
-                  child: cards.when(
-                    data: (cardList) {
-                      // Apply client-side search filtering
-                      final filteredList = searchQuery.isEmpty
-                          ? cardList
-                          : cardList.where((card) {
-                        final q = searchQuery.toLowerCase();
-                        return (card.name?.toLowerCase().contains(q) ?? false) ||
-                            (card.company?.toLowerCase().contains(q) ?? false) ||
-                            (card.position?.toLowerCase().contains(q) ?? false) ||
-                            (card.department?.toLowerCase().contains(q) ?? false) ||
-                            (card.email?.toLowerCase().contains(q) ?? false) ||
-                            (card.phone?.contains(q) ?? false) ||
-                            (card.mobile?.contains(q) ?? false);
-                      }).toList();
-
-                      if (filteredList.isEmpty) {
-                        return _buildEmptyState(theme);
-                      }
-
-                      // 광고 슬롯(null)이 포함된 혼합 리스트
-                      final mixedList = _buildMixedList(filteredList, isPremium);
-                      // 애니메이션 인덱스는 실제 카드 순번 기준
-                      int cardAnimIndex = 0;
-
-                      return ListView.builder(
-                        padding: EdgeInsets.only(
-                          left: hPadding,
-                          right: hPadding,
-                          bottom: 120,
-                        ),
-                        itemCount: mixedList.length,
-                        itemBuilder: (context, index) {
-                          final item = mixedList[index];
-
-                          // ── 광고 슬롯 ──
-                          if (item == null) {
-                            return const NativeAdCard();
-                          }
-
-                          // ── 명함 카드 ──
-                          final animIndex = cardAnimIndex++;
-                          final isLast = index == mixedList.length - 1;
-                          // 다음 아이템이 광고이면 간격을 NativeAdCard가 처리하므로 축소
-                          final nextIsAd = !isLast &&
-                              index + 1 < mixedList.length &&
-                              mixedList[index + 1] == null;
-
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: isLast
-                                  ? 0
-                                  : nextIsAd
-                                  ? 4
-                                  : 8,
-                            ),
-                            child: AnimatedListItem(
-                              index: animIndex,
-                              child: CardListTile(
-                                card: item,
-                                onTap: () =>
-                                    context.push('/card/${item.id}'),
-                              ),
-                            ),
-                          );
-                        },
-                      );
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      ref.invalidate(collectedCardsProvider);
+                      ref.invalidate(cardCountProvider);
                     },
-                    loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text(l10n.errorMsg(e.toString()))),
+                    child: cards.when(
+                      data: (cardList) {
+                        // Apply client-side search filtering
+                        final filteredList = searchQuery.isEmpty
+                            ? cardList
+                            : cardList.where((card) {
+                          final q = searchQuery.toLowerCase();
+                          return (card.name?.toLowerCase().contains(q) ?? false) ||
+                              (card.company?.toLowerCase().contains(q) ?? false) ||
+                              (card.position?.toLowerCase().contains(q) ?? false) ||
+                              (card.department?.toLowerCase().contains(q) ?? false) ||
+                              (card.email?.toLowerCase().contains(q) ?? false) ||
+                              (card.phone?.contains(q) ?? false) ||
+                              (card.mobile?.contains(q) ?? false);
+                        }).toList();
+
+                        if (filteredList.isEmpty) {
+                          return _buildEmptyState(theme);
+                        }
+
+                        // 광고 슬롯(null)이 포함된 혼합 리스트
+                        final mixedList = _buildMixedList(filteredList, isPremium);
+                        // 애니메이션 인덱스는 실제 카드 순번 기준
+                        int cardAnimIndex = 0;
+
+                        return ListView.builder(
+                          padding: EdgeInsets.only(
+                            left: hPadding,
+                            right: hPadding,
+                            bottom: 120,
+                          ),
+                          itemCount: mixedList.length,
+                          itemBuilder: (context, index) {
+                            final item = mixedList[index];
+
+                            // ── 광고 슬롯 ──
+                            if (item == null) {
+                              return const NativeAdCard();
+                            }
+
+                            // ── 명함 카드 ──
+                            final animIndex = cardAnimIndex++;
+                            final isLast = index == mixedList.length - 1;
+                            // 다음 아이템이 광고이면 간격을 NativeAdCard가 처리하므로 축소
+                            final nextIsAd = !isLast &&
+                                index + 1 < mixedList.length &&
+                                mixedList[index + 1] == null;
+
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                bottom: isLast
+                                    ? 0
+                                    : nextIsAd
+                                    ? 4
+                                    : 8,
+                              ),
+                              child: AnimatedListItem(
+                                index: animIndex,
+                                child: CardListTile(
+                                  card: item,
+                                  onTap: () =>
+                                      context.push('/card/${item.id}'),
+                                  onDelete: () async {
+                                    await ref.read(supabaseServiceProvider).deleteCollectedCard(item.id);
+                                    ref.invalidate(collectedCardsProvider);
+                                    ref.invalidate(cardCountProvider);
+                                  },
+                                  onEdit: () =>
+                                      context.push('/card/${item.id}/edit'),
+                                  onFavoriteToggle: (isFavorite) async {
+                                    await ref.read(supabaseServiceProvider).toggleFavorite(item.id, isFavorite);
+                                    ref.invalidate(collectedCardsProvider);
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      loading: () => _buildShimmerList(hPadding),
+                      error: (e, _) => Center(child: Text(l10n.errorMsg(e.toString()))),
+                    ),
                   ),
                 ),
               ],
@@ -267,6 +301,27 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
     );
   }
 
+  Widget _buildShimmerList(double hPadding) {
+    return Shimmer.fromColors(
+      baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      highlightColor: Theme.of(context).colorScheme.surface,
+      child: ListView.builder(
+        padding: EdgeInsets.symmetric(horizontal: hPadding),
+        itemCount: 5,
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Container(
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyState(ThemeData theme) {
     final l10n = AppLocalizations.of(context);
     return Center(
@@ -284,14 +339,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
             child: Icon(
               Icons.credit_card_off_outlined,
               size: 48,
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
             ),
           ),
           const SizedBox(height: 16),
           Text(
             l10n.noCards,
             style: TextStyle(
-              color: theme.colorScheme.onSurface.withOpacity(0.4),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
           ),
         ],
@@ -367,7 +422,7 @@ class _AnimatedFABState extends State<_AnimatedFAB>
             boxShadow: [
               BoxShadow(
                 color: theme.colorScheme.primary
-                    .withOpacity(_isPressed ? 0.15 : 0.3),
+                    .withValues(alpha: _isPressed ? 0.15 : 0.3),
                 blurRadius: _isPressed ? 6 : 12,
                 offset: Offset(0, _isPressed ? 2 : 4),
               ),
