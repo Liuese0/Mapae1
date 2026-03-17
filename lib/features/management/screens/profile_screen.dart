@@ -120,18 +120,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
     );
 
-    passwordController.dispose();
+    // 수동 dispose하지 않음 — 다이얼로그 닫기 애니메이션 중 위젯 트리에서 아직 참조
     if (confirm != true) return;
 
     setState(() => _isLoading = true);
     try {
       await ref.read(autoLoginServiceProvider).clear();
       await ref.read(supabaseServiceProvider).deleteAccount();
-      if (mounted) {
-        // Wait for the widget tree to settle before navigating
-        await Future.delayed(const Duration(milliseconds: 100));
-        if (mounted) context.go('/login');
-      }
+      if (mounted) context.go('/login');
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);

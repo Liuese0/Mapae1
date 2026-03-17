@@ -91,6 +91,11 @@ abstract class AppLocalizations {
   String get deleteAccountWarning;
   String get incorrectPassword;
   String get withdraw;
+  String get setPasswordTitle;
+  String get setPasswordDescription;
+  String get setPasswordHint;
+  String get confirmPasswordHint;
+  String get passwordSet;
 
   // ── Cards ──
   String get cardDetail;
@@ -477,6 +482,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get deleteAccountWarning => '모든 데이터가 삭제되며 복구할 수 없습니다.\n본인 확인을 위해 비밀번호를 입력해주세요.';
   @override String get incorrectPassword => '비밀번호가 올바르지 않습니다';
   @override String get withdraw => '탈퇴';
+  @override String get setPasswordTitle => '비밀번호 설정';
+  @override String get setPasswordDescription => '계정 보안을 위해 비밀번호를 설정해주세요.\n나중에 이메일로도 로그인할 수 있습니다.';
+  @override String get setPasswordHint => '비밀번호 (6자 이상)';
+  @override String get confirmPasswordHint => '비밀번호 확인';
+  @override String get passwordSet => '비밀번호가 설정되었습니다.';
 
   @override String get cardDetail => '명함 상세';
   @override String get addCard => '명함 추가';
@@ -843,6 +853,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'All data will be deleted and cannot be recovered.\nPlease enter your password to confirm.';
   @override String get incorrectPassword => 'Incorrect password';
   @override String get withdraw => 'Delete';
+  @override String get setPasswordTitle => 'Set Password';
+  @override String get setPasswordDescription => 'Set a password for account security.\nYou can also log in with email later.';
+  @override String get setPasswordHint => 'Password (min 6 characters)';
+  @override String get confirmPasswordHint => 'Confirm password';
+  @override String get passwordSet => 'Password has been set.';
 
   @override String get cardDetail => 'Card Detail';
   @override String get addCard => 'Add Card';

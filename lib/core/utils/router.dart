@@ -46,7 +46,10 @@ class SafeRouteInformationParser
       final session = Supabase.instance.client.auth.currentSession;
       final fallback = session != null ? '/home' : '/login';
       return _delegate.parseRouteInformationWithDependencies(
-        RouteInformation(uri: Uri.parse(fallback)),
+        RouteInformation(
+          uri: Uri.parse(fallback),
+          state: routeInformation.state,
+        ),
         context,
       );
     }

@@ -108,6 +108,21 @@ class SupabaseService {
     await _client.auth.resetPasswordForEmail(email);
   }
 
+  /// OAuth 사용자가 비밀번호를 설정할 수 있도록 함
+  Future<void> setPassword(String password) async {
+    await _client.auth.updateUser(UserAttributes(
+      password: password,
+      data: {'password_set': true},
+    ));
+  }
+
+  /// OAuth 사용자가 이미 비밀번호를 설정했는지 확인
+  bool get hasPasswordSet {
+    final meta = _client.auth.currentUser?.userMetadata;
+    if (meta == null) return false;
+    return meta['password_set'] == true;
+  }
+
   /// 로그인 후 프로필이 없으면 자동 생성
   Future<AppUser> ensureUserProfile() async {
     final user = currentUser;

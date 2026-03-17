@@ -22,6 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _autoLogin = false;
+  bool _isOAuthLogin = false;
   StreamSubscription<AuthState>? _authSubscription;
 
   late AnimationController _entranceController;
@@ -74,9 +75,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     _entranceController.forward();
 
     // OAuth 콜백(카카오 등) 브라우저 복귀 시 자동 네비게이션
-    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       if (data.event == AuthChangeEvent.signedIn && mounted) {
-        context.go('/home');
+        if (_isOAuthLogin) {
+          _isOAuthLogin = false;
+          final service = ref.read(supabaseServiceProvider);
+          if (!service.hasPasswordSet) {
+            await _showSetPasswordDialog();
+          }
+        }
+        if (mounted) context.go('/home');
       }
     });
   }
@@ -114,6 +122,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Future<void> _signInWithKakao() async {
     setState(() => _isLoading = true);
+    _isOAuthLogin = true;
     try {
       final launched = await ref.read(supabaseServiceProvider).signInWithKakao();
       if (!launched) {
@@ -134,10 +143,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
+    _isOAuthLogin = true;
     try {
       await ref.read(supabaseServiceProvider).signInWithGoogle();
       await ref.read(autoLoginServiceProvider).setEnabled(_autoLogin);
-      if (mounted) context.go('/home');
+      // 네비게이션 및 비밀번호 설정은 authStateChange 리스너에서 처리
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -146,6 +156,107 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _showSetPasswordDialog() async {
+    final l10n = AppLocalizations.of(context);
+    final pwController = TextEditingController();
+    final confirmController = TextEditingController();
+
+    final success = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        String? errorText;
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) => AlertDialog(
+            title: Text(l10n.setPasswordTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.setPasswordDescription,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(dialogContext)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.6),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: pwController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    hintText: l10n.setPasswordHint,
+                    prefixIcon: const Icon(Icons.lock_outlined, size: 20),
+                    errorText: errorText,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    hintText: l10n.confirmPasswordHint,
+                    prefixIcon:
+                    const Icon(Icons.lock_outlined, size: 20),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  final pw = pwController.text;
+                  final confirm = confirmController.text;
+                  if (pw.length < 6) {
+                    setDialogState(
+                            () => errorText = l10n.passwordTooShort);
+                    return;
+                  }
+                  if (pw != confirm) {
+                    setDialogState(
+                            () => errorText = l10n.passwordMismatch);
+                    return;
+                  }
+                  try {
+                    await ref
+                        .read(supabaseServiceProvider)
+                        .setPassword(pw);
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext, true);
+                    }
+                  } catch (e) {
+                    setDialogState(
+                            () => errorText = e.toString());
+                  }
+                },
+                child: Text(l10n.confirm),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    // 컨트롤러를 수동 dispose하지 않음 — 다이얼로그 닫기 애니메이션 중
+    // 위젯 트리가 아직 컨트롤러를 참조하고 있어 dispose 시 에러 발생.
+    // GC가 자동으로 처리함.
+
+    if (success == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.passwordSet)),
+      );
     }
   }
 
