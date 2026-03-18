@@ -359,6 +359,21 @@ abstract class AppLocalizations {
   String get phone;
   String get crmContact;
 
+  // ── CRM Multi-select & Sort ──
+  String get sortBy;
+  String get sortByRecent;
+  String get sortByStatus;
+  String selectedCount(int count);
+  String get selectAll;
+  String get deselectAll;
+  String get batchStatusChange;
+  String get batchDelete;
+  String confirmBatchDelete(int count);
+  String batchStatusChanged(int count);
+  String batchDeleted(int count);
+  String get longPressToSelect;
+  String get conversionRate;
+
   // ── Share Code ──
   String get teamShareCode;
   String get shareCodeEnabledHint;
@@ -746,6 +761,21 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get phone => '전화';
   @override String get crmContact => 'CRM 연락처';
 
+  // ── CRM Multi-select & Sort ──
+  @override String get sortBy => '정렬';
+  @override String get sortByRecent => '최근 업데이트순';
+  @override String get sortByStatus => '상태순';
+  @override String selectedCount(int count) => '${count}개 선택';
+  @override String get selectAll => '전체 선택';
+  @override String get deselectAll => '선택 해제';
+  @override String get batchStatusChange => '상태 일괄 변경';
+  @override String get batchDelete => '일괄 삭제';
+  @override String confirmBatchDelete(int count) => '${count}개 연락처를 삭제하시겠습니까?\n모든 관련 노트도 함께 삭제됩니다.';
+  @override String batchStatusChanged(int count) => '${count}개 연락처의 상태가 변경되었습니다';
+  @override String batchDeleted(int count) => '${count}개 연락처가 삭제되었습니다';
+  @override String get longPressToSelect => '길게 눌러 선택';
+  @override String get conversionRate => '전환율';
+
   // ── Share Code ──
   @override String get teamShareCode => '팀 공유코드';
   @override String get shareCodeEnabledHint => '공유코드를 활성화하면 누구나 코드로 팀에 참가할 수 있습니다';
@@ -1122,6 +1152,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get status => 'Status';
   @override String get phone => 'Phone';
   @override String get crmContact => 'CRM Contact';
+
+  // ── CRM Multi-select & Sort ──
+  @override String get sortBy => 'Sort';
+  @override String get sortByRecent => 'Recently Updated';
+  @override String get sortByStatus => 'By Status';
+  @override String selectedCount(int count) => '$count selected';
+  @override String get selectAll => 'Select All';
+  @override String get deselectAll => 'Deselect All';
+  @override String get batchStatusChange => 'Change Status';
+  @override String get batchDelete => 'Delete';
+  @override String confirmBatchDelete(int count) => "Delete $count contacts?\nAll related notes will also be deleted.";
+  @override String batchStatusChanged(int count) => 'Status changed for $count contacts';
+  @override String batchDeleted(int count) => '$count contacts deleted';
+  @override String get longPressToSelect => 'Long press to select';
+  @override String get conversionRate => 'Conversion';
 
   // ── Share Code ──
   @override String get teamShareCode => 'Team Share Code';
