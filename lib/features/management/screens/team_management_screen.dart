@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +13,42 @@ import '../../shared/models/collected_card.dart';
 import '../../shared/models/category.dart';
 import '../../shared/models/crm_contact.dart';
 import '../../shared/widgets/invite_member_dialog.dart';
+
+/// CRM 상태별 색상
+Color _crmStatusColor(CrmStatus status) {
+  switch (status) {
+    case CrmStatus.lead:
+      return Colors.grey;
+    case CrmStatus.contact:
+      return Colors.blue;
+    case CrmStatus.meeting:
+      return Colors.orange;
+    case CrmStatus.proposal:
+      return Colors.purple;
+    case CrmStatus.contract:
+      return Colors.teal;
+    case CrmStatus.closed:
+      return Colors.green;
+  }
+}
+
+/// CRM 상태별 아이콘
+IconData _crmStatusIcon(CrmStatus status) {
+  switch (status) {
+    case CrmStatus.lead:
+      return Icons.person_search_outlined;
+    case CrmStatus.contact:
+      return Icons.phone_outlined;
+    case CrmStatus.meeting:
+      return Icons.handshake_outlined;
+    case CrmStatus.proposal:
+      return Icons.description_outlined;
+    case CrmStatus.contract:
+      return Icons.assignment_outlined;
+    case CrmStatus.closed:
+      return Icons.check_circle_outlined;
+  }
+}
 
 /// CRM 파이프라인 상태를 현재 언어로 반환합니다.
 String _crmStatusLabel(CrmStatus s, AppLocalizations l10n) {
@@ -114,7 +152,7 @@ class _TeamManagementScreenState extends ConsumerState<TeamManagementScreen>
         bottom: TabBar(
           controller: _tabController,
           labelColor: theme.colorScheme.primary,
-          unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.4),
           indicatorColor: theme.colorScheme.primary,
           tabs: [
             Tab(text: AppLocalizations.of(context).sharedCards),
@@ -282,18 +320,18 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                       onPressed: () => _showCreateCategoryDialog(context),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                      side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
                     child: ActionChip(
-                      avatar: Icon(Icons.settings, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-                      label: Text(AppLocalizations.of(context).manage, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                      avatar: Icon(Icons.settings, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                      label: Text(AppLocalizations.of(context).manage, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6))),
                       onPressed: () => _showManageCategoriesSheet(),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      side: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
+                      side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.2)),
                     ),
                   ),
                 ],
@@ -309,7 +347,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 avatar: Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
                 label: Text(AppLocalizations.of(context).createTeamCategory, style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
                 onPressed: () => _showCreateCategoryDialog(context),
-                side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.3)),
               ),
             ),
           ),
@@ -323,7 +361,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 Icon(
                   Icons.folder_shared_outlined,
                   size: 48,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                  color: theme.colorScheme.onSurface.withOpacity(0.2),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -331,7 +369,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                       ? AppLocalizations.of(context).noCardsInCategory
                       : AppLocalizations.of(context).noSharedCards,
                   style: TextStyle(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    color: theme.colorScheme.onSurface.withOpacity(0.4),
                   ),
                 ),
               ],
@@ -462,7 +500,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               margin: const EdgeInsets.only(top: 12),
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -476,10 +514,10 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
             ..._teamCategories.map((cat) {
               return ListTile(
                 leading: Icon(Icons.label_outline,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                    color: theme.colorScheme.onSurface.withOpacity(0.5)),
                 title: Text(cat.name),
                 trailing: IconButton(
-                  icon: Icon(Icons.delete_outline, color: Colors.red.withValues(alpha: 0.7), size: 20),
+                  icon: Icon(Icons.delete_outline, color: Colors.red.withOpacity(0.7), size: 20),
                   onPressed: () {
                     Navigator.pop(ctx);
                     _showDeleteCategoryDialog(cat.id, cat.name);
@@ -491,7 +529,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(AppLocalizations.of(ctx).noCategories,
-                    style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4))),
+                    style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4))),
               ),
             SizedBox(height: MediaQuery.of(ctx).padding.bottom + 16),
           ],
@@ -636,7 +674,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               margin: const EdgeInsets.only(top: 12),
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -651,7 +689,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               leading: Icon(Icons.label_off_outlined,
                   color: currentCategoryId == null
                       ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                      : theme.colorScheme.onSurface.withOpacity(0.5)),
               title: Text(AppLocalizations.of(ctx).cancel,
                   style: TextStyle(
                     fontWeight: currentCategoryId == null
@@ -673,7 +711,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
                 leading: Icon(Icons.label_outline,
                     color: selected
                         ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                        : theme.colorScheme.onSurface.withOpacity(0.5)),
                 title: Text(cat.name,
                     style: TextStyle(
                       fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
@@ -976,7 +1014,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
               margin: const EdgeInsets.only(top: 12),
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -989,7 +1027,7 @@ class _SharedCardsTabState extends ConsumerState<_SharedCardsTab> {
             ),
             ListTile(
               leading: Icon(Icons.label_off_outlined,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                  color: theme.colorScheme.onSurface.withOpacity(0.5)),
               title: Text(AppLocalizations.of(ctx).shareWithoutCategory),
               onTap: () async {
                 Navigator.pop(ctx);
@@ -1113,7 +1151,7 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor:
-                  theme.colorScheme.primary.withValues(alpha: 0.1),
+                  theme.colorScheme.primary.withOpacity(0.1),
                   child: Icon(
                     member.role == TeamRole.owner
                         ? Icons.star
@@ -1380,6 +1418,9 @@ class _MembersTabState extends ConsumerState<_MembersTab> {
 
 // ──────────────── CRM Tab ────────────────
 
+/// CRM 정렬 모드
+enum _CrmSortMode { recent, name, status }
+
 class _CrmTab extends ConsumerStatefulWidget {
   final String teamId;
   final TeamRole? myRole;
@@ -1399,6 +1440,17 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
   String _searchQuery = '';
   bool _showPipeline = true;
 
+  // 정렬
+  _CrmSortMode _sortMode = _CrmSortMode.recent;
+
+  // 다중 선택
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
+
+  // 검색 디바운스
+  Timer? _searchDebounce;
+  final _searchController = TextEditingController();
+
   bool get _isObserver => widget.myRole == TeamRole.observer;
 
   void _showNoPermission() {
@@ -1411,6 +1463,13 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -1447,14 +1506,128 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
   }
 
   List<CrmContact> get _filteredContacts {
-    if (_searchQuery.isEmpty) return _contacts;
-    final q = _searchQuery.toLowerCase();
-    return _contacts.where((c) {
-      return (c.name?.toLowerCase().contains(q) ?? false) ||
-          (c.company?.toLowerCase().contains(q) ?? false) ||
-          (c.email?.toLowerCase().contains(q) ?? false) ||
-          (c.position?.toLowerCase().contains(q) ?? false);
-    }).toList();
+    var list = _contacts.toList();
+
+    // 검색 필터
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list.where((c) {
+        return (c.name?.toLowerCase().contains(q) ?? false) ||
+            (c.company?.toLowerCase().contains(q) ?? false) ||
+            (c.email?.toLowerCase().contains(q) ?? false) ||
+            (c.position?.toLowerCase().contains(q) ?? false);
+      }).toList();
+    }
+
+    // 정렬
+    switch (_sortMode) {
+      case _CrmSortMode.recent:
+        list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+        break;
+      case _CrmSortMode.name:
+        list.sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+        break;
+      case _CrmSortMode.status:
+        list.sort((a, b) => a.status.index.compareTo(b.status.index));
+        break;
+    }
+
+    return list;
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        if (_selectedIds.isEmpty) _selectionMode = false;
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      _selectedIds.addAll(_filteredContacts.map((c) => c.id));
+    });
+  }
+
+  Future<void> _batchChangeStatus(CrmStatus newStatus) async {
+    if (_isObserver) { _showNoPermission(); return; }
+    final service = ref.read(supabaseServiceProvider);
+    final ids = _selectedIds.toList();
+
+    // 낙관적 업데이트
+    setState(() {
+      for (final id in ids) {
+        final idx = _contacts.indexWhere((c) => c.id == id);
+        if (idx != -1) {
+          final old = _contacts[idx];
+          _stats[old.status] = (_stats[old.status] ?? 1) - 1;
+          _stats[newStatus] = (_stats[newStatus] ?? 0) + 1;
+          _contacts[idx] = old.copyWith(status: newStatus);
+        }
+      }
+    });
+
+    for (final id in ids) {
+      await service.updateCrmContactStatus(id, newStatus);
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).batchStatusChanged(ids.length))),
+      );
+    }
+    _exitSelectionMode();
+  }
+
+  Future<void> _batchDelete() async {
+    if (_isObserver) { _showNoPermission(); return; }
+    final l10n = AppLocalizations.of(context);
+    final count = _selectedIds.length;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.batchDelete),
+        content: Text(l10n.confirmBatchDelete(count)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final service = ref.read(supabaseServiceProvider);
+    final ids = _selectedIds.toList();
+    for (final id in ids) {
+      await service.deleteCrmContact(id);
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.batchDeleted(count))),
+      );
+    }
+    _exitSelectionMode();
+    await _loadData();
   }
 
   @override
@@ -1472,60 +1645,118 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
 
     return Column(
       children: [
+        // 선택 모드 액션바
+        if (_selectionMode) _buildSelectionBar(theme, l10n),
+
         // Pipeline summary
-        if (_showPipeline) _buildPipelineSummary(theme, l10n),
+        if (_showPipeline && !_selectionMode) _buildPipelineSummary(theme, l10n),
 
         // Search & filter bar
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 40,
-                  child: TextField(
-                    onChanged: (v) => setState(() => _searchQuery = v),
-                    decoration: InputDecoration(
-                      hintText: l10n.searchHint,
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.colorScheme.outline),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
+        if (!_selectionMode)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 40,
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (v) {
+                        _searchDebounce?.cancel();
+                        _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+                          if (mounted) setState(() => _searchQuery = v);
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: l10n.searchHint,
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                            : null,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: theme.colorScheme.outline),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: Icon(
-                  _showPipeline ? Icons.view_kanban : Icons.view_kanban_outlined,
-                  size: 22,
+                const SizedBox(width: 4),
+                // 정렬 버튼
+                PopupMenuButton<_CrmSortMode>(
+                  icon: const Icon(Icons.sort, size: 22),
+                  tooltip: l10n.sortBy,
+                  onSelected: (mode) => setState(() => _sortMode = mode),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: _CrmSortMode.recent,
+                      child: Row(
+                        children: [
+                          Icon(Icons.schedule, size: 18, color: _sortMode == _CrmSortMode.recent ? theme.colorScheme.primary : null),
+                          const SizedBox(width: 8),
+                          Text(l10n.sortByRecent),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: _CrmSortMode.name,
+                      child: Row(
+                        children: [
+                          Icon(Icons.sort_by_alpha, size: 18, color: _sortMode == _CrmSortMode.name ? theme.colorScheme.primary : null),
+                          const SizedBox(width: 8),
+                          Text(l10n.sortByName),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: _CrmSortMode.status,
+                      child: Row(
+                        children: [
+                          Icon(Icons.linear_scale, size: 18, color: _sortMode == _CrmSortMode.status ? theme.colorScheme.primary : null),
+                          const SizedBox(width: 8),
+                          Text(l10n.sortByStatus),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                onPressed: () => setState(() => _showPipeline = !_showPipeline),
-                tooltip: l10n.pipelineView,
-              ),
-            ],
+                IconButton(
+                  icon: Icon(
+                    _showPipeline ? Icons.view_kanban : Icons.view_kanban_outlined,
+                    size: 22,
+                  ),
+                  onPressed: () => setState(() => _showPipeline = !_showPipeline),
+                  tooltip: l10n.pipelineView,
+                ),
+              ],
+            ),
           ),
-        ),
 
         // Status filter chips
-        SizedBox(
-          height: 40,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _buildFilterChip(null, l10n.allCategories, theme),
-              ...CrmStatus.values.map((s) => _buildFilterChip(s, _crmStatusLabel(s, l10n), theme)),
-            ],
+        if (!_selectionMode)
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _buildFilterChip(null, l10n.allCategories, theme),
+                ...CrmStatus.values.map((s) => _buildFilterChip(s, _crmStatusLabel(s, l10n), theme)),
+              ],
+            ),
           ),
-        ),
 
         const SizedBox(height: 4),
 
@@ -1567,9 +1798,27 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
               separatorBuilder: (_, __) => const SizedBox(height: 6),
               itemBuilder: (context, index) {
                 final contact = _filteredContacts[index];
+                final isSelected = _selectedIds.contains(contact.id);
                 return _CrmContactCard(
                   contact: contact,
-                  onTap: () => _showContactDetail(contact),
+                  isSelected: isSelected,
+                  selectionMode: _selectionMode,
+                  onTap: () {
+                    if (_selectionMode) {
+                      _toggleSelection(contact.id);
+                    } else {
+                      _showContactDetail(contact);
+                    }
+                  },
+                  onLongPress: () {
+                    if (!_selectionMode) {
+                      HapticFeedback.mediumImpact();
+                      setState(() {
+                        _selectionMode = true;
+                        _selectedIds.add(contact.id);
+                      });
+                    }
+                  },
                   onStatusChanged: (status) async {
                     if (_isObserver) {
                       _showNoPermission();
@@ -1580,7 +1829,6 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                       final idx = _contacts.indexWhere((c) => c.id == contact.id);
                       if (idx != -1) {
                         _contacts[idx] = _contacts[idx].copyWith(status: status);
-                        // 통계 업데이트
                         _stats[contact.status] = (_stats[contact.status] ?? 1) - 1;
                         _stats[status] = (_stats[status] ?? 0) + 1;
                       }
@@ -1594,49 +1842,112 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
           ),
         ),
 
-        // Bottom actions
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      if (_isObserver) {
-                        _showNoPermission();
-                        return;
-                      }
-                      _showImportFromSharedCards();
-                    },
-                    icon: const Icon(Icons.download_outlined, size: 18),
-                    label: Text(l10n.importFromSharedCards),
+        // Bottom actions (선택 모드가 아닐 때)
+        if (!_selectionMode)
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        if (_isObserver) {
+                          _showNoPermission();
+                          return;
+                        }
+                        _showImportFromSharedCards();
+                      },
+                      icon: const Icon(Icons.download_outlined, size: 18),
+                      label: Text(l10n.importFromSharedCards),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      if (_isObserver) {
-                        _showNoPermission();
-                        return;
-                      }
-                      _showAddContactDialog();
-                    },
-                    icon: const Icon(Icons.person_add_outlined, size: 18),
-                    label: Text(l10n.addManually),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        if (_isObserver) {
+                          _showNoPermission();
+                          return;
+                        }
+                        _showAddContactDialog();
+                      },
+                      icon: const Icon(Icons.person_add_outlined, size: 18),
+                      label: Text(l10n.addManually),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
       ],
+    );
+  }
+
+  /// 선택 모드 액션바
+  Widget _buildSelectionBar(ThemeData theme, AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: _exitSelectionMode,
+            ),
+            Text(
+              l10n.selectedCount(_selectedIds.length),
+              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: _selectedIds.length == _filteredContacts.length
+                  ? _exitSelectionMode
+                  : _selectAll,
+              child: Text(
+                _selectedIds.length == _filteredContacts.length
+                    ? l10n.deselectAll
+                    : l10n.selectAll,
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+            // 일괄 상태 변경
+            PopupMenuButton<CrmStatus>(
+              icon: Icon(Icons.swap_horiz, color: theme.colorScheme.primary),
+              tooltip: l10n.batchStatusChange,
+              onSelected: _batchChangeStatus,
+              itemBuilder: (_) => CrmStatus.values.map((s) {
+                return PopupMenuItem(
+                  value: s,
+                  child: Row(
+                    children: [
+                      Icon(_crmStatusIcon(s), size: 18, color: _crmStatusColor(s)),
+                      const SizedBox(width: 8),
+                      Text(_crmStatusLabel(s, l10n)),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            // 일괄 삭제
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              tooltip: l10n.batchDelete,
+              onPressed: _batchDelete,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildPipelineSummary(ThemeData theme, AppLocalizations l10n) {
     final total = _stats.values.fold<int>(0, (a, b) => a + b);
+    final closedCount = _stats[CrmStatus.closed] ?? 0;
+    final conversionPct = total > 0 ? (closedCount / total * 100).toStringAsFixed(1) : '0.0';
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       padding: const EdgeInsets.all(16),
@@ -1663,6 +1974,23 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                 ),
               ),
               const Spacer(),
+              // 전환율 표시
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${l10n.conversionRate} $conversionPct%',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Text(
                 l10n.totalPeople(total),
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -1672,50 +2000,67 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
             ],
           ),
           const SizedBox(height: 12),
-          // Pipeline bar
+          // 파이프라인 단계별 시각화 (개선)
           if (total > 0)
             ClipRRect(
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(6),
               child: SizedBox(
-                height: 8,
+                height: 10,
                 child: Row(
                   children: CrmStatus.values.where((s) => (_stats[s] ?? 0) > 0).map((s) {
                     final count = _stats[s] ?? 0;
                     return Expanded(
                       flex: count,
-                      child: Container(color: _statusColor(s)),
+                      child: Container(
+                        color: _crmStatusColor(s),
+                        alignment: Alignment.center,
+                      ),
                     );
                   }).toList(),
                 ),
               ),
             ),
-          if (total > 0) const SizedBox(height: 10),
-          // Status counts row
-          Wrap(
-            spacing: 12,
-            runSpacing: 6,
+          if (total > 0) const SizedBox(height: 12),
+          // 상태별 카운트 (아이콘 + 수치)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: CrmStatus.values.map((s) {
               final count = _stats[s] ?? 0;
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _statusColor(s),
-                      shape: BoxShape.circle,
+              final isActive = count > 0;
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _filterStatus = _filterStatus == s ? null : s);
+                  _loadData();
+                },
+                child: Column(
+                  children: [
+                    Icon(
+                      _crmStatusIcon(s),
+                      size: 18,
+                      color: isActive
+                          ? _crmStatusColor(s)
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.25),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${_crmStatusLabel(s, l10n)} $count',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$count',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: isActive
+                            ? _crmStatusColor(s)
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                      ),
                     ),
-                  ),
-                ],
+                    Text(
+                      _crmStatusLabel(s, l10n),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 9,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
               );
             }).toList(),
           ),
@@ -1729,10 +2074,13 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: FilterChip(
+        avatar: status != null
+            ? Icon(_crmStatusIcon(status), size: 14, color: selected ? _crmStatusColor(status) : null)
+            : null,
         label: Text(label, style: const TextStyle(fontSize: 12)),
         selected: selected,
         onSelected: (_) {
-          setState(() => _filterStatus = status);
+          setState(() => _filterStatus = _filterStatus == status ? null : status);
           _loadData();
         },
         visualDensity: VisualDensity.compact,
@@ -1779,23 +2127,6 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
         ),
       ),
     );
-  }
-
-  Color _statusColor(CrmStatus status) {
-    switch (status) {
-      case CrmStatus.lead:
-        return Colors.grey;
-      case CrmStatus.contact:
-        return Colors.blue;
-      case CrmStatus.meeting:
-        return Colors.orange;
-      case CrmStatus.proposal:
-        return Colors.purple;
-      case CrmStatus.contract:
-        return Colors.teal;
-      case CrmStatus.closed:
-        return Colors.green;
-    }
   }
 
   void _showContactDetail(CrmContact contact) {
@@ -2008,12 +2339,18 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
 class _CrmContactCard extends StatelessWidget {
   final CrmContact contact;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final ValueChanged<CrmStatus> onStatusChanged;
+  final bool isSelected;
+  final bool selectionMode;
 
   const _CrmContactCard({
     required this.contact,
     required this.onTap,
+    this.onLongPress,
     required this.onStatusChanged,
+    this.isSelected = false,
+    this.selectionMode = false,
   });
 
   @override
@@ -2021,114 +2358,142 @@ class _CrmContactCard extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final initial = (contact.name?.isNotEmpty == true) ? contact.name![0] : '?';
+    final statusColor = _crmStatusColor(contact.status);
 
     return Card(
-      elevation: 0,
+      elevation: isSelected ? 1 : 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+        side: BorderSide(
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outline.withValues(alpha: 0.3),
+          width: isSelected ? 1.5 : 1,
+        ),
       ),
+      color: isSelected
+          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.15)
+          : null,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: _statusColor(contact.status).withValues(alpha: 0.15),
-                child: Text(
-                  initial,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: _statusColor(contact.status),
+              // 선택 모드: 체크박스 / 일반 모드: 아바타
+              if (selectionMode)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Icon(
+                    isSelected ? Icons.check_circle : Icons.circle_outlined,
+                    color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline,
+                    size: 24,
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: CircleAvatar(
+                    radius: 22,
+                    backgroundColor: statusColor.withValues(alpha: 0.12),
+                    child: Text(
+                      initial,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      contact.name ?? AppLocalizations.of(context).noName,
+                      contact.name ?? l10n.noName,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (contact.company != null || contact.position != null)
-                      Text(
-                        [contact.company, contact.position]
-                            .where((s) => s != null)
-                            .join(' · '),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          [contact.company, contact.position]
+                              .where((s) => s != null)
+                              .join(' · '),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    // 메모 미리보기
+                    if (contact.memo != null && contact.memo!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          contact.memo!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                   ],
                 ),
               ),
-              PopupMenuButton<CrmStatus>(
-                initialValue: contact.status,
-                onSelected: onStatusChanged,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _statusColor(contact.status).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    _crmStatusLabel(contact.status, l10n),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: _statusColor(contact.status),
+              if (!selectionMode)
+                PopupMenuButton<CrmStatus>(
+                  initialValue: contact.status,
+                  onSelected: onStatusChanged,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  ),
-                ),
-                itemBuilder: (_) => CrmStatus.values.map((s) {
-                  return PopupMenuItem(
-                    value: s,
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: _statusColor(s),
-                            shape: BoxShape.circle,
+                        Icon(_crmStatusIcon(contact.status), size: 12, color: statusColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          _crmStatusLabel(contact.status, l10n),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: statusColor,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(_crmStatusLabel(s, l10n)),
                       ],
                     ),
-                  );
-                }).toList(),
-              ),
+                  ),
+                  itemBuilder: (_) => CrmStatus.values.map((s) {
+                    return PopupMenuItem(
+                      value: s,
+                      child: Row(
+                        children: [
+                          Icon(_crmStatusIcon(s), size: 16, color: _crmStatusColor(s)),
+                          const SizedBox(width: 8),
+                          Text(_crmStatusLabel(s, l10n)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  Color _statusColor(CrmStatus status) {
-    switch (status) {
-      case CrmStatus.lead:
-        return Colors.grey;
-      case CrmStatus.contact:
-        return Colors.blue;
-      case CrmStatus.meeting:
-        return Colors.orange;
-      case CrmStatus.proposal:
-        return Colors.purple;
-      case CrmStatus.contract:
-        return Colors.teal;
-      case CrmStatus.closed:
-        return Colors.green;
-    }
   }
 }
 
@@ -2323,6 +2688,7 @@ class _CrmContactDetailScreenState
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: ChoiceChip(
+                    avatar: Icon(_crmStatusIcon(s), size: 14, color: _crmStatusColor(s)),
                     label: Text(_crmStatusLabel(s, l10n), style: const TextStyle(fontSize: 12)),
                     selected: selected,
                     onSelected: (_) {
@@ -2333,9 +2699,9 @@ class _CrmContactDetailScreenState
                       _updateStatus(s);
                     },
                     visualDensity: VisualDensity.compact,
-                    selectedColor: _statusColor(s).withValues(alpha: 0.2),
+                    selectedColor: _crmStatusColor(s).withValues(alpha: 0.2),
                     side: BorderSide(
-                      color: selected ? _statusColor(s) : theme.colorScheme.outline.withValues(alpha: 0.3),
+                      color: selected ? _crmStatusColor(s) : theme.colorScheme.outline.withValues(alpha: 0.3),
                     ),
                   ),
                 );
@@ -2630,23 +2996,6 @@ class _CrmContactDetailScreenState
     return '${date.month}/${date.day}';
   }
 
-  Color _statusColor(CrmStatus status) {
-    switch (status) {
-      case CrmStatus.lead:
-        return Colors.grey;
-      case CrmStatus.contact:
-        return Colors.blue;
-      case CrmStatus.meeting:
-        return Colors.orange;
-      case CrmStatus.proposal:
-        return Colors.purple;
-      case CrmStatus.contract:
-        return Colors.teal;
-      case CrmStatus.closed:
-        return Colors.green;
-    }
-  }
-
   Future<void> _updateStatus(CrmStatus status) async {
     await ref.read(supabaseServiceProvider)
         .updateCrmContactStatus(_contact.id, status);
@@ -2768,12 +3117,12 @@ class _ShareCodeSection extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: enabled
-              ? theme.colorScheme.primary.withValues(alpha: 0.35)
-              : theme.colorScheme.outline.withValues(alpha: 0.3),
+              ? theme.colorScheme.primary.withOpacity(0.35)
+              : theme.colorScheme.outline.withOpacity(0.3),
         ),
       ),
       child: Column(
@@ -2786,7 +3135,7 @@ class _ShareCodeSection extends StatelessWidget {
                 size: 18,
                 color: enabled
                     ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    : theme.colorScheme.onSurface.withOpacity(0.4),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -2796,7 +3145,7 @@ class _ShareCodeSection extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: enabled
                         ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        : theme.colorScheme.onSurface.withOpacity(0.6),
                   ),
                 ),
               ),
@@ -2823,7 +3172,7 @@ class _ShareCodeSection extends StatelessWidget {
                     : l10n.shareCodeDisabled,
                 style: TextStyle(
                   fontSize: 12,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                  color: theme.colorScheme.onSurface.withOpacity(0.45),
                 ),
               ),
             )
@@ -2839,7 +3188,7 @@ class _ShareCodeSection extends StatelessWidget {
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                        color: theme.colorScheme.primary.withOpacity(0.3),
                       ),
                     ),
                     child: Text(
@@ -2887,7 +3236,7 @@ class _ShareCodeSection extends StatelessWidget {
                 l10n.shareCodeObserverNote,
                 style: TextStyle(
                   fontSize: 11,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                  color: theme.colorScheme.onSurface.withOpacity(0.45),
                 ),
               ),
             ),

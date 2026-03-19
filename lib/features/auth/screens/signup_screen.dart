@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
-import '../../../core/utils/validators.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -23,7 +23,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
-  int _passwordStrength = 0;
+  int _passwordStrength = 0; // 0=none, 1=weak, 2=medium, 3=strong
 
   late AnimationController _entranceController;
   late Animation<double> _headerFade;
@@ -65,12 +65,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
       curve: const Interval(0.3, 0.8, curve: Curves.easeOutCubic),
     ));
     _entranceController.forward();
-    _passwordController.addListener(() {
-      final strength = Validators.passwordStrength(_passwordController.text);
-      if (strength != _passwordStrength) {
-        setState(() => _passwordStrength = strength);
-      }
-    });
   }
 
   @override
@@ -81,6 +75,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
     _confirmPasswordController.dispose();
     _entranceController.dispose();
     super.dispose();
+  }
+
+  int _calcPasswordStrength(String password) {
+    if (password.isEmpty) return 0;
+    int score = 0;
+    if (password.length >= 6) score++;
+    if (password.length >= 8 && RegExp(r'[A-Z]').hasMatch(password)) score++;
+    if (RegExp(r'[0-9]').hasMatch(password) &&
+        RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(password)) score++;
+    return score.clamp(0, 3);
   }
 
   Future<void> _signUp() async {
@@ -128,6 +132,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
           padding: EdgeInsets.symmetric(horizontal: hPadding),
           child: Form(
             key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -149,7 +154,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                         Text(
                           l10n.startCardManagement,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                         ),
                       ],
@@ -168,6 +173,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                         // Name
                         TextFormField(
                           controller: _nameController,
+                          inputFormatters: [LengthLimitingTextInputFormatter(20)],
                           decoration: InputDecoration(
                             hintText: l10n.name,
                             prefixIcon: const Icon(Icons.person_outlined, size: 20),
@@ -176,7 +182,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                             if (value == null || value.trim().isEmpty) {
                               return l10n.enterName;
                             }
-                            if (value.trim().length > Validators.maxNameLength) {
+                            if (value.trim().length > 20) {
                               return l10n.nameTooLong;
                             }
                             return null;
@@ -193,10 +199,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                             prefixIcon: const Icon(Icons.email_outlined, size: 20),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            if (value == null || value.trim().isEmpty) {
                               return l10n.enterEmail;
                             }
-                            if (!Validators.isValidEmail(value)) {
+                            final emailRegex = RegExp(r'^[\w\-.]+@([\w\-]+\.)+[\w\-]{2,}$');
+                            if (!emailRegex.hasMatch(value.trim())) {
                               return l10n.enterValidEmail;
                             }
                             return null;
@@ -208,6 +215,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
+                          onChanged: (value) {
+                            setState(() => _passwordStrength = _calcPasswordStrength(value));
+                          },
                           decoration: InputDecoration(
                             hintText: l10n.password,
                             prefixIcon:
@@ -233,48 +243,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                             return null;
                           },
                         ),
-                        // 비밀번호 강도 표시
-                        if (_passwordController.text.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6, bottom: 6),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(2),
-                                  child: LinearProgressIndicator(
-                                    value: _passwordStrength / 3.0,
-                                    backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                                    color: _passwordStrength <= 1
-                                        ? Colors.red.shade400
-                                        : _passwordStrength == 2
-                                        ? Colors.orange.shade400
-                                        : Colors.green.shade400,
-                                    minHeight: 4,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _passwordStrength <= 0
-                                      ? ''
-                                      : _passwordStrength == 1
-                                      ? l10n.passwordWeak
-                                      : _passwordStrength == 2
-                                      ? l10n.passwordMedium
-                                      : l10n.passwordStrong,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: _passwordStrength <= 1
-                                        ? Colors.red.shade400
-                                        : _passwordStrength == 2
-                                        ? Colors.orange.shade400
-                                        : Colors.green.shade400,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        if (_passwordStrength > 0) ...[
+                          const SizedBox(height: 8),
+                          _PasswordStrengthIndicator(
+                            strength: _passwordStrength,
+                            l10n: l10n,
+                            theme: theme,
                           ),
-                        const SizedBox(height: 6),
+                          const SizedBox(height: 8),
+                        ] else
+                          const SizedBox(height: 12),
 
                         // Confirm password
                         TextFormField(
@@ -334,7 +312,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.4),
+                                      .withOpacity(0.4),
                                 ),
                               ),
                             ),
@@ -391,6 +369,52 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PasswordStrengthIndicator extends StatelessWidget {
+  final int strength; // 1=weak, 2=medium, 3=strong
+  final AppLocalizations l10n;
+  final ThemeData theme;
+
+  const _PasswordStrengthIndicator({
+    required this.strength,
+    required this.l10n,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (strength) {
+      1 => (l10n.passwordWeak, Colors.red),
+      2 => (l10n.passwordMedium, Colors.orange),
+      3 => (l10n.passwordStrong, Colors.green),
+      _ => ('', Colors.transparent),
+    };
+
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: strength / 3,
+              backgroundColor: theme.colorScheme.outline.withValues(alpha: 0.2),
+              color: color,
+              minHeight: 4,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

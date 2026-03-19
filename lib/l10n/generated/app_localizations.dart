@@ -25,7 +25,6 @@ abstract class AppLocalizations {
   static const List<Locale> supportedLocales = [
     Locale('ko'),
     Locale('en'),
-    Locale('zh'),
   ];
 
   // ── Common ──
@@ -81,12 +80,12 @@ abstract class AppLocalizations {
   String get enterName;
   String get passwordTooShort;
   String get passwordMismatch;
-  String get signUpComplete;
-  String get startCardManagement;
   String get nameTooLong;
   String get passwordWeak;
   String get passwordMedium;
   String get passwordStrong;
+  String get signUpComplete;
+  String get startCardManagement;
 
   // ── Profile ──
   String get personalInfo;
@@ -364,6 +363,21 @@ abstract class AppLocalizations {
   String get phone;
   String get crmContact;
 
+  // ── CRM Multi-select & Sort ──
+  String get sortBy;
+  String get sortByRecent;
+  String get sortByStatus;
+  String selectedCount(int count);
+  String get selectAll;
+  String get deselectAll;
+  String get batchStatusChange;
+  String get batchDelete;
+  String confirmBatchDelete(int count);
+  String batchStatusChanged(int count);
+  String batchDeleted(int count);
+  String get longPressToSelect;
+  String get conversionRate;
+
   // ── Share Code ──
   String get teamShareCode;
   String get shareCodeEnabledHint;
@@ -410,12 +424,11 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      ['ko', 'en', 'zh'].contains(locale.languageCode);
+      ['ko', 'en'].contains(locale.languageCode);
 
   @override
   Future<AppLocalizations> load(Locale locale) async {
     if (locale.languageCode == 'en') return AppLocalizationsEn(locale);
-    if (locale.languageCode == 'zh') return AppLocalizationsZh(locale);
     return AppLocalizationsKo(locale);
   }
 
@@ -478,12 +491,12 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get enterName => '이름을 입력해주세요';
   @override String get passwordTooShort => '비밀번호는 6자 이상이어야 합니다';
   @override String get passwordMismatch => '비밀번호가 일치하지 않습니다';
-  @override String get signUpComplete => '회원가입이 완료되었습니다. 이메일을 확인해주세요.';
-  @override String get startCardManagement => '명함 관리를 시작하세요';
-  @override String get nameTooLong => '이름이 너무 깁니다';
+  @override String get nameTooLong => '이름은 20자 이내로 입력해주세요';
   @override String get passwordWeak => '약함';
   @override String get passwordMedium => '보통';
   @override String get passwordStrong => '강함';
+  @override String get signUpComplete => '회원가입이 완료되었습니다. 이메일을 확인해주세요.';
+  @override String get startCardManagement => '명함 관리를 시작하세요';
 
   @override String get personalInfo => '개인정보';
   @override String get enterNameHint => '이름을 입력하세요';
@@ -756,6 +769,21 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get phone => '전화';
   @override String get crmContact => 'CRM 연락처';
 
+  // ── CRM Multi-select & Sort ──
+  @override String get sortBy => '정렬';
+  @override String get sortByRecent => '최근 업데이트순';
+  @override String get sortByStatus => '상태순';
+  @override String selectedCount(int count) => '${count}개 선택';
+  @override String get selectAll => '전체 선택';
+  @override String get deselectAll => '선택 해제';
+  @override String get batchStatusChange => '상태 일괄 변경';
+  @override String get batchDelete => '일괄 삭제';
+  @override String confirmBatchDelete(int count) => '${count}개 연락처를 삭제하시겠습니까?\n모든 관련 노트도 함께 삭제됩니다.';
+  @override String batchStatusChanged(int count) => '${count}개 연락처의 상태가 변경되었습니다';
+  @override String batchDeleted(int count) => '${count}개 연락처가 삭제되었습니다';
+  @override String get longPressToSelect => '길게 눌러 선택';
+  @override String get conversionRate => '전환율';
+
   // ── Share Code ──
   @override String get teamShareCode => '팀 공유코드';
   @override String get shareCodeEnabledHint => '공유코드를 활성화하면 누구나 코드로 팀에 참가할 수 있습니다';
@@ -852,12 +880,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get enterName => 'Please enter your name';
   @override String get passwordTooShort => 'Password must be at least 6 characters';
   @override String get passwordMismatch => 'Passwords do not match';
-  @override String get signUpComplete => 'Sign up complete. Please check your email.';
-  @override String get startCardManagement => 'Start managing business cards';
-  @override String get nameTooLong => 'Name is too long';
+  @override String get nameTooLong => 'Name must be 20 characters or less';
   @override String get passwordWeak => 'Weak';
   @override String get passwordMedium => 'Medium';
   @override String get passwordStrong => 'Strong';
+  @override String get signUpComplete => 'Sign up complete. Please check your email.';
+  @override String get startCardManagement => 'Start managing business cards';
 
   @override String get personalInfo => 'Personal Info';
   @override String get enterNameHint => 'Enter your name';
@@ -1137,6 +1165,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get phone => 'Phone';
   @override String get crmContact => 'CRM Contact';
 
+  // ── CRM Multi-select & Sort ──
+  @override String get sortBy => 'Sort';
+  @override String get sortByRecent => 'Recently Updated';
+  @override String get sortByStatus => 'By Status';
+  @override String selectedCount(int count) => '$count selected';
+  @override String get selectAll => 'Select All';
+  @override String get deselectAll => 'Deselect All';
+  @override String get batchStatusChange => 'Change Status';
+  @override String get batchDelete => 'Delete';
+  @override String confirmBatchDelete(int count) => "Delete $count contacts?\nAll related notes will also be deleted.";
+  @override String batchStatusChanged(int count) => 'Status changed for $count contacts';
+  @override String batchDeleted(int count) => '$count contacts deleted';
+  @override String get longPressToSelect => 'Long press to select';
+  @override String get conversionRate => 'Conversion';
+
   // ── Share Code ──
   @override String get teamShareCode => 'Team Share Code';
   @override String get shareCodeEnabledHint => 'When enabled, anyone can join the team with the code';
@@ -1176,378 +1219,4 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get crmStatusProposal => 'Proposal';
   @override String get crmStatusContract => 'Contract';
   @override String get crmStatusClosed => 'Closed';
-}
-
-// ──────────────── Chinese ────────────────
-
-class AppLocalizationsZh extends AppLocalizations {
-  AppLocalizationsZh(super.locale);
-
-  @override String get appTitle => 'Mapae';
-  @override String get cancel => '取消';
-  @override String get save => '保存';
-  @override String get confirm => '确认';
-  @override String get edit => '编辑';
-  @override String get delete => '删除';
-  @override String get orDivider => '或';
-  @override String get add => '添加';
-  @override String get manage => '管理';
-  @override String get create => '创建';
-  @override String get share => '分享';
-  @override String get join => '加入';
-  @override String get leave => '退出';
-  @override String get copy => '复制';
-  @override String get remove => '移除';
-  @override String get close => '关闭';
-  @override String get noName => '无名';
-  @override String get saved => '已保存';
-  @override String get required => '必填';
-  @override String get inputForm => '输入表单';
-  @override String get defaultForm => '默认';
-  @override String errorMsg(String e) => '错误: $e';
-  @override String get cardNotFound => '找不到名片';
-  @override String saveFailed(String e) => '保存失败: $e';
-
-  @override String get home => '首页';
-  @override String get wallet => '名片夹';
-  @override String get management => '管理';
-
-  @override String get login => '登录';
-  @override String get signUp => '注册';
-  @override String get loginWithGoogle => '使用Google登录';
-  @override String get loginWithKakao => '使用Kakao登录';
-  @override String get signUpWithGoogle => '使用Google注册';
-  @override String get email => '邮箱';
-  @override String get password => '密码';
-  @override String get name => '姓名';
-  @override String get confirmPassword => '确认密码';
-  @override String get forgotPassword => '忘记密码？';
-  @override String get logout => '退出登录';
-  @override String get logoutConfirm => '确定要退出登录吗？';
-  @override String get profile => '个人资料';
-  @override String get autoLogin => '自动登录';
-  @override String get noAccount => '没有账号？';
-  @override String get enterEmail => '请输入邮箱';
-  @override String get enterValidEmail => '请输入有效的邮箱';
-  @override String get enterPassword => '请输入密码';
-  @override String get enterName => '请输入姓名';
-  @override String get passwordTooShort => '密码至少需要6个字符';
-  @override String get passwordMismatch => '密码不一致';
-  @override String get signUpComplete => '注册完成，请查看邮箱。';
-  @override String get startCardManagement => '开始管理名片';
-  @override String get nameTooLong => '姓名太长';
-  @override String get passwordWeak => '弱';
-  @override String get passwordMedium => '中等';
-  @override String get passwordStrong => '强';
-
-  @override String get personalInfo => '个人信息';
-  @override String get enterNameHint => '请输入姓名';
-  @override String get nameChanged => '姓名已更改。';
-  @override String get deleteAccount => '注销账号';
-  @override String get deleteAccountWarning => '所有数据将被删除且无法恢复。\n请输入密码以确认。';
-  @override String get incorrectPassword => '密码不正确';
-  @override String get withdraw => '注销';
-  @override String get setPasswordTitle => '设置密码';
-  @override String get setPasswordDescription => '为了账号安全，请设置密码。\n之后也可以使用邮箱登录。';
-  @override String get setPasswordHint => '密码（至少6位）';
-  @override String get confirmPasswordHint => '确认密码';
-  @override String get passwordSet => '密码已设置。';
-
-  @override String get cardDetail => '名片详情';
-  @override String get addCard => '添加名片';
-  @override String get editCard => '编辑名片';
-  @override String get addCardImage => '添加名片图片';
-  @override String get takePhoto => '拍照';
-  @override String get chooseFromGallery => '从相册选择';
-  @override String get scanningCard => '正在识别名片...';
-  @override String get scanningText => '正在识别名片文字...';
-  @override String scanTextFailed(String e) => '文字识别失败: $e';
-  @override String get scanComplete => '识别完成';
-  @override String get scanFailed => '识别失败，请重试。';
-  @override String get shareCard => '分享名片';
-  @override String get shareViaSns => '通过SNS分享';
-  @override String get cardShared => '名片已分享。';
-  @override String get noCards => '暂无名片。';
-  @override String get noMyCards => '暂无已注册的名片。';
-  @override String get swipeToSeeMore => '左右滑动查看更多名片';
-  @override String get openCard => '查看名片';
-  @override String get sortByDate => '按日期';
-  @override String get sortByName => '按姓名';
-  @override String totalCards(int count) => '共 $count 张名片';
-  @override String cardSharedTeamWarning(int count) =>
-      '此名片已分享给 $count 个团队。\n仅从个人名片夹中删除，团队共享名片将保留。';
-
-  @override String get companyName => '公司';
-  @override String get position => '职位';
-  @override String get department => '部门';
-  @override String get phoneNumber => '电话';
-  @override String get mobileNumber => '手机';
-  @override String get faxNumber => '传真';
-  @override String get address => '地址';
-  @override String get website => '网站';
-  @override String get memo => '备注';
-
-  @override String get category => '分类';
-  @override String get allCategories => '全部';
-  @override String get addCategory => '添加分类';
-  @override String get categoryName => '分类名称';
-  @override String get noCategories => '暂无分类';
-  @override String get categoryManagement => '分类管理';
-  @override String get addCategoryTitle => '添加团队分类';
-  @override String get assignCategory => '指定分类';
-  @override String get categorySelectOptional => '选择分类（可选）';
-  @override String get shareWithoutCategory => '不分类直接分享';
-  @override String get deleteCategoryTitle => '删除分类';
-  @override String deleteCategoryConfirm(String name) =>
-      '删除分类 \'$name\'？\n该分类下的名片将变为未分类。';
-  @override String get createTeamCategory => '创建团队分类';
-  @override String categoryAdded(String name) => '分类 \'$name\' 已添加';
-  @override String get categoryDeleted => '分类已删除';
-  @override String categoryDeleteFailed(String e) => '分类删除失败: $e';
-  @override String categoryAssignFailed(String e) => '分类指定失败: $e';
-  @override String categoryCreateFailed(String e) => '分类创建失败: $e';
-
-  @override String get myCards => '我的名片';
-  @override String get addMyCard => '添加我的名片';
-  @override String get editMyCard => '编辑我的名片';
-  @override String get addMyCardHint => '在管理标签页中添加您的名片';
-
-  @override String get team => '团队';
-  @override String get teamManagement => '团队管理';
-  @override String get createTeam => '创建团队';
-  @override String get joinTeam => '加入团队';
-  @override String get teamName => '团队名称';
-  @override String get teamMembers => '团队成员';
-  @override String get sharedCards => '共享名片';
-  @override String get shareToTeam => '分享给团队';
-  @override String get crmIntegration => 'CRM集成';
-  @override String get noTeams => '暂无团队';
-  @override String get deleteTeam => '删除团队';
-  @override String get deleteTeamConfirm => '删除团队将移除所有成员和共享名片。\n确定删除吗？';
-  @override String get leaveTeam => '退出团队';
-  @override String get leaveTeamConfirm => '确定要退出团队吗？';
-  @override String get teamShareCodeHint => '输入团队共享码以Observer身份加入。';
-  @override String get shareCodePlaceholder => '8位共享码';
-  @override String joinedTeam(String name) => '已作为Observer加入 \'$name\'';
-  @override String get joinFailed => '加入失败：请输入有效的共享码';
-  @override String get alreadyMember => '您已经是该团队的成员';
-  @override String get invalidShareCode => '无效或已禁用的共享码';
-  @override String get noCardsInCategory => '此分类下暂无名片';
-  @override String get noSharedCards => '暂无共享名片';
-  @override String get shareCardAction => '分享名片';
-  @override String get unshareTitle => '取消分享';
-  @override String unshareConfirm(String name) =>
-      '将 \'$name\' 从团队分享中移除？\n您名片夹中的名片将保留。';
-  @override String get unshareSuccess => '已取消分享';
-  @override String unshareFailed(String e) => '取消分享失败: $e';
-  @override String get copyToWalletSuccess => '名片已复制到名片夹';
-  @override String copyFailed(String e) => '复制失败: $e';
-  @override String get duplicateCard => '重复名片';
-  @override String get duplicateCardConfirm => '此名片已存在。是否仍要复制？';
-  @override String get selectCardToShare => '选择要分享的名片';
-  @override String get noCardsInWallet => '名片夹中暂无名片';
-  @override String get alreadyShared => '此名片已分享';
-  @override String get teamSharedSuccess => '名片已分享给团队';
-  @override String shareFailed(String e) => '分享失败: $e';
-
-  @override String get contextTag => '场景标签';
-  @override String get addContextTag => '添加标签';
-  @override String get tagTemplate => '标签模板';
-  @override String get createTagTemplate => '创建标签模板';
-  @override String get templateName => '模板名称';
-  @override String get addField => '添加字段';
-  @override String get fieldName => '字段名称';
-  @override String get fieldType => '字段类型';
-  @override String get textField => '文本';
-  @override String get dateField => '日期';
-  @override String get selectField => '选择';
-  @override String get metLocation => '会面地点';
-  @override String get metDate => '会面日期';
-  @override String get notes => '备注事项';
-  @override String get noTagTemplates => '暂无标签模板';
-  @override String get tagTemplateHint => '创建格式以记录\n会面情况和名片备注';
-  @override String get createTemplate => '创建模板';
-  @override String get contextTagTemplate => '场景标签模板';
-  @override String get tagTemplateDescription => '管理用于记录会面情况和名片备注的标签格式';
-
-  @override String get call => '电话';
-  @override String get sendMessage => '短信';
-  @override String get sendEmail => '发送邮件';
-  @override String get openSns => '打开SNS';
-  @override String incomingCallFrom(String name) => '$name来电';
-
-  @override String get settings => '设置';
-  @override String get language => '语言';
-  @override String get darkMode => '深色模式';
-  @override String get notifications => '通知';
-  @override String get version => '版本';
-  @override String get korean => '한국어';
-  @override String get english => 'English';
-
-  @override String get removeAds => '移除广告';
-  @override String get applied => '已应用';
-  @override String get premiumTitle => '无广告 Mapae';
-  @override String get premiumDescription => '永久移除名片列表中的广告。';
-  @override String get removeAdsCompletely => '完全移除名片列表广告';
-  @override String get oneTimePurchase => '一次购买 · 终身有效';
-  @override String get restoreOnDevices => '同一账号设备可恢复';
-  @override String get purchaseButton => '¥7 · 移除广告';
-  @override String get restorePurchase => '恢复购买';
-  @override String get noPurchaseToRestore => '没有可恢复的购买记录。';
-
-  @override String get deleteConfirmTitle => '删除名片';
-  @override String get deleteConfirmMessage => '确定要删除这张名片吗？';
-
-  // ── Invite Member ──
-  @override String get inviteMember => '邀请成员';
-  @override String get inviteMemberHint => '通过邮箱搜索用户并邀请';
-  @override String get emailAddressHint => '输入邮箱地址';
-  @override String get cannotInviteSelf => '不能邀请自己';
-  @override String get alreadyTeamMember => '已经是团队成员';
-  @override String get searchError => '搜索时出错';
-  @override String get alreadyInvited => '已发送邀请';
-  @override String inviteSent(String name) => '已向 $name 发送邀请';
-  @override String get inviteError => '发送邀请时出错';
-  @override String get noSearchResults => '未找到结果';
-  @override String get invite => '邀请';
-  @override String get inviteConfirmTitle => '确认邀请';
-  @override String inviteConfirmMessage(String name) => '邀请 $name 加入团队？';
-
-  // ── Share / QuickShare ──
-  @override String get shareViaSnsSubtitle => '微信、短信等';
-  @override String get quickShare => '快速分享';
-  @override String get quickShareSubtitle => '与附近快速分享用户实时交换名片';
-  @override String get startExchange => '开始交换';
-  @override String get done => '完成';
-  @override String get scanning => '搜索附近...';
-  @override String get quickShareScanningDesc => '仅显示当前打开快速分享的用户。';
-  @override String get quickShareDiscoveredDesc => '选择要交换名片的用户。';
-  @override String get quickShareExchangingDesc => '正在交换名片。';
-  @override String get quickShareCompletedDesc => '双方名片已保存到各自的名片夹中。';
-  @override String nearbyUsers(int count) => '附近 $count 位用户';
-  @override String exchangeCompleted(String name) => '与 $name 的名片交换已完成。';
-  @override String get exchangeTimeout => '响应超时，请重试。';
-  @override String get exchangeInProgress => '正在交换名片...';
-  @override String get cardExchangeComplete => '名片交换完成';
-  @override String get myCard => '我的名片';
-  @override String get opponent => '对方';
-  @override String get shareCardContent => '📇 使用Mapae应用保存这张名片:';
-  @override String shareCardTitle(String name) => '名片分享 - $name';
-
-  // ── Scan Card ──
-  @override String get scanCard => '扫描名片';
-  @override String get scanCardSubtitle => '使用相机扫描或从相册选择';
-  @override String get processingCard => '正在处理名片...';
-  @override String get recognizingText => '正在识别文字...';
-  @override String get savingInfo => '正在保存信息...';
-  @override String get cardAdded => '名片已添加';
-  @override String recognitionFailed(String e) => '识别失败: $e';
-  @override String get loginRequired => '需要登录';
-
-  // ── Team Members / Roles ──
-  @override String get promoteMember => '升级为成员';
-  @override String get demoteToObserver => '降级为观察者';
-  @override String get transferOwnership => '转让所有权';
-  @override String get kickFromTeam => '从团队移除';
-  @override String get kick => '移除';
-  @override String get kickMemberTitle => '移除成员';
-  @override String get thisMember => '此成员';
-  @override String kickMemberConfirm(String name) => '将 $name 从团队中移除？';
-  @override String transferOwnershipContent(String name) =>
-      '将Owner权限转让给 $name？\n转让后您将变为Member。';
-  @override String get transferProceed => '转让';
-  @override String get finalConfirm => '最终确认';
-  @override String finalTransferConfirm(String name) =>
-      '确定将Owner转让给 $name？\n此操作不可撤销。';
-  @override String get transferSuccess => '所有权已转让';
-  @override String transferFailed(String e) => '转让失败: $e';
-  @override String get finalTransferBtn => '确认转让';
-  @override String get roleOwner => 'Owner（所有者）';
-  @override String get roleMember => 'Member（成员）';
-  @override String get roleObserver => 'Observer（观察者）';
-  @override String changeFailed(String e) => '更改失败: $e';
-  @override String get shareCodeRegenerated => '共享码已重新生成';
-  @override String regenFailed(String e) => '重新生成失败: $e';
-
-  // ── CRM ──
-  @override String get noPermissionObserver => '没有权限。Observer无法编辑CRM';
-  @override String loadFailed(String e) => '加载失败: $e';
-  @override String get searchHint => '搜索...';
-  @override String get pipelineView => '管道视图';
-  @override String get noContacts => '暂无CRM联系人';
-  @override String get addContactHint => '从共享名片导入或手动添加';
-  @override String get importFromSharedCards => '从共享名片导入';
-  @override String get addManually => '手动添加';
-  @override String get pipeline => '管道';
-  @override String totalPeople(int count) => '共 $count 人';
-  @override String get crmSetupRequired => '需要设置CRM';
-  @override String get crmSetupInstruction => '请在Supabase SQL Editor中\n运行 migration_crm.sql。';
-  @override String get retry => '重试';
-  @override String get addCrmContact => '添加CRM联系人';
-  @override String get company => '公司';
-  @override String get jobTitle => '职位';
-  @override String importedContacts(int count) => '已导入 $count 个联系人';
-  @override String get importAll => '全部导入';
-  @override String get noNewCards => '没有可导入的新名片';
-  @override String contactAddedFromCard(String name) => '\'$name\' 已添加到CRM';
-  @override String get contactAdded => '联系人已添加';
-  @override String get contactInfo => '联系人信息';
-  @override String get noInfo => '暂无信息';
-  @override String get editInfo => '编辑信息';
-  @override String get activityNotes => '活动笔记';
-  @override String noteCount(int count) => '$count 条';
-  @override String get noteHint => '输入笔记...';
-  @override String get noNotes => '暂无笔记';
-  @override String get unknown => '未知';
-  @override String get justNow => '刚刚';
-  @override String minutesAgo(int n) => '$n分钟前';
-  @override String hoursAgo(int n) => '$n小时前';
-  @override String daysAgo(int n) => '$n天前';
-  @override String get deleteContact => '删除联系人';
-  @override String get thisContact => '此联系人';
-  @override String deleteContactConfirm(String name) =>
-      '删除 \'$name\'？\n所有笔记也将一并删除。';
-  @override String get status => '状态';
-  @override String get phone => '电话';
-  @override String get crmContact => 'CRM联系人';
-
-  // ── Share Code ──
-  @override String get teamShareCode => '团队共享码';
-  @override String get shareCodeEnabledHint => '启用后，任何人都可以使用共享码加入团队';
-  @override String get shareCodeDisabled => '共享码已禁用';
-  @override String get codeGenerating => '正在生成码...';
-  @override String get shareCodeCopied => '共享码已复制';
-  @override String get regenerateCode => '重新生成码';
-  @override String get shareCodeObserverNote => '使用此码加入的用户将以Observer身份开始';
-
-  // ── Notifications ──
-  @override String get noNotifications => '暂无新通知';
-  @override String get teamInvitation => '团队邀请';
-  @override String inviteAccepted(String teamName) => '已接受 $teamName 的邀请';
-  @override String get declineInvite => '拒绝邀请';
-  @override String declineInviteConfirm(String teamName) => '拒绝 $teamName 的邀请？';
-  @override String get decline => '拒绝';
-  @override String get inviteDeclined => '已拒绝邀请';
-  @override String get accept => '接受';
-  @override String inviterDescription(String inviterName, String teamName) =>
-      '$inviterName 邀请您加入 \'$teamName\' 团队。';
-
-  // ── Shared Card Receive ──
-  @override String get expiredShareLink => '此分享链接已过期或不存在。';
-  @override String get cannotLoadCard => '无法加载名片。';
-  @override String get saveToWallet => '保存到名片夹';
-  @override String get goBack => '返回';
-
-  // ── Search / Category ──
-  @override String get selectCategory => '选择分类';
-  @override String get noCategoriesHint => '暂无分类\n使用上方的 + 按钮添加';
-  @override String get searchCardHint => '按姓名、公司或职位搜索';
-
-  // ── CRM Pipeline Status ──
-  @override String get crmStatusLead => '线索';
-  @override String get crmStatusContact => '联系';
-  @override String get crmStatusMeeting => '会议';
-  @override String get crmStatusProposal => '提案';
-  @override String get crmStatusContract => '合同';
-  @override String get crmStatusClosed => '完成';
 }
