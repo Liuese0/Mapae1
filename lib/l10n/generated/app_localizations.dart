@@ -80,6 +80,10 @@ abstract class AppLocalizations {
   String get enterName;
   String get passwordTooShort;
   String get passwordMismatch;
+  String get nameTooLong;
+  String get passwordWeak;
+  String get passwordMedium;
+  String get passwordStrong;
   String get signUpComplete;
   String get startCardManagement;
 
@@ -487,6 +491,10 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get enterName => '이름을 입력해주세요';
   @override String get passwordTooShort => '비밀번호는 6자 이상이어야 합니다';
   @override String get passwordMismatch => '비밀번호가 일치하지 않습니다';
+  @override String get nameTooLong => '이름은 20자 이내로 입력해주세요';
+  @override String get passwordWeak => '약함';
+  @override String get passwordMedium => '보통';
+  @override String get passwordStrong => '강함';
   @override String get signUpComplete => '회원가입이 완료되었습니다. 이메일을 확인해주세요.';
   @override String get startCardManagement => '명함 관리를 시작하세요';
 
@@ -872,6 +880,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get enterName => 'Please enter your name';
   @override String get passwordTooShort => 'Password must be at least 6 characters';
   @override String get passwordMismatch => 'Passwords do not match';
+  @override String get nameTooLong => 'Name must be 20 characters or less';
+  @override String get passwordWeak => 'Weak';
+  @override String get passwordMedium => 'Medium';
+  @override String get passwordStrong => 'Strong';
   @override String get signUpComplete => 'Sign up complete. Please check your email.';
   @override String get startCardManagement => 'Start managing business cards';
 
