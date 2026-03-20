@@ -166,36 +166,43 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   }
 
   /// Enhance scanned card image: edge detection → perspective correction → color enhancement.
-  /// Falls back to raw image bytes on any failure.
+  /// Falls back to raw image bytes on any failure or timeout.
   Future<Uint8List> _enhanceImage(File imageFile) async {
     try {
       final rawBytes = await imageFile.readAsBytes();
-      final processingService = ref.read(imageProcessingServiceProvider);
-
-      // Decode image for edge detection
-      final decoded = await compute(_decodeImageIsolate, rawBytes);
-      if (decoded == null) return rawBytes;
-
-      // Detect card edges
-      final corners = processingService.detectCardEdges(decoded);
-
-      File workingFile = imageFile;
-
-      // Apply perspective correction if edges found
-      if (corners != null) {
-        workingFile = await processingService.perspectiveCorrect(
-          workingFile,
-          corners,
-        );
-      }
-
-      // Apply color/light enhancement
-      final enhanced = await processingService.enhanceCardImage(workingFile);
-      return await enhanced.readAsBytes();
+      return await _runEnhancement(rawBytes, imageFile).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => rawBytes,
+      );
     } catch (e) {
       debugPrint('[ScanCardSheet] Image enhancement failed, using raw: $e');
       return await imageFile.readAsBytes();
     }
+  }
+
+  Future<Uint8List> _runEnhancement(Uint8List rawBytes, File imageFile) async {
+    final processingService = ref.read(imageProcessingServiceProvider);
+
+    // Decode image for edge detection
+    final decoded = await compute(_decodeImageIsolate, rawBytes);
+    if (decoded == null) return rawBytes;
+
+    // Detect card edges
+    final corners = processingService.detectCardEdges(decoded);
+
+    File workingFile = imageFile;
+
+    // Apply perspective correction if edges found
+    if (corners != null) {
+      workingFile = await processingService.perspectiveCorrect(
+        workingFile,
+        corners,
+      );
+    }
+
+    // Apply color/light enhancement
+    final enhanced = await processingService.enhanceCardImage(workingFile);
+    return await enhanced.readAsBytes();
   }
 
   static img.Image? _decodeImageIsolate(Uint8List bytes) {
