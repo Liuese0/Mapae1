@@ -295,6 +295,7 @@ abstract class AppLocalizations {
   String get processingCard;
   String get recognizingText;
   String get savingInfo;
+  String get enhancingImage;
   String get cardAdded;
   String recognitionFailed(String e);
   String get loginRequired;
@@ -734,6 +735,7 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get processingCard => '명함 인식 중...';
   @override String get recognizingText => '문자 인식 중...';
   @override String get savingInfo => '정보 저장 중...';
+  @override String get enhancingImage => '이미지 보정 중...';
   @override String get cardAdded => '명함이 추가되었습니다';
   @override String recognitionFailed(String e) => '인식 실패: $e';
   @override String get loginRequired => '로그인이 필요합니다';
@@ -1166,6 +1168,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get processingCard => 'Processing card...';
   @override String get recognizingText => 'Recognizing text...';
   @override String get savingInfo => 'Saving info...';
+  @override String get enhancingImage => 'Enhancing image...';
   @override String get cardAdded => 'Card added';
   @override String recognitionFailed(String e) => 'Recognition failed: $e';
   @override String get loginRequired => 'Login required';

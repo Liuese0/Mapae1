@@ -115,19 +115,31 @@ class CardListTile extends StatelessWidget {
                 ),
 
               // Right side: card image thumbnail
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: card.imageUrl != null
-                    ? CachedNetworkImage(
-                  imageUrl: card.imageUrl!,
-                  width: 80,
-                  height: 48,
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) => _buildPlaceholder(theme),
-                  errorWidget: (_, __, ___) =>
-                      _buildPlaceholder(theme),
-                )
-                    : _buildPlaceholder(theme),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.shadow.withValues(alpha: 0.08),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: card.imageUrl != null
+                      ? CachedNetworkImage(
+                    imageUrl: card.imageUrl!,
+                    width: 80,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => _buildPlaceholder(theme),
+                    errorWidget: (_, __, ___) =>
+                        _buildPlaceholder(theme),
+                  )
+                      : _buildPlaceholder(theme),
+                ),
               ),
             ],
           ),

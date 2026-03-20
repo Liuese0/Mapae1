@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,15 +67,54 @@ class CardDetailScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Card image
+                // Card image - digital card style
                 if (card.imageUrl != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      card.imageUrl!,
-                      width: double.infinity,
-                      height: 200,
-                      fit: BoxFit.cover,
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.shadow.withValues(alpha: 0.15),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                        BoxShadow(
+                          color: theme.colorScheme.shadow.withValues(alpha: 0.06),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: 1.75, // Standard business card ratio (3.5 x 2 inches)
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: CachedNetworkImage(
+                          imageUrl: card.imageUrl!,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            child: Center(
+                              child: Icon(
+                                Icons.credit_card,
+                                size: 40,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                              ),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => Container(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            child: Center(
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                size: 40,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 const SizedBox(height: 24),
