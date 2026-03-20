@@ -5,498 +5,429 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mapae - 광고 영상 제작</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    font-family:'Noto Sans KR',sans-serif;
-    background:#111;
-    color:#fff;
-    min-height:100vh;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    padding:20px;
-  }
-  h1{font-size:24px;margin-bottom:8px;font-weight:700}
-  .subtitle{font-size:14px;color:#888;margin-bottom:24px}
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Noto Sans KR',sans-serif;
+  background:#f0f0f0;color:#222;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px;
+}
+h1{font-size:22px;margin-bottom:6px;font-weight:700;color:#111}
+.sub{font-size:13px;color:#999;margin-bottom:18px}
 
-  /* Upload Section */
-  #uploadSection{
-    width:100%;
-    max-width:900px;
-    margin-bottom:30px;
-  }
-  .upload-grid{
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
-    gap:12px;
-    margin-bottom:20px;
-  }
-  .upload-slot{
-    aspect-ratio:9/19.5;
-    border:2px dashed rgba(255,255,255,0.2);
-    border-radius:16px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    position:relative;
-    overflow:hidden;
-    transition:all 0.3s;
-    background:rgba(255,255,255,0.03);
-  }
-  .upload-slot:hover{border-color:rgba(76,175,80,0.6);background:rgba(76,175,80,0.05)}
-  .upload-slot.filled{border-color:#4CAF50;border-style:solid}
-  .upload-slot img{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    border-radius:14px;
-  }
-  .upload-slot .label{
-    font-size:11px;
-    color:#888;
-    text-align:center;
-    padding:4px 8px;
-    z-index:1;
-  }
-  .upload-slot .label .num{
-    display:block;
-    font-size:28px;
-    font-weight:900;
-    color:rgba(255,255,255,0.15);
-    margin-bottom:4px;
-  }
-  .upload-slot input[type=file]{display:none}
+/* Upload */
+.upload-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:10px;
+  width:100%;max-width:800px;margin-bottom:20px;
+}
+.upload-slot{
+  aspect-ratio:9/19.5;border:2px dashed #ccc;border-radius:14px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;overflow:hidden;transition:.3s;background:#fafafa;
+}
+.upload-slot:hover{border-color:#888;background:#f5f5f5}
+.upload-slot.filled{border-color:#333;border-style:solid}
+.upload-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:12px}
+.upload-slot .lb{font-size:10px;color:#aaa;text-align:center;z-index:1}
+.upload-slot .lb b{display:block;font-size:22px;color:#ddd;margin-bottom:2px}
+.upload-slot input[type=file]{display:none}
 
-  /* Controls */
-  #controls{
-    display:flex;
-    gap:12px;
-    margin-bottom:16px;
-    flex-wrap:wrap;
-    justify-content:center;
-  }
-  #controls button{
-    padding:14px 28px;
-    border:none;
-    border-radius:12px;
-    font-size:15px;
-    font-weight:700;
-    cursor:pointer;
-    font-family:'Noto Sans KR',sans-serif;
-    transition:all 0.2s;
-  }
-  #controls button:hover{transform:scale(1.05)}
-  #controls button:disabled{opacity:0.4;cursor:not-allowed;transform:none}
-  .btn-play{background:#4CAF50;color:#fff}
-  .btn-record{background:#f44336;color:#fff}
-  .btn-dl{background:#2196F3;color:#fff;display:none}
-  .btn-dl.show{display:inline-block}
-  #status{font-size:13px;color:#aaa;margin-bottom:16px;text-align:center;min-height:18px}
+/* Controls */
+.ctrls{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;justify-content:center}
+.ctrls button{
+  padding:12px 24px;border:none;border-radius:10px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:.2s;
+}
+.ctrls button:hover{transform:scale(1.05)}
+.ctrls button:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.bp{background:#222;color:#fff}
+.br{background:#555;color:#fff}
+.bd{background:#888;color:#fff;display:none}
+.bd.show{display:inline-block}
+#status{font-size:12px;color:#999;margin-bottom:14px;text-align:center;min-height:16px}
 
-  /* Stage */
-  #stage{
-    width:390px;
-    height:693px;
-    position:relative;
-    overflow:hidden;
-    background:#0a0a0a;
-    border-radius:24px;
-    box-shadow:0 0 80px rgba(0,0,0,0.9);
-    flex-shrink:0;
-  }
+/* Stage 9:16 */
+#stage{
+  width:360px;height:640px;position:relative;overflow:hidden;
+  background:#fff;border-radius:20px;
+  box-shadow:0 2px 40px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.06);
+  flex-shrink:0;
+}
 
-  /* Scenes */
-  .scene{
-    position:absolute;
-    inset:0;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    opacity:0;
-    transition:opacity 0.7s ease;
-  }
-  .scene.active{opacity:1}
+/* Particles (light) */
+.particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.particle{
+  position:absolute;border-radius:50%;
+  background:rgba(0,0,0,.04);
+  animation:floatP var(--d,8s) var(--dl,0s) linear infinite;
+}
+@keyframes floatP{
+  0%{transform:translateY(700px) scale(0);opacity:0}
+  10%{opacity:1}90%{opacity:1}
+  100%{transform:translateY(-60px) scale(1);opacity:0}
+}
 
-  /* Scene 1: Hook */
-  .s1{background:linear-gradient(170deg,#0f0f1a,#1a1a2e)}
-  .s1 .cards-pile{position:relative;width:280px;height:180px;margin-bottom:40px}
-  .s1 .pile-card{
-    position:absolute;width:240px;height:145px;
-    background:linear-gradient(135deg,#2a2a3a,#3a3a4a);
-    border-radius:12px;border:1px solid rgba(255,255,255,0.1);
-    display:flex;align-items:center;justify-content:center;
-    color:rgba(255,255,255,0.5);font-size:13px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.5);opacity:0
-  }
-  .s1 .pile-card:nth-child(1){top:0;left:0;transform:rotate(-8deg)}
-  .s1 .pile-card:nth-child(2){top:10px;left:18px;transform:rotate(-2deg)}
-  .s1 .pile-card:nth-child(3){top:22px;left:36px;transform:rotate(5deg)}
-  .s1.active .pile-card{animation:cardIn .5s ease both}
-  .s1.active .pile-card:nth-child(1){animation-delay:.2s}
-  .s1.active .pile-card:nth-child(2){animation-delay:.4s}
-  .s1.active .pile-card:nth-child(3){animation-delay:.6s}
-  .s1 .hook-text{font-size:32px;font-weight:900;text-align:center;line-height:1.5;opacity:0}
-  .s1.active .hook-text{animation:fadeInUp .8s .9s ease both}
-  .s1 .hook-text em{font-style:normal;color:#ff6b6b}
+/* Scenes */
+.sc{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  opacity:0;transform:scale(1.04);
+  transition:opacity .35s ease,transform .35s ease;
+  z-index:2;
+}
+.sc.active{opacity:1;transform:scale(1)}
+.sc.exit{opacity:0;transform:scale(.96);transition:opacity .25s ease,transform .25s ease}
 
-  /* Scene 2: Logo */
-  .s2{background:linear-gradient(170deg,#0a0a14,#0d1b2a)}
-  .s2 .logo-wrap{text-align:center;opacity:0}
-  .s2.active .logo-wrap{animation:fadeInScale .8s ease both}
-  .s2 .app-icon{width:100px;height:100px;border-radius:24px;margin:0 auto 20px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.4)}
-  .s2 .app-icon img{width:100%;height:100%;object-fit:cover}
-  .s2 .mapae-logo{font-size:64px;font-weight:900;letter-spacing:6px}
-  .s2 .tagline{font-size:22px;color:rgba(255,255,255,.5);margin-top:12px;font-weight:300;opacity:0}
-  .s2.active .tagline{animation:fadeInUp .6s .5s ease both}
-  .s2 .glow{position:absolute;width:250px;height:250px;border-radius:50%;border:2px solid rgba(76,175,80,.3);opacity:0}
-  .s2.active .glow{animation:pulseRing 2.5s .3s ease infinite}
+/* ─── S1: Hook ─── */
+.s1{background:#fff}
+.s1 .pile{position:relative;width:260px;height:160px;margin-bottom:30px}
+.s1 .pc{
+  position:absolute;width:220px;height:132px;
+  background:linear-gradient(135deg,#e8e8e8,#f5f5f5);
+  border-radius:10px;border:1px solid #ddd;
+  display:flex;align-items:center;justify-content:center;
+  color:#999;font-size:12px;
+  box-shadow:0 4px 16px rgba(0,0,0,.06);opacity:0;
+}
+.s1.active .pc{animation:cardDrop .4s cubic-bezier(.34,1.56,.64,1) both}
+.s1.active .pc:nth-child(1){animation-delay:.1s}
+.s1.active .pc:nth-child(2){animation-delay:.2s}
+.s1.active .pc:nth-child(3){animation-delay:.3s}
+.s1 .pc:nth-child(1){top:0;left:0;transform:rotate(-10deg)}
+.s1 .pc:nth-child(2){top:8px;left:16px;transform:rotate(-3deg)}
+.s1 .pc:nth-child(3){top:18px;left:32px;transform:rotate(6deg)}
+.s1 .htxt{font-size:30px;font-weight:900;text-align:center;line-height:1.4;color:#111;opacity:0}
+.s1.active .htxt{animation:textPop .5s .5s cubic-bezier(.34,1.56,.64,1) both}
+.s1 .htxt em{font-style:normal;color:#555}
 
-  /* Scene: Phone Screen (3,4,5,6) */
-  .screen-scene{
-    background:linear-gradient(170deg,#0f0f1a,#1a1a2e);
-    padding:0;
-  }
-  .screen-scene .phone-mockup{
-    width:260px;
-    height:520px;
-    border-radius:30px;
-    border:4px solid #333;
-    overflow:hidden;
-    box-shadow:0 20px 60px rgba(0,0,0,0.5);
-    position:relative;
-    opacity:0;
-    background:#000;
-  }
-  .screen-scene.active .phone-mockup{animation:phoneIn .8s ease both}
-  .screen-scene .phone-mockup img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    object-position:top;
-  }
-  .screen-scene .feat-badge{
-    position:absolute;
-    bottom:80px;
-    left:50%;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,0.85);
-    backdrop-filter:blur(20px);
-    padding:16px 32px;
-    border-radius:20px;
-    text-align:center;
-    opacity:0;
-    white-space:nowrap;
-    border:1px solid rgba(255,255,255,0.1);
-  }
-  .screen-scene.active .feat-badge{animation:fadeInUp .6s 1s ease both}
-  .feat-badge h2{font-size:22px;font-weight:900;margin-bottom:4px}
-  .feat-badge p{font-size:13px;color:rgba(255,255,255,.6);font-weight:300}
+/* ─── S2: Logo ─── */
+.s2{background:#fff}
+.s2 .lw{text-align:center;opacity:0;transform:scale(.5)}
+.s2.active .lw{animation:logoBoom .6s cubic-bezier(.34,1.56,.64,1) both}
+.s2 .ai{width:80px;height:80px;border-radius:20px;margin:0 auto 16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.s2 .ai img{width:100%;height:100%;object-fit:cover}
+.s2 .ml{font-size:56px;font-weight:900;letter-spacing:5px;color:#111}
+.s2 .tg{font-size:18px;color:#999;margin-top:8px;font-weight:300;opacity:0}
+.s2.active .tg{animation:fadeUp .4s .4s ease both}
+.s2 .glow{
+  position:absolute;width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,0,0,.03),transparent 70%);
+  opacity:0;filter:blur(40px);
+}
+.s2.active .glow{animation:glowBreathe 2s .2s ease infinite}
 
-  /* Scene light variant */
-  .screen-scene.light{background:linear-gradient(170deg,#e8e8e8,#d4d4d4)}
-  .screen-scene.light .feat-badge{
-    background:rgba(255,255,255,0.9);
-    border:1px solid rgba(0,0,0,0.08);
-  }
-  .screen-scene.light .feat-badge h2{color:#222}
-  .screen-scene.light .feat-badge p{color:#888}
+/* ─── Phone screen scenes ─── */
+.psc{padding:0;background:#f5f5f5}
+.psc .phone{
+  width:300px;height:600px;border-radius:36px;
+  border:3px solid #ddd;overflow:hidden;
+  box-shadow:0 16px 60px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.03);
+  position:relative;background:#fff;
+  opacity:0;
+  image-rendering:high-quality;
+}
+.psc.active .phone{animation:phoneSlideIn .5s cubic-bezier(.22,1,.36,1) both}
+.psc .phone img{
+  width:100%;height:100%;
+  object-fit:cover;
+  object-position:center top;
+  image-rendering:-webkit-optimize-contrast;
+}
+.psc.active .phone img{animation:slowZoom 3.2s ease both}
+/* Shine sweep */
+.psc .phone::after{
+  content:'';position:absolute;top:0;left:-80%;
+  width:60%;height:100%;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.3) 50%,transparent 70%);
+  z-index:3;
+}
+.psc.active .phone::after{animation:shineSweep .8s .3s ease both}
 
-  /* Scene 7: CTA */
-  .s7{background:linear-gradient(170deg,#0a0a0a,#1a1a2e 50%,#0a0a0a)}
-  .s7 .cta-logo{font-size:72px;font-weight:900;letter-spacing:8px;margin-bottom:16px;opacity:0}
-  .s7.active .cta-logo{animation:fadeInScale .8s ease both}
-  .s7 .cta-tagline{font-size:22px;color:rgba(255,255,255,.6);font-weight:300;margin-bottom:40px;opacity:0}
-  .s7.active .cta-tagline{animation:fadeInUp .6s .5s ease both}
-  .s7 .cta-btn{
-    padding:16px 48px;background:#fff;color:#000;
-    border-radius:40px;font-size:18px;font-weight:700;
-    margin-bottom:20px;opacity:0;
-  }
-  .s7.active .cta-btn{animation:fadeInUp .6s 1s ease both}
-  .s7 .badges{display:flex;gap:12px;opacity:0}
-  .s7.active .badges{animation:fadeInUp .6s 1.3s ease both}
-  .s7 .badge{
-    padding:10px 20px;
-    background:rgba(255,255,255,.08);
-    border-radius:10px;border:1px solid rgba(255,255,255,.15);
-    font-size:13px;font-weight:500;
-  }
+/* Badge */
+.psc .badge{
+  position:absolute;bottom:50px;left:50%;transform:translateX(-50%) translateY(30px);
+  background:rgba(255,255,255,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  padding:14px 28px;border-radius:18px;text-align:center;
+  opacity:0;white-space:nowrap;
+  border:1px solid rgba(0,0,0,.06);
+  box-shadow:0 4px 20px rgba(0,0,0,.06);
+  z-index:5;
+}
+.psc.active .badge{animation:badgeIn .4s .6s cubic-bezier(.34,1.56,.64,1) both}
+.badge h2{font-size:20px;font-weight:800;color:#111;margin-bottom:3px}
+.badge p{font-size:12px;color:#999;font-weight:300}
 
-  /* Keyframes */
-  @keyframes fadeInUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
-  @keyframes fadeInScale{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
-  @keyframes cardIn{from{opacity:0;transform:scale(.8) rotate(var(--r,0deg))}to{opacity:1;transform:scale(1) rotate(var(--r,0deg))}}
-  @keyframes pulseRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(2.2);opacity:0}}
-  @keyframes phoneIn{from{opacity:0;transform:translateY(60px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
-  @keyframes recBlink{0%,100%{opacity:1}50%{opacity:.3}}
-  @keyframes shimmer{0%{left:-100%}100%{left:200%}}
+/* Alt bg for variety */
+.psc.alt{background:#fafafa}
+.psc.alt .phone{border-color:#ccc}
 
-  /* Phone shine effect */
-  .screen-scene .phone-mockup::after{
-    content:'';
-    position:absolute;
-    top:0;left:-100%;
-    width:50%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);
-    opacity:0;
-  }
-  .screen-scene.active .phone-mockup::after{
-    animation:shimmer 2s 0.5s ease both;
-    opacity:1;
-  }
+/* ─── CTA ─── */
+.cta{background:#fff}
+.cta .cl{font-size:64px;font-weight:900;letter-spacing:6px;color:#111;margin-bottom:12px;opacity:0}
+.cta.active .cl{animation:logoBoom .6s cubic-bezier(.34,1.56,.64,1) both}
+.cta .ct{font-size:20px;color:#999;font-weight:300;margin-bottom:36px;opacity:0}
+.cta.active .ct{animation:fadeUp .4s .4s ease both}
+.cta .cb{
+  padding:14px 44px;background:#111;color:#fff;border-radius:36px;
+  font-size:17px;font-weight:700;margin-bottom:16px;opacity:0;
+  box-shadow:0 4px 16px rgba(0,0,0,.1);
+}
+.cta.active .cb{animation:fadeUp .4s .7s ease both}
+.cta .bgs{display:flex;gap:10px;opacity:0}
+.cta.active .bgs{animation:fadeUp .4s .9s ease both}
+.cta .bg{
+  padding:9px 18px;background:#f0f0f0;border-radius:8px;
+  border:1px solid #e0e0e0;font-size:12px;font-weight:500;color:#555;
+}
+
+/* ── Keyframes ── */
+@keyframes cardDrop{
+  from{opacity:0;transform:translateY(-40px) rotate(var(--r,0deg)) scale(.7)}
+  to{opacity:1;transform:translateY(0) rotate(var(--r,0deg)) scale(1)}
+}
+@keyframes textPop{
+  from{opacity:0;transform:translateY(30px) scale(.8)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes logoBoom{
+  from{opacity:0;transform:scale(.3)}
+  to{opacity:1;transform:scale(1)}
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes glowBreathe{
+  0%,100%{opacity:.3;transform:scale(1)}
+  50%{opacity:.6;transform:scale(1.15)}
+}
+@keyframes phoneSlideIn{
+  from{opacity:0;transform:translateY(80px) scale(.88)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes slowZoom{
+  from{transform:scale(1)}
+  to{transform:scale(1.06)}
+}
+@keyframes shineSweep{from{left:-80%}to{left:120%}}
+@keyframes badgeIn{
+  from{opacity:0;transform:translateX(-50%) translateY(30px) scale(.8)}
+  to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+}
+@keyframes recBlink{0%,100%{opacity:1}50%{opacity:.3}}
 </style>
 </head>
 <body>
 
 <h1>Mapae 광고 영상 제작</h1>
-<p class="subtitle">5장의 앱 스크린샷을 업로드하면 실제 화면으로 광고가 만들어집니다</p>
+<p class="sub">5장의 앱 스크린샷 업로드 &rarr; 실제 화면 광고 생성</p>
 
-<!-- Upload Section -->
-<div id="uploadSection">
-  <div class="upload-grid">
-    <div class="upload-slot" onclick="this.querySelector('input').click()" id="slot0">
-      <span class="label"><span class="num">1</span>홈 (명함 상세)</span>
-      <input type="file" accept="image/*" onchange="loadImage(0,this)">
-    </div>
-    <div class="upload-slot" onclick="this.querySelector('input').click()" id="slot1">
-      <span class="label"><span class="num">2</span>지갑 (명함 목록)</span>
-      <input type="file" accept="image/*" onchange="loadImage(1,this)">
-    </div>
-    <div class="upload-slot" onclick="this.querySelector('input').click()" id="slot2">
-      <span class="label"><span class="num">3</span>퀵쉐어</span>
-      <input type="file" accept="image/*" onchange="loadImage(2,this)">
-    </div>
-    <div class="upload-slot" onclick="this.querySelector('input').click()" id="slot3">
-      <span class="label"><span class="num">4</span>CRM 파이프라인</span>
-      <input type="file" accept="image/*" onchange="loadImage(3,this)">
-    </div>
-    <div class="upload-slot" onclick="this.querySelector('input').click()" id="slot4">
-      <span class="label"><span class="num">5</span>관리 화면</span>
-      <input type="file" accept="image/*" onchange="loadImage(4,this)">
-    </div>
+<div class="upload-grid">
+  <div class="upload-slot" onclick="this.querySelector('input').click()" id="slot0">
+    <span class="lb"><b>1</b>홈(명함뷰)</span>
+    <input type="file" accept="image/*" onchange="loadImg(0,this)">
+  </div>
+  <div class="upload-slot" onclick="this.querySelector('input').click()" id="slot1">
+    <span class="lb"><b>2</b>지갑(목록)</span>
+    <input type="file" accept="image/*" onchange="loadImg(1,this)">
+  </div>
+  <div class="upload-slot" onclick="this.querySelector('input').click()" id="slot2">
+    <span class="lb"><b>3</b>퀵쉐어</span>
+    <input type="file" accept="image/*" onchange="loadImg(2,this)">
+  </div>
+  <div class="upload-slot" onclick="this.querySelector('input').click()" id="slot3">
+    <span class="lb"><b>4</b>CRM</span>
+    <input type="file" accept="image/*" onchange="loadImg(3,this)">
+  </div>
+  <div class="upload-slot" onclick="this.querySelector('input').click()" id="slot4">
+    <span class="lb"><b>5</b>관리</span>
+    <input type="file" accept="image/*" onchange="loadImg(4,this)">
   </div>
 </div>
 
-<!-- Controls -->
-<div id="controls">
-  <button class="btn-play" id="playBtn" onclick="playAd()" disabled>&#9654; 미리보기 재생</button>
-  <button class="btn-record" id="recBtn" onclick="recordAd()" disabled>&#9679; 녹화 후 다운로드</button>
-  <button class="btn-dl" id="dlBtn" onclick="downloadFile()">&#11015; 다시 다운로드</button>
+<div class="ctrls">
+  <button class="bp" id="playBtn" onclick="playAd()" disabled>&#9654; 재생</button>
+  <button class="br" id="recBtn" onclick="recordAd()" disabled>&#9679; 녹화 &amp; 다운로드</button>
+  <button class="bd" id="dlBtn" onclick="dlFile()">&#11015; 다시 다운로드</button>
 </div>
-<div id="status">위 5개 슬롯에 앱 스크린샷을 클릭하여 업로드하세요</div>
+<div id="status">스크린샷 5장을 업로드하세요</div>
 
-<!-- Stage -->
 <div id="stage">
+  <div class="particles" id="pw"></div>
+
   <!-- S1: Hook -->
-  <div class="scene s1" id="sc1">
-    <div class="cards-pile">
-      <div class="pile-card" style="--r:-8deg">김철수 부장</div>
-      <div class="pile-card" style="--r:-2deg">박영희 과장</div>
-      <div class="pile-card" style="--r:5deg">이민수 대리</div>
+  <div class="sc s1" id="sc1">
+    <div class="pile">
+      <div class="pc" style="--r:-10deg">김철수 부장</div>
+      <div class="pc" style="--r:-3deg">박영희 과장</div>
+      <div class="pc" style="--r:6deg">이민수 대리</div>
     </div>
-    <div class="hook-text">명함, 아직도<br><em>이렇게</em> 관리하세요?</div>
+    <div class="htxt">명함, 아직도<br><em>이렇게</em> 관리하세요?</div>
   </div>
 
   <!-- S2: Logo -->
-  <div class="scene s2" id="sc2">
+  <div class="sc s2" id="sc2">
     <div class="glow"></div>
-    <div class="logo-wrap">
-      <div class="app-icon" id="appIconWrap"></div>
-      <div class="mapae-logo">Mapae</div>
-      <div class="tagline">스마트 명함 지갑</div>
+    <div class="lw">
+      <div class="ai" id="iconWrap"></div>
+      <div class="ml">Mapae</div>
+      <div class="tg">스마트 명함 지갑</div>
     </div>
   </div>
 
-  <!-- S3: Home screen (명함 상세) -->
-  <div class="scene screen-scene" id="sc3">
-    <div class="phone-mockup"><img id="screenImg0" src="" alt=""></div>
-    <div class="feat-badge"><h2>내 명함을 공유하세요</h2><p>3D 뷰어 + 원터치 공유</p></div>
+  <!-- S3-S7: App Screens -->
+  <div class="sc psc" id="sc3">
+    <div class="phone"><img id="si0" src="" alt=""></div>
+    <div class="badge"><h2>내 명함을 공유하세요</h2><p>3D 카드 뷰어 &middot; 원터치 공유</p></div>
   </div>
-
-  <!-- S4: Wallet (명함 목록) -->
-  <div class="scene screen-scene light" id="sc4">
-    <div class="phone-mockup"><img id="screenImg1" src="" alt=""></div>
-    <div class="feat-badge"><h2>모든 명함, 한 곳에</h2><p>검색 &middot; 필터 &middot; 카테고리</p></div>
+  <div class="sc psc alt" id="sc4">
+    <div class="phone"><img id="si1" src="" alt=""></div>
+    <div class="badge"><h2>모든 명함, 한 곳에</h2><p>검색 &middot; 필터 &middot; 카테고리</p></div>
   </div>
-
-  <!-- S5: QuickShare -->
-  <div class="scene screen-scene" id="sc5">
-    <div class="phone-mockup"><img id="screenImg2" src="" alt=""></div>
-    <div class="feat-badge"><h2>퀵쉐어</h2><p>만나면 바로 명함 교환</p></div>
+  <div class="sc psc" id="sc5">
+    <div class="phone"><img id="si2" src="" alt=""></div>
+    <div class="badge"><h2>퀵쉐어</h2><p>만나면 바로 명함 교환</p></div>
   </div>
-
-  <!-- S6: CRM -->
-  <div class="scene screen-scene light" id="sc6">
-    <div class="phone-mockup"><img id="screenImg3" src="" alt=""></div>
-    <div class="feat-badge"><h2>팀 CRM 관리</h2><p>영업 파이프라인을 한눈에</p></div>
+  <div class="sc psc alt" id="sc6">
+    <div class="phone"><img id="si3" src="" alt=""></div>
+    <div class="badge"><h2>팀 CRM 관리</h2><p>영업 파이프라인을 한눈에</p></div>
   </div>
-
-  <!-- S7: Management -->
-  <div class="scene screen-scene" id="sc7">
-    <div class="phone-mockup"><img id="screenImg4" src="" alt=""></div>
-    <div class="feat-badge"><h2>팀 &amp; 프로필 관리</h2><p>팀원과 명함을 공유하세요</p></div>
+  <div class="sc psc" id="sc7">
+    <div class="phone"><img id="si4" src="" alt=""></div>
+    <div class="badge"><h2>팀 &amp; 프로필 관리</h2><p>팀원과 명함을 공유하세요</p></div>
   </div>
 
   <!-- S8: CTA -->
-  <div class="scene s7" id="sc8">
-    <div class="cta-logo">Mapae</div>
-    <div class="cta-tagline">명함의 새로운 기준</div>
-    <div class="cta-btn">지금 무료 다운로드</div>
-    <div class="badges">
-      <div class="badge">App Store</div>
-      <div class="badge">Google Play</div>
+  <div class="sc cta" id="sc8">
+    <div class="cl">Mapae</div>
+    <div class="ct">명함의 새로운 기준</div>
+    <div class="cb">지금 무료 다운로드</div>
+    <div class="bgs">
+      <div class="bg">App Store</div>
+      <div class="bg">Google Play</div>
     </div>
   </div>
 </div>
 
 <script>
-const SCENES = [
-  { id:'sc1', dur:3500 },
-  { id:'sc2', dur:3000 },
-  { id:'sc3', dur:4000 },
-  { id:'sc4', dur:4000 },
-  { id:'sc5', dur:4000 },
-  { id:'sc6', dur:4000 },
-  { id:'sc7', dur:4000 },
-  { id:'sc8', dur:4000 },
+const SCENES=[
+  {id:'sc1',dur:2500},
+  {id:'sc2',dur:2200},
+  {id:'sc3',dur:2800},
+  {id:'sc4',dur:2800},
+  {id:'sc5',dur:2800},
+  {id:'sc6',dur:2800},
+  {id:'sc7',dur:2800},
+  {id:'sc8',dur:3000},
 ];
+const TRANS=280;
 
-const images = [null,null,null,null,null];
-let playing = false, blobUrl = null;
-
-// Load app icon
-const iconImg = new Image();
-iconImg.src = '../assets/Mapae_icon_big.png';
-iconImg.onload = () => {
-  const wrap = document.getElementById('appIconWrap');
-  wrap.innerHTML = '';
-  wrap.appendChild(iconImg);
-};
-iconImg.onerror = () => {
-  const wrap = document.getElementById('appIconWrap');
-  wrap.style.background = 'linear-gradient(135deg,#4CAF50,#2196F3)';
-  wrap.innerHTML = '<span style="font-size:48px;font-weight:900;color:#fff">M</span>';
-  wrap.style.display = 'flex';
-  wrap.style.alignItems = 'center';
-  wrap.style.justifyContent = 'center';
-};
-
-function loadImage(idx, input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    images[idx] = e.target.result;
-    // Show preview in slot
-    const slot = document.getElementById('slot' + idx);
-    slot.classList.add('filled');
-    let img = slot.querySelector('img');
-    if (!img) {
-      img = document.createElement('img');
-      slot.appendChild(img);
-    }
-    img.src = e.target.result;
-    // Set in stage
-    const screenImg = document.getElementById('screenImg' + idx);
-    if (screenImg) screenImg.src = e.target.result;
-    checkReady();
-  };
-  reader.readAsDataURL(file);
-}
-
-function checkReady() {
-  const filled = images.filter(Boolean).length;
-  const status = document.getElementById('status');
-  const playBtn = document.getElementById('playBtn');
-  const recBtn = document.getElementById('recBtn');
-
-  if (filled < 5) {
-    status.textContent = `${filled}/5 스크린샷 업로드 완료. 나머지도 업로드해 주세요.`;
-    playBtn.disabled = true;
-    recBtn.disabled = true;
-  } else {
-    status.textContent = '모든 스크린샷 준비 완료! 재생 또는 녹화를 시작하세요.';
-    playBtn.disabled = false;
-    recBtn.disabled = false;
+/* Particles */
+(function(){
+  const w=document.getElementById('pw');
+  for(let i=0;i<20;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    p.style.left=Math.random()*100+'%';
+    p.style.setProperty('--d',(6+Math.random()*8)+'s');
+    p.style.setProperty('--dl',(Math.random()*5)+'s');
+    const s=2+Math.random()*4;
+    p.style.width=s+'px';p.style.height=s+'px';
+    w.appendChild(p);
   }
+})();
+
+const imgs=[null,null,null,null,null];
+let playing=false,blobUrl=null;
+
+/* App icon */
+const ico=new Image();
+ico.src='../assets/Mapae_icon_big.png';
+ico.onload=()=>{document.getElementById('iconWrap').innerHTML='';document.getElementById('iconWrap').appendChild(ico)};
+ico.onerror=()=>{
+  const w=document.getElementById('iconWrap');
+  w.style.cssText='background:#111;display:flex;align-items:center;justify-content:center';
+  w.innerHTML='<span style="font-size:40px;font-weight:900;color:#fff">M</span>';
+};
+
+function loadImg(i,inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    imgs[i]=e.target.result;
+    const sl=document.getElementById('slot'+i);
+    sl.classList.add('filled');
+    let im=sl.querySelector('img');
+    if(!im){im=document.createElement('img');sl.appendChild(im)}
+    im.src=e.target.result;
+    const si=document.getElementById('si'+i);
+    if(si)si.src=e.target.result;
+    chkReady();
+  };
+  r.readAsDataURL(f);
+}
+function chkReady(){
+  const n=imgs.filter(Boolean).length;
+  document.getElementById('status').textContent=n<5?n+'/5 업로드 완료':'준비 완료! 재생 또는 녹화하세요';
+  document.getElementById('playBtn').disabled=n<5;
+  document.getElementById('recBtn').disabled=n<5;
 }
 
-function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
-function resetScenes(){
-  SCENES.forEach(s => document.getElementById(s.id).classList.remove('active'));
+function resetAll(){
+  SCENES.forEach(s=>{
+    const el=document.getElementById(s.id);
+    el.classList.remove('active','exit');
+    el.style.transition='none';void el.offsetWidth;el.style.transition='';
+  });
 }
 
-async function runSequence(){
-  if(playing) return;
-  playing = true;
-  resetScenes();
-  await wait(200);
+async function runSeq(){
+  if(playing)return;
+  playing=true;resetAll();await wait(80);
   for(let i=0;i<SCENES.length;i++){
-    const el = document.getElementById(SCENES[i].id);
+    const el=document.getElementById(SCENES[i].id);
+    el.classList.remove('exit');void el.offsetWidth;
     el.classList.add('active');
     await wait(SCENES[i].dur);
-    if(i < SCENES.length - 1){
-      el.classList.remove('active');
-      await wait(400);
+    if(i<SCENES.length-1){
+      el.classList.add('exit');el.classList.remove('active');
+      await wait(TRANS);el.classList.remove('exit');
     }
   }
-  playing = false;
+  playing=false;
 }
-
-function playAd(){ runSequence(); }
+function playAd(){runSeq()}
 
 async function recordAd(){
-  const status = document.getElementById('status');
-  const dlBtn = document.getElementById('dlBtn');
-  try {
-    status.textContent = '화면 공유 팝업에서 이 탭을 선택해 주세요...';
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-      video:{ displaySurface:'browser', frameRate:30 },
-      audio:false,
-      preferCurrentTab:true,
+  const st=document.getElementById('status'),dl=document.getElementById('dlBtn');
+  try{
+    st.textContent='팝업에서 이 탭을 선택하세요...';
+    const stream=await navigator.mediaDevices.getDisplayMedia({
+      video:{displaySurface:'browser',frameRate:30},audio:false,preferCurrentTab:true
     });
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-      ? 'video/webm;codecs=vp9' : 'video/webm';
-    const rec = new MediaRecorder(stream,{ mimeType:mime, videoBitsPerSecond:6000000 });
-    const chunks = [];
-    rec.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
-    rec.onstop = () => {
+    const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';
+    const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8000000});
+    const chunks=[];
+    rec.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data)};
+    rec.onstop=()=>{
       stream.getTracks().forEach(t=>t.stop());
-      if(!chunks.length){ status.textContent='녹화 실패. 다시 시도해 주세요.'; return; }
-      const blob = new Blob(chunks,{type:'video/webm'});
-      if(blobUrl) URL.revokeObjectURL(blobUrl);
-      blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = 'Mapae_Ad_Video.webm';
-      a.click();
-      status.textContent = '녹화 완료! 파일이 다운로드됩니다.';
-      dlBtn.classList.add('show');
+      if(!chunks.length){st.textContent='녹화 실패';return}
+      const blob=new Blob(chunks,{type:'video/webm'});
+      if(blobUrl)URL.revokeObjectURL(blobUrl);
+      blobUrl=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=blobUrl;a.download='Mapae_Ad.webm';a.click();
+      st.textContent='녹화 완료! 다운로드됩니다.';dl.classList.add('show');
     };
-    rec.start(200);
-    status.innerHTML = '<span style="color:#f44336;animation:recBlink 1s infinite">&#9679;</span> 녹화 중... (약 30초)';
-    await wait(500);
-    await runSequence();
-    await wait(2000);
-    rec.stop();
-  } catch(err){
-    status.textContent = '녹화 취소: ' + err.message;
-  }
+    rec.start(100);
+    st.innerHTML='<span style="color:#f44336;animation:recBlink 1s infinite">&#9679;</span> 녹화 중...';
+    await wait(400);await runSeq();await wait(1500);rec.stop();
+  }catch(e){st.textContent='취소됨: '+e.message}
 }
-
-function downloadFile(){
-  if(!blobUrl) return;
-  const a = document.createElement('a');
-  a.href = blobUrl;
-  a.download = 'Mapae_Ad_Video.webm';
-  a.click();
+function dlFile(){
+  if(!blobUrl)return;
+  const a=document.createElement('a');a.href=blobUrl;a.download='Mapae_Ad.webm';a.click();
 }
 </script>
 </body>
