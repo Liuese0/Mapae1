@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapae - 광고 영상</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #111;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* ===== CONTROLS ===== */
+  #controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    z-index: 100;
+  }
+  #controls button {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: all 0.2s;
+  }
+  #controls button:hover { transform: scale(1.05); opacity: 0.9; }
+  .btn-play { background: #4CAF50; color: #fff; }
+  .btn-record { background: #f44336; color: #fff; }
+  .btn-download { background: #2196F3; color: #fff; display: none !important; }
+  .btn-download.show { display: inline-block !important; }
+  #status {
+    color: #aaa;
+    font-size: 14px;
+    margin-bottom: 16px;
+    min-height: 20px;
+    text-align: center;
+  }
+
+  /* ===== STAGE (9:16 container) ===== */
+  #stage {
+    width: 390px;
+    height: 693px;
+    position: relative;
+    overflow: hidden;
+    background: #0a0a0a;
+    border-radius: 20px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8);
+    flex-shrink: 0;
+  }
+
+  /* ===== SCENES ===== */
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .scene.active { opacity: 1; }
+
+  /* ---------- Scene 1: Hook ---------- */
+  .s1 { background: linear-gradient(170deg, #0f0f1a 0%, #1a1a2e 100%); }
+  .s1 .cards-pile {
+    position: relative;
+    width: 280px;
+    height: 180px;
+    margin-bottom: 40px;
+  }
+  .s1 .pile-card {
+    position: absolute;
+    width: 240px;
+    height: 145px;
+    background: linear-gradient(135deg, #2a2a3a, #3a3a4a);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  .s1.active .pile-card {
+    animation: fadeInScale 0.5s ease both;
+  }
+  .s1 .pile-card:nth-child(1) { top: 0; left: 0; transform: rotate(-8deg); animation-delay: 0s; }
+  .s1 .pile-card:nth-child(2) { top: 10px; left: 18px; transform: rotate(-2deg); animation-delay: 0.15s; }
+  .s1 .pile-card:nth-child(3) { top: 22px; left: 36px; transform: rotate(5deg); animation-delay: 0.3s; }
+  .s1.active .pile-card:nth-child(1) { animation-delay: 0.2s; }
+  .s1.active .pile-card:nth-child(2) { animation-delay: 0.4s; }
+  .s1.active .pile-card:nth-child(3) { animation-delay: 0.6s; }
+  .s1 .hook-text {
+    font-size: 32px;
+    font-weight: 900;
+    color: #fff;
+    text-align: center;
+    line-height: 1.5;
+    opacity: 0;
+  }
+  .s1.active .hook-text {
+    animation: fadeInUp 0.8s 0.8s ease both;
+  }
+  .s1 .hook-text em {
+    font-style: normal;
+    color: #ff6b6b;
+  }
+
+  /* ---------- Scene 2: Logo ---------- */
+  .s2 { background: linear-gradient(170deg, #0a0a14 0%, #0d1b2a 100%); }
+  .s2 .logo-wrap {
+    text-align: center;
+    opacity: 0;
+  }
+  .s2.active .logo-wrap { animation: fadeInScale 0.8s ease both; }
+  .s2 .mapae-logo {
+    font-size: 64px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 6px;
+  }
+  .s2 .tagline {
+    font-size: 22px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 12px;
+    font-weight: 300;
+    opacity: 0;
+  }
+  .s2.active .tagline { animation: fadeInUp 0.6s 0.5s ease both; }
+  .s2 .glow-circle {
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    border: 2px solid rgba(76,175,80,0.3);
+    opacity: 0;
+  }
+  .s2.active .glow-circle { animation: pulseRing 2.5s 0.3s ease infinite; }
+
+  /* ---------- Scene 3: Wallet ---------- */
+  .s3 { background: linear-gradient(170deg, #f7f7f7 0%, #eaeaea 100%); }
+  .s3 .phone {
+    width: 240px;
+    height: 480px;
+    background: #fff;
+    border-radius: 28px;
+    border: 3px solid #333;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+    position: relative;
+    opacity: 0;
+  }
+  .s3.active .phone { animation: fadeInUp 0.8s ease both; }
+  .s3 .ph-top {
+    padding: 14px 16px 8px;
+    font-size: 11px;
+    color: #999;
+  }
+  .s3 .ph-search {
+    margin: 0 14px;
+    padding: 8px 12px;
+    background: #f3f3f3;
+    border-radius: 10px;
+    font-size: 11px;
+    color: #bbb;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .s3 .ph-filters {
+    display: flex;
+    gap: 6px;
+    padding: 8px 14px;
+  }
+  .s3 .ph-filter {
+    padding: 4px 10px;
+    background: #f0f0f0;
+    border-radius: 14px;
+    font-size: 10px;
+    color: #777;
+  }
+  .s3 .ph-card {
+    margin: 6px 14px;
+    padding: 12px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e8e8e8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .s3 .ph-thumb {
+    width: 60px;
+    height: 36px;
+    background: linear-gradient(135deg, #2d2d3d, #1a1a2e);
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .s3 .ph-name { font-size: 13px; font-weight: 700; color: #333; }
+  .s3 .ph-company { font-size: 10px; color: #999; }
+  .s3 .scan-beam {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #4CAF50, transparent);
+    top: 0;
+    opacity: 0;
+  }
+  .s3.active .scan-beam { animation: scanDown 2s 0.5s ease-in-out both; }
+  .s3 .feat-text {
+    margin-top: 30px;
+    text-align: center;
+    opacity: 0;
+  }
+  .s3.active .feat-text { animation: fadeInUp 0.6s 1.2s ease both; }
+  .s3 .feat-text h2 { font-size: 28px; font-weight: 900; color: #222; }
+  .s3 .feat-text p { font-size: 15px; color: #888; margin-top: 6px; }
+
+  /* ---------- Scene 4: QuickShare ---------- */
+  .s4 { background: linear-gradient(170deg, #12122a 0%, #1a2540 100%); }
+  .s4 .qs-icon {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+    position: relative;
+    opacity: 0;
+  }
+  .s4.active .qs-icon { animation: fadeInScale 0.6s ease both; }
+  .s4 .qs-icon .at { font-size: 48px; font-weight: 900; color: #fff; }
+  .s4 .qs-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(76,175,80,0.3);
+  }
+  .s4.active .qs-ring:nth-child(2) { animation: pulseRing 2s 0s ease infinite; }
+  .s4.active .qs-ring:nth-child(3) { animation: pulseRing 2s 0.7s ease infinite; }
+  .s4.active .qs-ring:nth-child(4) { animation: pulseRing 2s 1.4s ease infinite; }
+  .s4 .phones-row {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    margin-bottom: 40px;
+    opacity: 0;
+  }
+  .s4.active .phones-row { animation: fadeInUp 0.6s 0.5s ease both; }
+  .s4 .mini-phone {
+    width: 80px;
+    height: 140px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+  .s4 .dots {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .s4 .dot {
+    width: 10px;
+    height: 10px;
+    background: #4CAF50;
+    border-radius: 50%;
+    opacity: 0.3;
+  }
+  .s4.active .dot { animation: waveDot 1s ease infinite; }
+  .s4.active .dot:nth-child(1) { animation-delay: 0s; }
+  .s4.active .dot:nth-child(2) { animation-delay: 0.15s; }
+  .s4.active .dot:nth-child(3) { animation-delay: 0.3s; }
+  .s4.active .dot:nth-child(4) { animation-delay: 0.45s; }
+  .s4.active .dot:nth-child(5) { animation-delay: 0.6s; }
+  .s4 .feat-text {
+    text-align: center;
+    opacity: 0;
+  }
+  .s4.active .feat-text { animation: fadeInUp 0.6s 1s ease both; }
+  .s4 .feat-text h2 { font-size: 28px; font-weight: 900; color: #fff; }
+  .s4 .feat-text p { font-size: 15px; color: rgba(255,255,255,0.5); margin-top: 6px; }
+
+  /* ---------- Scene 5: CRM ---------- */
+  .s5 { background: linear-gradient(170deg, #f5f5f5 0%, #e0e0e0 100%); }
+  .s5 .crm-box {
+    width: 340px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    margin-bottom: 30px;
+    opacity: 0;
+  }
+  .s5.active .crm-box { animation: fadeInUp 0.8s ease both; }
+  .s5 .crm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .s5 .crm-header h3 { font-size: 18px; font-weight: 700; color: #333; }
+  .s5 .conv-rate { font-size: 14px; color: #4CAF50; font-weight: 700; }
+  .s5 .crm-bar {
+    width: 100%;
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .s5 .crm-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    border-radius: 4px;
+    transition: width 2s ease;
+  }
+  .s5.active .crm-bar-fill { width: 65%; transition-delay: 0.8s; }
+  .s5 .stages-row {
+    display: flex;
+    justify-content: space-between;
+  }
+  .s5 .stg {
+    text-align: center;
+    flex: 1;
+  }
+  .s5 .stg-circle {
+    width: 38px;
+    height: 38px;
+    background: #f5f5f5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    margin: 0 auto 6px;
+    border: 1.5px solid #e8e8e8;
+  }
+  .s5 .stg-num {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+  }
+  .s5 .stg-label {
+    font-size: 10px;
+    color: #aaa;
+    margin-top: 2px;
+  }
+  .s5 .feat-text {
+    text-align: center;
+    opacity: 0;
+  }
+  .s5.active .feat-text { animation: fadeInUp 0.6s 2s ease both; }
+  .s5 .feat-text h2 { font-size: 28px; font-weight: 900; color: #222; }
+  .s5 .feat-text p { font-size: 15px; color: #888; margin-top: 6px; }
+
+  /* ---------- Scene 6: Team ---------- */
+  .s6 { background: linear-gradient(170deg, #12122a 0%, #0d1b2a 100%); }
+  .s6 .team-row {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 40px;
+  }
+  .s6 .tm-card {
+    width: 110px;
+    padding: 20px 12px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+    opacity: 0;
+  }
+  .s6.active .tm-card { animation: fadeInUp 0.5s ease both; }
+  .s6.active .tm-card:nth-child(1) { animation-delay: 0.1s; }
+  .s6.active .tm-card:nth-child(2) { animation-delay: 0.3s; }
+  .s6.active .tm-card:nth-child(3) { animation-delay: 0.5s; }
+  .s6 .tm-avatar {
+    width: 48px;
+    height: 48px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .s6 .tm-card h4 { color: #fff; font-size: 14px; font-weight: 700; }
+  .s6 .tm-card p { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 3px; }
+  .s6 .feat-text {
+    text-align: center;
+    opacity: 0;
+  }
+  .s6.active .feat-text { animation: fadeInUp 0.6s 0.8s ease both; }
+  .s6 .feat-text h2 { font-size: 28px; font-weight: 900; color: #fff; }
+  .s6 .feat-text p { font-size: 15px; color: rgba(255,255,255,0.5); margin-top: 6px; }
+
+  /* ---------- Scene 7: CTA ---------- */
+  .s7 { background: linear-gradient(170deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%); }
+  .s7 .cta-logo {
+    font-size: 72px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 8px;
+    margin-bottom: 16px;
+    opacity: 0;
+  }
+  .s7.active .cta-logo { animation: fadeInScale 0.8s ease both; }
+  .s7 .cta-tagline {
+    font-size: 22px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 300;
+    margin-bottom: 40px;
+    opacity: 0;
+  }
+  .s7.active .cta-tagline { animation: fadeInUp 0.6s 0.5s ease both; }
+  .s7 .cta-btn {
+    padding: 16px 48px;
+    background: #fff;
+    color: #000;
+    border-radius: 40px;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    opacity: 0;
+  }
+  .s7.active .cta-btn { animation: fadeInUp 0.6s 1s ease both; }
+  .s7 .badges {
+    display: flex;
+    gap: 12px;
+    opacity: 0;
+  }
+  .s7.active .badges { animation: fadeInUp 0.6s 1.3s ease both; }
+  .s7 .badge {
+    padding: 10px 20px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* ===== KEYFRAMES ===== */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.7); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pulseRing {
+    0% { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+  @keyframes scanDown {
+    0% { top: 0; opacity: 1; }
+    100% { top: 100%; opacity: 0.3; }
+  }
+  @keyframes waveDot {
+    0%, 100% { opacity: 0.2; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.3); }
+  }
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 15px rgba(76,175,80,0.2); }
+    50% { box-shadow: 0 0 40px rgba(76,175,80,0.5); }
+  }
+  @keyframes recording-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <button class="btn-play" onclick="playAd()">&#9654; 미리보기 재생</button>
+  <button class="btn-record" onclick="recordAd()">&#9679; 녹화 후 다운로드</button>
+  <button class="btn-download" id="dlBtn" onclick="downloadFile()">&#11015; 다시 다운로드</button>
+</div>
+<div id="status">버튼을 눌러 광고를 재생하거나 녹화하세요 (약 30초)</div>
+
+<div id="stage">
+  <!-- Scene 1: Hook -->
+  <div class="scene s1" id="s1">
+    <div class="cards-pile">
+      <div class="pile-card">김철수 부장</div>
+      <div class="pile-card">박영희 과장</div>
+      <div class="pile-card">이민수 대리</div>
+    </div>
+    <div class="hook-text">명함, 아직도<br><em>이렇게</em> 관리하세요?</div>
+  </div>
+
+  <!-- Scene 2: Logo -->
+  <div class="scene s2" id="s2">
+    <div class="glow-circle"></div>
+    <div class="logo-wrap">
+      <div class="mapae-logo">Mapae</div>
+      <div class="tagline">스마트 명함 지갑</div>
+    </div>
+  </div>
+
+  <!-- Scene 3: Wallet -->
+  <div class="scene s3" id="s3">
+    <div class="phone">
+      <div class="ph-top">전체 명함 2장</div>
+      <div class="ph-search"><span>&#128269;</span> 이름, 회사, 직함으로 검색</div>
+      <div class="ph-filters">
+        <span class="ph-filter">전체</span>
+        <span class="ph-filter">등록순</span>
+      </div>
+      <div class="ph-card">
+        <div class="ph-thumb"></div>
+        <div>
+          <div class="ph-name">이재화</div>
+          <div class="ph-company">(주)인성플러스 / 이사</div>
+        </div>
+      </div>
+      <div class="ph-card">
+        <div class="ph-thumb" style="background:linear-gradient(135deg,#2d3d4d,#1a2e3e)"></div>
+        <div>
+          <div class="ph-name">LEE JAW HWA</div>
+          <div class="ph-company">Director</div>
+        </div>
+      </div>
+      <div class="scan-beam"></div>
+    </div>
+    <div class="feat-text">
+      <h2>찍으면 자동 저장</h2>
+      <p>AI가 명함 정보를 인식합니다</p>
+    </div>
+  </div>
+
+  <!-- Scene 4: QuickShare -->
+  <div class="scene s4" id="s4">
+    <div class="qs-icon">
+      <span class="at">@</span>
+      <div class="qs-ring"></div>
+      <div class="qs-ring"></div>
+      <div class="qs-ring"></div>
+    </div>
+    <div class="phones-row">
+      <div class="mini-phone">&#128241;</div>
+      <div class="dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div class="mini-phone">&#128241;</div>
+    </div>
+    <div class="feat-text">
+      <h2>퀵쉐어</h2>
+      <p>만나면 바로 명함 교환</p>
+    </div>
+  </div>
+
+  <!-- Scene 5: CRM -->
+  <div class="scene s5" id="s5">
+    <div class="crm-box">
+      <div class="crm-header">
+        <h3>&#128202; 파이프라인</h3>
+        <span class="conv-rate" id="convRate">전환율 0.0%</span>
+      </div>
+      <div class="crm-bar"><div class="crm-bar-fill"></div></div>
+      <div class="stages-row">
+        <div class="stg">
+          <div class="stg-circle">&#128101;</div>
+          <div class="stg-num" data-target="12">0</div>
+          <div class="stg-label">리드</div>
+        </div>
+        <div class="stg">
+          <div class="stg-circle">&#128222;</div>
+          <div class="stg-num" data-target="8">0</div>
+          <div class="stg-label">연락</div>
+        </div>
+        <div class="stg">
+          <div class="stg-circle">&#129309;</div>
+          <div class="stg-num" data-target="5">0</div>
+          <div class="stg-label">미팅</div>
+        </div>
+        <div class="stg">
+          <div class="stg-circle">&#128203;</div>
+          <div class="stg-num" data-target="3">0</div>
+          <div class="stg-label">제안</div>
+        </div>
+        <div class="stg">
+          <div class="stg-circle">&#128196;</div>
+          <div class="stg-num" data-target="2">0</div>
+          <div class="stg-label">계약</div>
+        </div>
+        <div class="stg">
+          <div class="stg-circle">&#9989;</div>
+          <div class="stg-num" data-target="1">0</div>
+          <div class="stg-label">완료</div>
+        </div>
+      </div>
+    </div>
+    <div class="feat-text">
+      <h2>팀 CRM 관리</h2>
+      <p>영업 파이프라인을 한눈에</p>
+    </div>
+  </div>
+
+  <!-- Scene 6: Team -->
+  <div class="scene s6" id="s6">
+    <div class="team-row">
+      <div class="tm-card">
+        <div class="tm-avatar">&#128100;</div>
+        <h4>팀 A</h4>
+        <p>멤버 3명</p>
+      </div>
+      <div class="tm-card">
+        <div class="tm-avatar">&#128101;</div>
+        <h4>팀 B</h4>
+        <p>멤버 5명</p>
+      </div>
+      <div class="tm-card">
+        <div class="tm-avatar">&#127919;</div>
+        <h4>영업팀</h4>
+        <p>멤버 8명</p>
+      </div>
+    </div>
+    <div class="feat-text">
+      <h2>팀 명함 공유</h2>
+      <p>팀원과 함께 관리하세요</p>
+    </div>
+  </div>
+
+  <!-- Scene 7: CTA -->
+  <div class="scene s7" id="s7">
+    <div class="cta-logo">Mapae</div>
+    <div class="cta-tagline">명함의 새로운 기준</div>
+    <div class="cta-btn">지금 무료 다운로드</div>
+    <div class="badges">
+      <div class="badge">App Store</div>
+      <div class="badge">Google Play</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCENES = [
+  { id: 's1', dur: 4000 },
+  { id: 's2', dur: 3000 },
+  { id: 's3', dur: 5000 },
+  { id: 's4', dur: 4500 },
+  { id: 's5', dur: 5500 },
+  { id: 's6', dur: 4000 },
+  { id: 's7', dur: 4000 },
+];
+
+let playing = false;
+let blobUrl = null;
+
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function resetScenes() {
+  SCENES.forEach(s => {
+    document.getElementById(s.id).classList.remove('active');
+  });
+  // Reset CRM numbers
+  document.querySelectorAll('.stg-num').forEach(el => { el.textContent = '0'; });
+  const conv = document.getElementById('convRate');
+  if (conv) conv.textContent = '전환율 0.0%';
+  // Reset bar fill
+  const barFill = document.querySelector('.crm-bar-fill');
+  if (barFill) { barFill.style.transition = 'none'; barFill.style.width = '0%'; }
+}
+
+function animateCRM() {
+  // Animate stage numbers
+  document.querySelectorAll('.stg-num').forEach((el, idx) => {
+    const target = parseInt(el.dataset.target);
+    setTimeout(() => {
+      let cur = 0;
+      const iv = setInterval(() => {
+        cur++;
+        el.textContent = cur;
+        if (cur >= target) clearInterval(iv);
+      }, 80);
+    }, 800 + idx * 200);
+  });
+  // Animate conversion rate
+  setTimeout(() => {
+    const conv = document.getElementById('convRate');
+    let cv = 0;
+    const iv = setInterval(() => {
+      cv += 0.5;
+      conv.textContent = `전환율 ${cv.toFixed(1)}%`;
+      if (cv >= 8.3) clearInterval(iv);
+    }, 50);
+  }, 2000);
+}
+
+async function runSequence() {
+  if (playing) return;
+  playing = true;
+  resetScenes();
+  await wait(200);
+
+  // Re-enable bar transition
+  const barFill = document.querySelector('.crm-bar-fill');
+  if (barFill) { barFill.style.transition = 'width 2s ease'; }
+
+  for (let i = 0; i < SCENES.length; i++) {
+    const el = document.getElementById(SCENES[i].id);
+    el.classList.add('active');
+
+    // Special: CRM animation
+    if (SCENES[i].id === 's5') animateCRM();
+
+    await wait(SCENES[i].dur);
+    if (i < SCENES.length - 1) {
+      el.classList.remove('active');
+      await wait(300);
+    }
+  }
+  playing = false;
+}
+
+function playAd() {
+  runSequence();
+}
+
+async function recordAd() {
+  const status = document.getElementById('status');
+  const dlBtn = document.getElementById('dlBtn');
+
+  try {
+    // Request screen capture of this tab
+    status.textContent = '화면 공유 팝업에서 이 탭을 선택해 주세요...';
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { displaySurface: 'browser', frameRate: 30 },
+      audio: false,
+      preferCurrentTab: true,
+    });
+
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9'
+      : 'video/webm';
+
+    const recorder = new MediaRecorder(stream, {
+      mimeType,
+      videoBitsPerSecond: 5000000,
+    });
+
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+    recorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      if (chunks.length === 0) {
+        status.textContent = '녹화 데이터가 없습니다. 다시 시도해 주세요.';
+        return;
+      }
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      blobUrl = URL.createObjectURL(blob);
+
+      // Auto download
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = 'Mapae_Ad_Video.webm';
+      a.click();
+
+      status.textContent = '녹화 완료! 파일이 다운로드됩니다.';
+      dlBtn.classList.add('show');
+    };
+
+    // Start recording then play
+    recorder.start(200);
+    status.innerHTML = '<span style="color:#f44336;animation:recording-blink 1s infinite">&#9679;</span> 녹화 중...';
+
+    await wait(500);
+    await runSequence();
+    await wait(2000);
+
+    recorder.stop();
+
+  } catch (err) {
+    console.error(err);
+    status.textContent = '녹화가 취소되었습니다: ' + err.message;
+  }
+}
+
+function downloadFile() {
+  if (!blobUrl) return;
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = 'Mapae_Ad_Video.webm';
+  a.click();
+}
+</script>
+</body>
+</html>
