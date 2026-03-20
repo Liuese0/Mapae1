@@ -30,41 +30,54 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 .us input{display:none}
 
 /* Controls */
-.ct{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;justify-content:center}
-.ct button{
+.ctr{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;justify-content:center}
+.ctr button{
   padding:10px 22px;border:none;border-radius:8px;font-size:13px;font-weight:700;
   cursor:pointer;font-family:inherit;transition:.2s;
 }
-.ct button:hover{transform:scale(1.04)}
-.ct button:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.ctr button:hover{transform:scale(1.04)}
+.ctr button:disabled{opacity:.3;cursor:not-allowed;transform:none}
 .bp{background:#222;color:#fff}.br{background:#555;color:#fff}
 .bd{background:#888;color:#fff;display:none}.bd.show{display:inline-block}
 #st{font-size:11px;color:#999;margin-bottom:12px;text-align:center;min-height:14px}
 
-/* Stage */
+/* ══════ Stage ══════ */
 #stage{
   width:360px;height:640px;position:relative;overflow:hidden;
   background:#fff;border-radius:20px;
   box-shadow:0 2px 30px rgba(0,0,0,.07),0 0 0 1px rgba(0,0,0,.04);
 }
 
-/* BG gradient shift */
+/* Animated bg */
 .bgshift{
   position:absolute;inset:0;z-index:0;
-  background:linear-gradient(135deg,#fff 0%,#f8f8f8 50%,#f0f0f0 100%);
-  background-size:200% 200%;
-  animation:bgMove 8s ease infinite;
+  background:linear-gradient(135deg,#ffffff 0%,#f4f4f6 30%,#eaeaee 60%,#f0f0f2 100%);
+  background-size:300% 300%;
+  animation:bgMove 6s ease infinite;
 }
 @keyframes bgMove{
   0%{background-position:0% 0%}
-  50%{background-position:100% 100%}
+  33%{background-position:100% 50%}
+  66%{background-position:50% 100%}
   100%{background-position:0% 0%}
 }
+
+/* Floating blobs */
+.blob{
+  position:absolute;border-radius:50%;pointer-events:none;z-index:1;
+  filter:blur(60px);opacity:.06;
+}
+.blob-1{width:200px;height:200px;background:#999;top:-40px;left:-60px;animation:blobFloat1 10s ease-in-out infinite}
+.blob-2{width:180px;height:180px;background:#aaa;bottom:-30px;right:-50px;animation:blobFloat2 12s ease-in-out infinite}
+.blob-3{width:140px;height:140px;background:#888;top:50%;left:50%;animation:blobFloat3 8s ease-in-out infinite}
+@keyframes blobFloat1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,40px)}}
+@keyframes blobFloat2{0%,100%{transform:translate(0,0)}50%{transform:translate(-50px,-30px)}}
+@keyframes blobFloat3{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-30%,-60%) scale(1.2)}}
 
 /* Particles */
 .pts{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
 .pt{
-  position:absolute;border-radius:50%;background:rgba(0,0,0,.03);
+  position:absolute;border-radius:50%;background:rgba(0,0,0,.04);
   animation:fp var(--d) var(--dl) linear infinite;
 }
 @keyframes fp{
@@ -73,7 +86,7 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   100%{transform:translateY(-60px) scale(1);opacity:0}
 }
 
-/* ── Scenes ── */
+/* ══════ Scenes ══════ */
 .sc{
   position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
@@ -85,34 +98,50 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 .s1 .pile{position:relative;width:260px;height:155px;margin-bottom:28px}
 .s1 .pc{
   position:absolute;width:220px;height:130px;
-  background:linear-gradient(135deg,#e8e8e8,#f5f5f5);
-  border-radius:10px;border:1px solid #ddd;
+  background:linear-gradient(145deg,#eaeaea,#f8f8f8);
+  border-radius:10px;border:1px solid #d8d8d8;
   display:flex;align-items:center;justify-content:center;
   color:#aaa;font-size:11px;font-weight:500;
-  box-shadow:0 4px 16px rgba(0,0,0,.05);opacity:0;
+  box-shadow:0 6px 24px rgba(0,0,0,.08);opacity:0;
 }
-.s1.on .pc{animation:cardDrop .35s cubic-bezier(.34,1.56,.64,1) both}
+.s1.on .pc{animation:cardDrop .4s cubic-bezier(.22,1.4,.36,1) both}
 .s1.on .pc:nth-child(1){animation-delay:.05s}
-.s1.on .pc:nth-child(2){animation-delay:.15s}
-.s1.on .pc:nth-child(3){animation-delay:.25s}
+.s1.on .pc:nth-child(2){animation-delay:.18s}
+.s1.on .pc:nth-child(3){animation-delay:.3s}
 .s1 .pc:nth-child(1){top:0;left:0;transform:rotate(-10deg)}
 .s1 .pc:nth-child(2){top:8px;left:16px;transform:rotate(-3deg)}
 .s1 .pc:nth-child(3){top:18px;left:32px;transform:rotate(6deg)}
 .s1 .htxt{font-size:28px;font-weight:900;text-align:center;line-height:1.4;color:#111;opacity:0}
-.s1.on .htxt{animation:textPop .4s .4s cubic-bezier(.34,1.56,.64,1) both}
-.s1 .htxt em{font-style:normal;color:#555}
+.s1.on .htxt{animation:textPop .45s .45s cubic-bezier(.22,1.4,.36,1) both}
+.s1 .htxt em{
+  font-style:normal;color:#333;
+  background:linear-gradient(to top,rgba(0,0,0,.06) 40%,transparent 40%);
+  padding:0 4px;
+}
 
 /* ─── S2: Logo ─── */
 .s2{z-index:10}
 .s2 .lw{text-align:center;opacity:0;transform:scale(.4)}
-.s2.on .lw{animation:logoBoom .5s cubic-bezier(.34,1.56,.64,1) both}
-.s2 .ai{width:72px;height:72px;border-radius:18px;margin:0 auto 14px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.s2.on .lw{animation:logoBoom .5s cubic-bezier(.22,1.4,.36,1) both}
+.s2 .ai{
+  width:72px;height:72px;border-radius:18px;margin:0 auto 14px;
+  overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08);
+}
+.s2.on .ai{animation:iconFloat 2s .5s ease-in-out infinite}
 .s2 .ai img{width:100%;height:100%;object-fit:cover}
 .s2 .ml{font-size:52px;font-weight:900;letter-spacing:4px;color:#111}
 .s2 .tg{font-size:16px;color:#999;margin-top:6px;font-weight:300;opacity:0}
-.s2.on .tg{animation:fadeUp .4s .3s ease both}
+.s2.on .tg{animation:fadeUp .35s .3s ease both}
+/* Ripple rings behind logo */
+.s2 .ripple{
+  position:absolute;width:120px;height:120px;border-radius:50%;
+  border:1.5px solid rgba(0,0,0,.04);opacity:0;pointer-events:none;
+}
+.s2.on .ripple:nth-child(1){animation:rippleOut 1.5s .1s ease infinite}
+.s2.on .ripple:nth-child(2){animation:rippleOut 1.5s .5s ease infinite}
+.s2.on .ripple:nth-child(3){animation:rippleOut 1.5s .9s ease infinite}
 
-/* ─── Phone cards (stacking) ─── */
+/* ══════ Phone cards (stacking) ══════ */
 .phone-layer{
   position:absolute;inset:0;z-index:20;pointer-events:none;
   display:flex;align-items:center;justify-content:center;
@@ -120,9 +149,10 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 .phone-card{
   position:absolute;
   width:280px;height:560px;
-  border-radius:32px;border:3px solid #ddd;
+  border-radius:32px;
+  border:2px solid rgba(0,0,0,.08);
   overflow:hidden;background:#fff;
-  box-shadow:0 12px 50px rgba(0,0,0,.1);
+  box-shadow:0 16px 60px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.04);
   opacity:0;
   will-change:transform,opacity;
 }
@@ -130,103 +160,147 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   width:100%;height:100%;object-fit:cover;object-position:center top;
   image-rendering:-webkit-optimize-contrast;
 }
-/* Shine */
+/* Dynamic island */
+.phone-card::before{
+  content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:80px;height:22px;background:#111;border-radius:12px;
+  z-index:5;opacity:.85;
+}
+/* Shine sweep */
 .phone-card::after{
   content:'';position:absolute;top:0;left:-90%;
-  width:60%;height:100%;z-index:3;
-  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.25) 50%,transparent 70%);
+  width:60%;height:100%;z-index:4;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.2) 50%,transparent 70%);
   opacity:0;pointer-events:none;
 }
 
-/* Each phone slides from a different direction */
-.phone-card.from-left{transform:translateX(-420px) rotate(-6deg)}
-.phone-card.from-right{transform:translateX(420px) rotate(6deg)}
-.phone-card.from-bottom{transform:translateY(700px) rotate(2deg)}
-.phone-card.from-top-left{transform:translate(-380px,-300px) rotate(-8deg)}
-.phone-card.from-top-right{transform:translate(380px,-300px) rotate(8deg)}
+/* Slide directions: LEFT and RIGHT only */
+.phone-card.from-left{transform:translateX(-440px) rotate(-4deg)}
+.phone-card.from-right{transform:translateX(440px) rotate(4deg)}
 
 .phone-card.in{
   opacity:1;transform:translate(0,0) rotate(0deg);
-  transition:transform .55s cubic-bezier(.22,1,.36,1),opacity .3s ease;
+  transition:transform .5s cubic-bezier(.22,1,.36,1),opacity .25s ease;
 }
-.phone-card.in::after{animation:shineSweep .7s .4s ease both}
+.phone-card.in::after{animation:shineSweep .7s .35s ease both}
 
-/* Settled cards get a subtle sway */
-.phone-card.settled{
-  animation:subtleSway 3s ease-in-out infinite;
+/* Pushed back effect when a new card comes */
+.phone-card.pushed-left{
+  transform:translateX(-18px) scale(.96) rotate(-1.5deg);
+  transition:transform .5s cubic-bezier(.22,1,.36,1);
+  filter:brightness(.97);
+}
+.phone-card.pushed-right{
+  transform:translateX(18px) scale(.96) rotate(1.5deg);
+  transition:transform .5s cubic-bezier(.22,1,.36,1);
+  filter:brightness(.97);
+}
+.phone-card.pushed-deep{
+  transform:scale(.92) rotate(0deg);
+  transition:transform .5s cubic-bezier(.22,1,.36,1);
+  filter:brightness(.94);
 }
 
-/* ─── Badges ─── */
+/* ══════ Badges ══════ */
 .fbadge{
   position:absolute;
-  background:rgba(255,255,255,.93);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  padding:12px 24px;border-radius:16px;text-align:center;
-  border:1px solid rgba(0,0,0,.05);
-  box-shadow:0 6px 24px rgba(0,0,0,.08);
+  background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(250,250,250,.95));
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  padding:12px 22px;border-radius:16px;text-align:center;
+  border:1px solid rgba(0,0,0,.04);
+  box-shadow:0 8px 32px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.04);
   z-index:50;opacity:0;pointer-events:none;
   white-space:nowrap;
 }
-.fbadge h2{font-size:18px;font-weight:800;color:#111;margin-bottom:2px}
+.fbadge h2{font-size:17px;font-weight:800;color:#111;margin-bottom:2px}
 .fbadge p{font-size:11px;color:#999;font-weight:300}
-/* Positions */
-.fbadge.pos-bl{bottom:40px;left:20px;transform:translateX(-40px)}
-.fbadge.pos-tr{top:50px;right:20px;transform:translateX(40px)}
-.fbadge.pos-br{bottom:50px;right:20px;transform:translateX(40px)}
-.fbadge.pos-tl{top:60px;left:20px;transform:translateX(-40px)}
-.fbadge.pos-bc{bottom:40px;left:50%;transform:translateX(-50%) translateY(30px)}
 
-.fbadge.in{opacity:1;transform:translate(0,0)}
-.fbadge.pos-bc.in{transform:translateX(-50%) translateY(0)}
-.fbadge.in{transition:opacity .35s ease,transform .4s cubic-bezier(.34,1.56,.64,1)}
+/* Badge positions */
+.fbadge.pos-bl{bottom:44px;left:16px;transform:translateX(-50px) scale(.9)}
+.fbadge.pos-tr{top:50px;right:16px;transform:translateX(50px) scale(.9)}
+.fbadge.pos-br{bottom:50px;right:16px;transform:translateX(50px) scale(.9)}
+.fbadge.pos-tl{top:56px;left:16px;transform:translateX(-50px) scale(.9)}
+.fbadge.pos-bc{bottom:44px;left:50%;transform:translateX(-50%) translateY(30px) scale(.9)}
 
-/* ─── CTA ─── */
+.fbadge.in{
+  opacity:1;transform:translate(0,0) scale(1);
+  transition:opacity .25s ease,transform .4s cubic-bezier(.22,1.4,.36,1),box-shadow .3s ease;
+  box-shadow:0 12px 40px rgba(0,0,0,.12),0 2px 6px rgba(0,0,0,.06);
+}
+.fbadge.pos-bc.in{transform:translateX(-50%) translateY(0) scale(1)}
+
+.fbadge.out{
+  opacity:0;transform:translateY(-20px) scale(.95);
+  transition:opacity .2s ease,transform .25s ease;
+}
+.fbadge.pos-bc.out{transform:translateX(-50%) translateY(-20px) scale(.95)}
+
+/* ══════ CTA ══════ */
 .cta-layer{
   position:absolute;inset:0;z-index:100;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  background:rgba(255,255,255,.96);
-  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  background:rgba(255,255,255,.95);
+  backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
   opacity:0;pointer-events:none;
-  transition:opacity .5s ease;
+  transition:opacity .6s ease;
 }
 .cta-layer.on{opacity:1}
-.cta-layer .cl{font-size:60px;font-weight:900;letter-spacing:5px;color:#111;margin-bottom:10px;opacity:0}
-.cta-layer.on .cl{animation:logoBoom .5s cubic-bezier(.34,1.56,.64,1) both}
+.cta-layer .cl{
+  font-size:60px;font-weight:900;letter-spacing:5px;color:#111;
+  margin-bottom:10px;opacity:0;
+  background:linear-gradient(90deg,#111,#444,#111);
+  background-size:200% 100%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.cta-layer.on .cl{animation:logoBoom .5s cubic-bezier(.22,1.4,.36,1) both,shimmerText 3s 1s ease infinite}
 .cta-layer .ct2{font-size:18px;color:#999;font-weight:300;margin-bottom:32px;opacity:0}
 .cta-layer.on .ct2{animation:fadeUp .4s .3s ease both}
 .cta-layer .cb{
   padding:14px 42px;background:#111;color:#fff;border-radius:32px;
-  font-size:16px;font-weight:700;margin-bottom:14px;opacity:0;
+  font-size:16px;font-weight:700;opacity:0;
   box-shadow:0 4px 16px rgba(0,0,0,.1);
 }
-.cta-layer.on .cb{animation:fadeUp .4s .55s ease both}
+.cta-layer.on .cb{animation:fadeUp .4s .5s ease both,ctaPulse 2s 1.5s ease infinite}
 
-/* ── Keyframes ── */
+/* ══════ Keyframes ══════ */
 @keyframes cardDrop{
-  from{opacity:0;transform:translateY(-40px) rotate(var(--r,0deg)) scale(.7)}
-  to{opacity:1;transform:translateY(0) rotate(var(--r,0deg)) scale(1)}
+  0%{opacity:0;transform:translateY(-50px) rotate(var(--r,0deg)) scale(.6)}
+  70%{transform:translateY(5px) rotate(var(--r,0deg)) scale(1.02)}
+  100%{opacity:1;transform:translateY(0) rotate(var(--r,0deg)) scale(1)}
 }
 @keyframes textPop{
-  from{opacity:0;transform:translateY(30px) scale(.85)}
-  to{opacity:1;transform:translateY(0) scale(1)}
+  0%{opacity:0;transform:translateY(30px) scale(.8)}
+  70%{transform:translateY(-3px) scale(1.02)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
 }
 @keyframes logoBoom{
-  from{opacity:0;transform:scale(.3)}
-  to{opacity:1;transform:scale(1)}
+  0%{opacity:0;transform:scale(.2)}
+  70%{transform:scale(1.06)}
+  100%{opacity:1;transform:scale(1)}
 }
 @keyframes fadeUp{
   from{opacity:0;transform:translateY(16px)}
   to{opacity:1;transform:translateY(0)}
 }
-@keyframes shineSweep{from{left:-90%;opacity:1}to{left:130%;opacity:0}}
-@keyframes subtleSway{
-  0%,100%{transform:translate(0,0) rotate(0deg)}
-  25%{transform:translate(2px,-3px) rotate(.3deg)}
-  75%{transform:translate(-2px,2px) rotate(-.2deg)}
+@keyframes shineSweep{from{left:-90%;opacity:1}to{left:140%;opacity:0}}
+@keyframes rippleOut{
+  0%{transform:scale(1);opacity:.3}
+  100%{transform:scale(4);opacity:0}
+}
+@keyframes iconFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
+@keyframes shimmerText{
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
+}
+@keyframes ctaPulse{
+  0%,100%{box-shadow:0 4px 16px rgba(0,0,0,.1)}
+  50%{box-shadow:0 6px 28px rgba(0,0,0,.18)}
 }
 @keyframes recBlink{0%,100%{opacity:1}50%{opacity:.3}}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes fadeOut{from{opacity:1}to{opacity:0}}
 </style>
 </head>
 <body>
@@ -252,7 +326,7 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   </div>
 </div>
 
-<div class="ct">
+<div class="ctr">
   <button class="bp" id="playBtn" onclick="playAd()" disabled>&#9654; 재생</button>
   <button class="br" id="recBtn" onclick="recordAd()" disabled>&#9679; 녹화 &amp; 다운로드</button>
   <button class="bd" id="dlBtn" onclick="dlFile()">&#11015; 다시 다운로드</button>
@@ -261,6 +335,9 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 
 <div id="stage">
   <div class="bgshift"></div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
   <div class="pts" id="pw"></div>
 
   <!-- S1: Hook -->
@@ -275,6 +352,9 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 
   <!-- S2: Logo -->
   <div class="sc s2" id="sc2">
+    <div class="ripple"></div>
+    <div class="ripple"></div>
+    <div class="ripple"></div>
     <div class="lw">
       <div class="ai" id="iconWrap"></div>
       <div class="ml">Mapae</div>
@@ -282,23 +362,23 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
     </div>
   </div>
 
-  <!-- Phone stacking layer -->
+  <!-- Phone stacking layer: alternating LEFT / RIGHT -->
   <div class="phone-layer" id="phoneLayer">
     <div class="phone-card from-left" id="ph0"><img id="si0" src="" alt=""></div>
     <div class="phone-card from-right" id="ph1"><img id="si1" src="" alt=""></div>
-    <div class="phone-card from-bottom" id="ph2"><img id="si2" src="" alt=""></div>
-    <div class="phone-card from-top-left" id="ph3"><img id="si3" src="" alt=""></div>
-    <div class="phone-card from-top-right" id="ph4"><img id="si4" src="" alt=""></div>
+    <div class="phone-card from-left" id="ph2"><img id="si2" src="" alt=""></div>
+    <div class="phone-card from-right" id="ph3"><img id="si3" src="" alt=""></div>
+    <div class="phone-card from-left" id="ph4"><img id="si4" src="" alt=""></div>
   </div>
 
-  <!-- Badges at different positions -->
+  <!-- Badges at varied positions -->
   <div class="fbadge pos-bl" id="bd0"><h2>내 명함을 공유하세요</h2><p>3D 뷰어 &middot; 원터치 공유</p></div>
   <div class="fbadge pos-tr" id="bd1"><h2>모든 명함, 한 곳에</h2><p>검색 &middot; 필터 &middot; 카테고리</p></div>
   <div class="fbadge pos-br" id="bd2"><h2>퀵쉐어</h2><p>만나면 바로 명함 교환</p></div>
   <div class="fbadge pos-tl" id="bd3"><h2>팀 CRM 관리</h2><p>파이프라인을 한눈에</p></div>
   <div class="fbadge pos-bc" id="bd4"><h2>팀 관리</h2><p>팀원과 명함을 공유</p></div>
 
-  <!-- CTA overlay -->
+  <!-- CTA -->
   <div class="cta-layer" id="ctaLayer">
     <div class="cl">Mapae</div>
     <div class="ct2">명함의 새로운 기준</div>
@@ -308,28 +388,29 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 
 <script>
 /* ── Config ── */
-const PHONE_ENTRIES = [
-  { ph:'ph0', bd:'bd0', delay:0,    dir:'from-left' },
-  { ph:'ph1', bd:'bd1', delay:0,    dir:'from-right' },
-  { ph:'ph2', bd:'bd2', delay:0,    dir:'from-bottom' },
-  { ph:'ph3', bd:'bd3', delay:0,    dir:'from-top-left' },
-  { ph:'ph4', bd:'bd4', delay:0,    dir:'from-top-right' },
+const PHONES = [
+  { ph:'ph0', bd:'bd0', dir:'from-left' },
+  { ph:'ph1', bd:'bd1', dir:'from-right' },
+  { ph:'ph2', bd:'bd2', dir:'from-left' },
+  { ph:'ph3', bd:'bd3', dir:'from-right' },
+  { ph:'ph4', bd:'bd4', dir:'from-left' },
 ];
-const PHONE_INTERVAL = 2400;  // time between each phone entering
-const BADGE_DELAY = 500;      // badge appears after phone lands
-const BADGE_DURATION = 1800;  // badge visible time
+const BADGE_DELAY = 400;
+const BADGE_SHOW = 1600;
+const PHONE_GAP = 200;
 
 /* ── Particles ── */
 (function(){
   const w=document.getElementById('pw');
-  for(let i=0;i<18;i++){
+  for(let i=0;i<30;i++){
     const p=document.createElement('div');
     p.className='pt';
     p.style.left=Math.random()*100+'%';
-    p.style.setProperty('--d',(5+Math.random()*7)+'s');
-    p.style.setProperty('--dl',(Math.random()*4)+'s');
-    const s=2+Math.random()*5;
+    p.style.setProperty('--d',(4+Math.random()*8)+'s');
+    p.style.setProperty('--dl',(Math.random()*5)+'s');
+    const s=1.5+Math.random()*5;
     p.style.width=s+'px';p.style.height=s+'px';
+    p.style.opacity=.02+Math.random()*.04;
     w.appendChild(p);
   }
 })();
@@ -375,24 +456,22 @@ function chkReady(){
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 function resetAll(){
-  // Reset scene1, scene2
   document.getElementById('sc1').classList.remove('on');
   document.getElementById('sc1').style.opacity='0';
   document.getElementById('sc2').classList.remove('on');
   document.getElementById('sc2').style.opacity='0';
-  // Reset phones
-  PHONE_ENTRIES.forEach(e=>{
+  PHONES.forEach(e=>{
     const ph=document.getElementById(e.ph);
-    ph.classList.remove('in','settled');
+    ph.classList.remove('in','pushed-left','pushed-right','pushed-deep');
     ph.style.transition='none';
+    ph.style.filter='';
     ph.className='phone-card '+e.dir;
     void ph.offsetWidth;
     const bd=document.getElementById(e.bd);
-    bd.classList.remove('in');
+    bd.classList.remove('in','out');
     bd.style.transition='none';
     void bd.offsetWidth;
   });
-  // Reset CTA
   document.getElementById('ctaLayer').classList.remove('on');
 }
 
@@ -400,69 +479,74 @@ async function runSeq(){
   if(playing)return;
   playing=true;
   resetAll();
-  await wait(100);
+  await wait(80);
 
-  /* ── Scene 1: Hook (2.2s) ── */
+  /* ── S1: Hook (2.0s) ── */
   const sc1=document.getElementById('sc1');
   sc1.style.transition='opacity .3s ease';
   sc1.style.opacity='1';
   sc1.classList.add('on');
-  await wait(2200);
+  await wait(2000);
   sc1.style.opacity='0';
-  await wait(300);
+  await wait(280);
 
-  /* ── Scene 2: Logo (1.8s) ── */
+  /* ── S2: Logo (1.6s) ── */
   const sc2=document.getElementById('sc2');
   sc2.style.transition='opacity .3s ease';
   sc2.style.opacity='1';
   sc2.classList.add('on');
-  await wait(1800);
+  await wait(1600);
   sc2.style.opacity='0';
-  await wait(300);
+  await wait(280);
 
-  /* ── Phone stacking sequence ── */
-  for(let i=0;i<PHONE_ENTRIES.length;i++){
-    const {ph,bd} = PHONE_ENTRIES[i];
+  /* ── Phone stacking ── */
+  for(let i=0;i<PHONES.length;i++){
+    const {ph,bd,dir}=PHONES[i];
     const phEl=document.getElementById(ph);
     const bdEl=document.getElementById(bd);
 
-    // Set z-index so new phone is on top
-    phEl.style.zIndex = 30 + i;
-    bdEl.style.zIndex = 50 + i;
+    phEl.style.zIndex=30+i;
+    bdEl.style.zIndex=50+i;
+
+    // Push previous cards back
+    for(let j=0;j<i;j++){
+      const prevPh=document.getElementById(PHONES[j].ph);
+      prevPh.classList.remove('pushed-left','pushed-right','pushed-deep');
+      void prevPh.offsetWidth;
+      if(j===i-1){
+        // Most recent prev: push in opposite direction of incoming
+        prevPh.classList.add(dir==='from-left'?'pushed-right':'pushed-left');
+      } else {
+        // Older cards: push deeper
+        prevPh.classList.add('pushed-deep');
+      }
+    }
 
     // Slide phone in
-    phEl.style.transition='transform .55s cubic-bezier(.22,1,.36,1), opacity .3s ease';
+    phEl.style.transition='transform .5s cubic-bezier(.22,1,.36,1), opacity .25s ease';
     void phEl.offsetWidth;
     phEl.classList.add('in');
 
-    // Badge appears after phone lands
+    // Badge in
     await wait(BADGE_DELAY);
-    bdEl.style.transition='opacity .3s ease, transform .4s cubic-bezier(.34,1.56,.64,1)';
+    bdEl.style.transition='opacity .25s ease, transform .4s cubic-bezier(.22,1.4,.36,1), box-shadow .3s ease';
     void bdEl.offsetWidth;
     bdEl.classList.add('in');
 
-    // Wait for this phone's display time
-    await wait(BADGE_DURATION);
+    await wait(BADGE_SHOW);
 
-    // Hide badge before next phone comes
-    bdEl.style.transition='opacity .25s ease, transform .25s ease';
+    // Badge out (float up)
     bdEl.classList.remove('in');
+    bdEl.classList.add('out');
 
-    // Previous phone gets subtle sway
-    if(i>0){
-      const prevPh=document.getElementById(PHONE_ENTRIES[i-1].ph);
-      prevPh.classList.add('settled');
-    }
-
-    await wait(200);
+    await wait(PHONE_GAP);
   }
 
-  // Last badge is gone
   await wait(300);
 
   /* ── CTA ── */
   document.getElementById('ctaLayer').classList.add('on');
-  await wait(3000);
+  await wait(2500);
 
   playing=false;
 }
@@ -492,7 +576,7 @@ async function recordAd(){
     };
     rec.start(100);
     s.innerHTML='<span style="color:#f44336;animation:recBlink 1s infinite">&#9679;</span> 녹화 중...';
-    await wait(400);await runSeq();await wait(1500);rec.stop();
+    await wait(400);await runSeq();await wait(1200);rec.stop();
   }catch(e){s.textContent='취소: '+e.message}
 }
 function dlFile(){
