@@ -144,6 +144,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
 
       if (mounted) {
         final l10nCurrent = AppLocalizations.of(context);
+        final cardId = card.id;
         Navigator.of(context).pop();
         widget.onScanComplete?.call();
 
@@ -151,8 +152,10 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
           SnackBar(content: Text(l10nCurrent.cardAdded)),
         );
 
-        // Navigate to edit to review OCR results
-        context.push('/card/${card.id}/edit');
+        // Delay push to next frame to avoid Navigator lock conflict
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) context.push('/card/$cardId/edit');
+        });
       }
     } catch (e) {
       if (mounted) {
