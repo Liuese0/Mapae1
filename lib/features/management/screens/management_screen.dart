@@ -9,6 +9,7 @@ import '../../shared/models/business_card.dart';
 import '../../shared/models/team.dart';
 import '../../shared/widgets/notification_bell.dart';
 import '../../../core/services/premium_service.dart';
+import '../../../core/services/csv_export_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 final myCardsManageProvider =
@@ -60,6 +61,28 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
     _entranceController.forward();
   }
 
+  Future<void> _handleExportMyCards(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final cards = ref.read(myCardsManageProvider).valueOrNull ?? [];
+    if (cards.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.noDataToExport)),
+        );
+      }
+      return;
+    }
+    try {
+      await CsvExportService.exportBusinessCards(cards);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.csvExportFailed)),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _entranceController.dispose();
@@ -107,11 +130,32 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
             // My Cards Section
             AnimatedListItem(
               index: 0,
-              child: _SectionHeader(
-                title: l10n.myCards,
-                actionLabel: l10n.addCard,
-                onAction: () => context.push('/my-card/edit'),
-                padding: hPadding,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: hPadding),
+                child: Row(
+                  children: [
+                    Text(
+                      l10n.myCards,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.download_outlined, size: 20),
+                      tooltip: l10n.exportToCsv,
+                      onPressed: () => _handleExportMyCards(context, ref),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    TextButton(
+                      onPressed: () => context.push('/my-card/edit'),
+                      child: Text(
+                        l10n.addCard,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -443,7 +487,60 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
     );
   }
 
+  /// 무료 플랜 팀 제한 체크. 제한 초과 시 업그레이드 다이얼로그 표시 후 true 반환.
+  bool _checkTeamLimit(BuildContext context, WidgetRef ref) {
+    final isPro = ref.read(isProProvider);
+    if (isPro) return false;
+    final teams = ref.read(myTeamsProvider).valueOrNull ?? [];
+    if (teams.length >= PremiumService.freeMaxTeams) {
+      _showUpgradeDialog(context, ref, isTeamLimit: true);
+      return true;
+    }
+    return false;
+  }
+
+  void _showUpgradeDialog(BuildContext context, WidgetRef ref, {bool isTeamLimit = false}) {
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isTeamLimit ? l10n.teamLimitReached : l10n.cardLimitReached),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(isTeamLimit
+                ? l10n.teamLimitMessage(PremiumService.freeMaxTeams)
+                : l10n.cardLimitMessage(PremiumService.freeMaxCards)),
+            const SizedBox(height: 8),
+            Text(l10n.upgradeToProForMore),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (_) => const _PremiumBottomSheet(),
+              );
+            },
+            child: Text(l10n.upgradeToPro),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showCreateTeamDialog(BuildContext context, WidgetRef ref) {
+    if (_checkTeamLimit(context, ref)) return;
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     showDialog(
@@ -486,6 +583,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
   }
 
   void _showJoinTeamDialog(BuildContext context, WidgetRef ref) {
+    if (_checkTeamLimit(context, ref)) return;
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     bool isLoading = false;
@@ -929,72 +1027,101 @@ class _PremiumTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isPremium = ref.watch(isPremiumProvider);
+    final l10n = AppLocalizations.of(context);
+    final premiumState = ref.watch(premiumStateProvider);
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: padding, vertical: 4),
-      child: isPremium
-          ? _buildPremiumActive(context, theme)
-          : _buildPremiumInactive(context, ref, theme),
+      child: _buildTile(context, ref, theme, l10n, premiumState),
     );
   }
 
-  Widget _buildPremiumActive(BuildContext context, ThemeData theme) {
-    final l10n = AppLocalizations.of(context);
-    return Row(
-      children: [
-        Icon(
-          Icons.star_rounded,
-          size: 20,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            l10n.removeAds,
-            style: const TextStyle(fontSize: 15),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-          ),
-          child: Text(
-            l10n.applied,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPremiumInactive(
-      BuildContext context,
-      WidgetRef ref,
-      ThemeData theme,
-      ) {
-    final l10n = AppLocalizations.of(context);
-    return _TapScaleWidget(
-      onTap: () => _showPremiumSheet(context, ref),
-      child: Row(
+  Widget _buildTile(BuildContext context, WidgetRef ref, ThemeData theme,
+      AppLocalizations l10n, PremiumState premiumState) {
+    // Pro 활성
+    if (premiumState.isPro) {
+      return Row(
         children: [
-          Icon(
-            Icons.star_outline_rounded,
-            size: 20,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-          ),
+          Icon(Icons.workspace_premium, size: 20,
+              color: theme.colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              l10n.removeAds,
-              style: const TextStyle(fontSize: 15),
+            child: Text(l10n.proTitle, style: const TextStyle(fontSize: 15)),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
             ),
+            child: Text(
+              l10n.proActive,
+              style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w600,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // 레거시만 (광고제거 O, Pro X)
+    if (premiumState.isPremiumLegacy) {
+      return _TapScaleWidget(
+        onTap: () => _showPremiumSheet(context),
+        child: Row(
+          children: [
+            Icon(Icons.star_rounded, size: 20,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.removeAds, style: const TextStyle(fontSize: 15)),
+                  Text(
+                    l10n.upgradeToPro,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+              ),
+              child: Text(
+                l10n.applied,
+                style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+          ],
+        ),
+      );
+    }
+
+    // 미구매
+    return _TapScaleWidget(
+      onTap: () => _showPremiumSheet(context),
+      child: Row(
+        children: [
+          Icon(Icons.workspace_premium, size: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(l10n.proTitle, style: const TextStyle(fontSize: 15)),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -1003,39 +1130,39 @@ class _PremiumTile extends ConsumerWidget {
               color: theme.colorScheme.primary.withValues(alpha: 0.08),
             ),
             child: Text(
-              '₩1,000',
+              l10n.upgradeToPro,
               style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontSize: 12, fontWeight: FontWeight.w600,
                 color: theme.colorScheme.primary,
               ),
             ),
           ),
           const SizedBox(width: 4),
-          Icon(
-            Icons.chevron_right,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-          ),
+          Icon(Icons.chevron_right,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
         ],
       ),
     );
   }
 
-  void _showPremiumSheet(BuildContext context, WidgetRef ref) {
+  void _showPremiumSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _PremiumBottomSheet(ref: ref),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const _PremiumBottomSheet(),
     );
   }
 }
 
 // ──────────────── Premium Bottom Sheet ────────────────
 
+enum _ProPlan { monthly, annual }
+
 class _PremiumBottomSheet extends ConsumerStatefulWidget {
-  final WidgetRef ref;
-  const _PremiumBottomSheet({required this.ref});
+  const _PremiumBottomSheet();
 
   @override
   ConsumerState<_PremiumBottomSheet> createState() =>
@@ -1044,29 +1171,45 @@ class _PremiumBottomSheet extends ConsumerStatefulWidget {
 
 class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
   bool _isLoading = false;
+  _ProPlan _selectedPlan = _ProPlan.monthly;
 
-  Future<void> _handlePurchase() async {
+  Future<void> _handleProPurchase() async {
     setState(() => _isLoading = true);
 
-    final error = await ref.read(isPremiumProvider.notifier).purchase();
+    final notifier = ref.read(premiumStateProvider.notifier);
+    final isLegacy = ref.read(premiumStateProvider).isPremiumLegacy;
+
+    String? error;
+    if (_selectedPlan == _ProPlan.annual) {
+      error = await notifier.purchaseProAnnual();
+    } else if (isLegacy) {
+      error = await notifier.purchaseProLegacyDiscount();
+    } else {
+      error = await notifier.purchaseProMonthly();
+    }
 
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (error != null) {
-      _showError(error);
-    }
-    // 성공 시 구매 스트림에서 자동으로 isPremiumProvider 업데이트됨
+    if (error != null) _showError(error);
+  }
+
+  Future<void> _handleLegacyPurchase() async {
+    setState(() => _isLoading = true);
+    final error = await ref.read(premiumStateProvider.notifier).purchaseLegacy();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    if (error != null) _showError(error);
   }
 
   Future<void> _handleRestore() async {
     setState(() => _isLoading = true);
-    await ref.read(isPremiumProvider.notifier).restore();
+    await ref.read(premiumStateProvider.notifier).restore();
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    final isPremium = ref.read(isPremiumProvider);
-    if (isPremium && mounted) {
+    final state = ref.read(premiumStateProvider);
+    if (state.hasAdsRemoved && mounted) {
       Navigator.of(context).pop();
     } else {
       _showError(AppLocalizations.of(context).noPurchaseToRestore);
@@ -1075,121 +1218,164 @@ class _PremiumBottomSheetState extends ConsumerState<_PremiumBottomSheet> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPremium = ref.watch(isPremiumProvider);
+    final l10n = AppLocalizations.of(context);
+    final premiumState = ref.watch(premiumStateProvider);
 
-    // 구매 완료 후 시트 닫기
-    if (isPremium) {
+    // Pro 구매 완료 시 시트 닫기
+    if (premiumState.isPro) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) Navigator.of(context).pop();
       });
     }
 
-    return Container(
-      margin: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── 헤더 ──
-              Row(
-                children: [
-                  Icon(
-                    Icons.star_rounded,
-                    size: 22,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+    final isLegacy = premiumState.isPremiumLegacy;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── 헤더 ──
+            Row(
+              children: [
+                Icon(Icons.workspace_premium, size: 24,
+                    color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.proTitle,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700, fontSize: 20,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    AppLocalizations.of(context).premiumTitle,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.proDescription,
+              style: TextStyle(
+                fontSize: 14, height: 1.5,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // ── Pro 혜택 ──
+            _BenefitRow(icon: Icons.block_rounded, text: l10n.noAds, theme: theme),
+            const SizedBox(height: 10),
+            _BenefitRow(icon: Icons.credit_card, text: l10n.unlimitedCards, theme: theme),
+            const SizedBox(height: 10),
+            _BenefitRow(icon: Icons.groups_rounded, text: l10n.unlimitedTeams, theme: theme),
+            const SizedBox(height: 10),
+            _BenefitRow(icon: Icons.devices_rounded, text: l10n.restoreOnDevices, theme: theme),
+            const SizedBox(height: 24),
+
+            // ── 플랜 선택 ──
+            SegmentedButton<_ProPlan>(
+              segments: [
+                ButtonSegment(
+                  value: _ProPlan.monthly,
+                  label: Text(isLegacy ? l10n.proLegacyDiscountPrice : l10n.proMonthlyPrice),
+                  icon: const Icon(Icons.calendar_month, size: 16),
+                ),
+                ButtonSegment(
+                  value: _ProPlan.annual,
+                  label: Text(l10n.proAnnualPrice),
+                  icon: const Icon(Icons.calendar_today, size: 16),
+                ),
+              ],
+              selected: {_selectedPlan},
+              onSelectionChanged: (set) => setState(() => _selectedPlan = set.first),
+              style: SegmentedButton.styleFrom(
+                selectedForegroundColor: theme.colorScheme.onPrimary,
+                selectedBackgroundColor: theme.colorScheme.primary,
+              ),
+            ),
+            if (_selectedPlan == _ProPlan.annual)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Center(
+                  child: Text(
+                    l10n.proAnnualDiscount,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                AppLocalizations.of(context).premiumDescription,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
-                  height: 1.5,
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // ── 혜택 목록 ──
-              _BenefitRow(
-                icon: Icons.block_rounded,
-                text: AppLocalizations.of(context).removeAdsCompletely,
-                theme: theme,
-              ),
-              const SizedBox(height: 10),
-              _BenefitRow(
-                icon: Icons.all_inclusive_rounded,
-                text: AppLocalizations.of(context).oneTimePurchase,
-                theme: theme,
-              ),
-              const SizedBox(height: 10),
-              _BenefitRow(
-                icon: Icons.devices_rounded,
-                text: AppLocalizations.of(context).restoreOnDevices,
-                theme: theme,
-              ),
-              const SizedBox(height: 28),
-
-              // ── 구매 버튼 ──
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handlePurchase,
-                  child: _isLoading
-                      ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+            if (isLegacy && _selectedPlan == _ProPlan.monthly)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Center(
+                  child: Text(
+                    l10n.proLegacyDiscountLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
                     ),
-                  )
-                      : Text(AppLocalizations.of(context).purchaseButton),
+                  ),
                 ),
               ),
-              const SizedBox(height: 10),
+            const SizedBox(height: 20),
 
-              // ── 복원 버튼 ──
+            // ── Pro 구매 버튼 ──
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _isLoading ? null : _handleProPurchase,
+                child: _isLoading
+                    ? const SizedBox(
+                  height: 18, width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+                    : Text(l10n.subscribePro),
+              ),
+            ),
+
+            // ── 레거시 광고제거 (Pro 미구매 & 레거시도 미구매인 경우만) ──
+            if (!isLegacy) ...[
+              const SizedBox(height: 12),
               Center(
                 child: TextButton(
-                  onPressed: _isLoading ? null : _handleRestore,
+                  onPressed: _isLoading ? null : _handleLegacyPurchase,
                   child: Text(
-                    AppLocalizations.of(context).restorePurchase,
+                    l10n.legacyAdRemoval,
                     style: TextStyle(
                       fontSize: 13,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
               ),
             ],
-          ),
+
+            const SizedBox(height: 4),
+
+            // ── 복원 ──
+            Center(
+              child: TextButton(
+                onPressed: _isLoading ? null : _handleRestore,
+                child: Text(
+                  l10n.restorePurchase,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

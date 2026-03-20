@@ -295,6 +295,7 @@ abstract class AppLocalizations {
   String get processingCard;
   String get recognizingText;
   String get savingInfo;
+  String get enhancingImage;
   String get cardAdded;
   String recognitionFailed(String e);
   String get loginRequired;
@@ -416,6 +417,42 @@ abstract class AppLocalizations {
   String get crmStatusProposal;
   String get crmStatusContract;
   String get crmStatusClosed;
+
+  // ── Pro Subscription ──
+  String get proTitle;
+  String get proDescription;
+  String get proMonthly;
+  String get proAnnual;
+  String get proMonthlyPrice;
+  String get proAnnualPrice;
+  String get proLegacyDiscountPrice;
+  String get proAnnualDiscount;
+  String get proLegacyDiscountLabel;
+  String get unlimitedCards;
+  String get unlimitedTeams;
+  String get noAds;
+  String get proActive;
+  String get upgradeToPro;
+  String get subscribePro;
+  String get legacyAdRemoval;
+  String get currentPlan;
+  String get freePlan;
+  String get freeCardLimit;
+  String get freeTeamLimit;
+  String get cardLimitReached;
+  String get teamLimitReached;
+  String get upgradeToProForMore;
+  String cardLimitMessage(int max);
+  String teamLimitMessage(int max);
+
+  // ── CSV Export ──
+  String get exportToCsv;
+  String get exportingCsv;
+  String get csvExportComplete;
+  String get csvExportFailed;
+  String get exportBusinessCards;
+  String get exportCrmContacts;
+  String get noDataToExport;
 }
 
 class _AppLocalizationsDelegate
@@ -698,6 +735,7 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get processingCard => '명함 인식 중...';
   @override String get recognizingText => '문자 인식 중...';
   @override String get savingInfo => '정보 저장 중...';
+  @override String get enhancingImage => '이미지 보정 중...';
   @override String get cardAdded => '명함이 추가되었습니다';
   @override String recognitionFailed(String e) => '인식 실패: $e';
   @override String get loginRequired => '로그인이 필요합니다';
@@ -823,6 +861,42 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get crmStatusProposal => '제안';
   @override String get crmStatusContract => '계약';
   @override String get crmStatusClosed => '완료';
+
+  // ── Pro Subscription ──
+  @override String get proTitle => 'Mapae Pro';
+  @override String get proDescription => '무제한 명함, 무제한 팀, 광고 없는 Mapae를 경험하세요.';
+  @override String get proMonthly => '월간 구독';
+  @override String get proAnnual => '연간 구독';
+  @override String get proMonthlyPrice => '₩3,900/월';
+  @override String get proAnnualPrice => '₩39,000/년';
+  @override String get proLegacyDiscountPrice => '₩3,400/월';
+  @override String get proAnnualDiscount => '~17% 할인';
+  @override String get proLegacyDiscountLabel => '기존 구매자 할인';
+  @override String get unlimitedCards => '무제한 명함';
+  @override String get unlimitedTeams => '무제한 팀';
+  @override String get noAds => '광고 제거';
+  @override String get proActive => 'Pro 이용 중';
+  @override String get upgradeToPro => 'Pro 업그레이드';
+  @override String get subscribePro => 'Pro 구독하기';
+  @override String get legacyAdRemoval => '광고만 제거 (일회성)';
+  @override String get currentPlan => '현재 플랜';
+  @override String get freePlan => '무료';
+  @override String get freeCardLimit => '명함 100장 제한';
+  @override String get freeTeamLimit => '팀 1개 제한';
+  @override String get cardLimitReached => '명함 한도 도달';
+  @override String get teamLimitReached => '팀 한도 도달';
+  @override String get upgradeToProForMore => 'Pro로 업그레이드하면 무제한으로 사용할 수 있습니다.';
+  @override String cardLimitMessage(int max) => '무료 플랜은 최대 $max장까지 명함을 저장할 수 있습니다.';
+  @override String teamLimitMessage(int max) => '무료 플랜은 최대 $max개 팀까지 참여할 수 있습니다.';
+
+  // ── CSV Export ──
+  @override String get exportToCsv => 'CSV로 내보내기';
+  @override String get exportingCsv => 'CSV 내보내는 중...';
+  @override String get csvExportComplete => 'CSV 내보내기 완료';
+  @override String get csvExportFailed => 'CSV 내보내기 실패';
+  @override String get exportBusinessCards => '명함 내보내기';
+  @override String get exportCrmContacts => 'CRM 연락처 내보내기';
+  @override String get noDataToExport => '내보낼 데이터가 없습니다';
 }
 
 // ──────────────── English ────────────────
@@ -1094,6 +1168,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get processingCard => 'Processing card...';
   @override String get recognizingText => 'Recognizing text...';
   @override String get savingInfo => 'Saving info...';
+  @override String get enhancingImage => 'Enhancing image...';
   @override String get cardAdded => 'Card added';
   @override String recognitionFailed(String e) => 'Recognition failed: $e';
   @override String get loginRequired => 'Login required';
@@ -1219,4 +1294,40 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get crmStatusProposal => 'Proposal';
   @override String get crmStatusContract => 'Contract';
   @override String get crmStatusClosed => 'Closed';
+
+  // ── Pro Subscription ──
+  @override String get proTitle => 'Mapae Pro';
+  @override String get proDescription => 'Unlimited cards, unlimited teams, and ad-free Mapae.';
+  @override String get proMonthly => 'Monthly';
+  @override String get proAnnual => 'Annual';
+  @override String get proMonthlyPrice => '₩3,900/mo';
+  @override String get proAnnualPrice => '₩39,000/yr';
+  @override String get proLegacyDiscountPrice => '₩3,400/mo';
+  @override String get proAnnualDiscount => '~17% off';
+  @override String get proLegacyDiscountLabel => 'Existing purchaser discount';
+  @override String get unlimitedCards => 'Unlimited cards';
+  @override String get unlimitedTeams => 'Unlimited teams';
+  @override String get noAds => 'No ads';
+  @override String get proActive => 'Pro Active';
+  @override String get upgradeToPro => 'Upgrade to Pro';
+  @override String get subscribePro => 'Subscribe to Pro';
+  @override String get legacyAdRemoval => 'Ad removal only (one-time)';
+  @override String get currentPlan => 'Current Plan';
+  @override String get freePlan => 'Free';
+  @override String get freeCardLimit => '100 card limit';
+  @override String get freeTeamLimit => '1 team limit';
+  @override String get cardLimitReached => 'Card limit reached';
+  @override String get teamLimitReached => 'Team limit reached';
+  @override String get upgradeToProForMore => 'Upgrade to Pro for unlimited access.';
+  @override String cardLimitMessage(int max) => 'Free plan allows up to $max cards.';
+  @override String teamLimitMessage(int max) => 'Free plan allows up to $max team(s).';
+
+  // ── CSV Export ──
+  @override String get exportToCsv => 'Export to CSV';
+  @override String get exportingCsv => 'Exporting CSV...';
+  @override String get csvExportComplete => 'CSV export complete';
+  @override String get csvExportFailed => 'CSV export failed';
+  @override String get exportBusinessCards => 'Export business cards';
+  @override String get exportCrmContacts => 'Export CRM contacts';
+  @override String get noDataToExport => 'No data to export';
 }
