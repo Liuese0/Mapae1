@@ -302,131 +302,54 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 }
 @keyframes recBlink{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ══════ Biz-Man Character ══════ */
-.biz-man{
+/* ══════ Icon Mascot ══════ */
+.icon-mascot{
   position:absolute;z-index:90;
-  width:48px;height:72px;
+  width:48px;height:48px;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 4px 16px rgba(0,0,0,.12);
   pointer-events:none;
   opacity:0;
   transition:opacity .3s ease;
 }
-.biz-man.show{opacity:1}
-
-/* Head */
-.bm-head{
-  position:absolute;top:0;left:50%;transform:translateX(-50%);
-  width:28px;height:28px;background:#444;border-radius:50%;
-  z-index:2;
-}
-/* Eyes */
-.bm-eye{
-  position:absolute;top:10px;width:4px;height:5px;background:#fff;border-radius:50%;
-  transition:all .2s ease;
-}
-.bm-eye.left{left:7px}
-.bm-eye.right{right:7px}
-/* Mouth */
-.bm-mouth{
-  position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
-  width:8px;height:3px;background:#fff;border-radius:0 0 4px 4px;
-  transition:all .2s ease;
+.icon-mascot.show{opacity:1}
+.icon-mascot img{width:100%;height:100%;object-fit:cover}
+/* Fallback if no icon */
+.icon-mascot .ico-fb{
+  width:100%;height:100%;background:#111;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:900;color:#fff;
 }
 
-/* Body */
-.bm-body{
-  position:absolute;top:26px;left:50%;transform:translateX(-50%);
-  width:24px;height:30px;background:#555;border-radius:4px 4px 2px 2px;
-  z-index:1;
-}
-/* Tie */
-.bm-tie{
-  position:absolute;top:2px;left:50%;transform:translateX(-50%);
-  width:0;height:0;
-  border-left:4px solid transparent;border-right:4px solid transparent;
-  border-top:10px solid #888;
-}
+/* Mascot moods */
+.icon-mascot.mood-shake{animation:icoShake .3s ease infinite}
+.icon-mascot.mood-bounce{animation:icoBounce .8s ease infinite}
+.icon-mascot.mood-float{animation:icoFloat 1.5s ease-in-out infinite}
+.icon-mascot.mood-wave{animation:icoWave .5s ease infinite}
 
-/* Arms */
-.bm-arm{
-  position:absolute;top:28px;width:5px;height:20px;background:#555;border-radius:3px;
-  transform-origin:top center;transition:transform .3s ease;z-index:0;
-}
-.bm-arm.left{left:2px;transform:rotate(10deg)}
-.bm-arm.right{right:2px;transform:rotate(-10deg)}
-
-/* Legs */
-.bm-leg{
-  position:absolute;bottom:-12px;width:5px;height:14px;background:#444;border-radius:0 0 3px 3px;
-}
-.bm-leg.left{left:10px}
-.bm-leg.right{right:10px}
-
-/* Glasses (cool mode) */
-.bm-glasses{
-  position:absolute;top:8px;left:50%;transform:translateX(-50%);
-  width:24px;height:8px;opacity:0;z-index:3;
-  transition:opacity .2s ease;
-}
-.bm-glasses::before,.bm-glasses::after{
-  content:'';position:absolute;top:0;
-  width:10px;height:7px;background:rgba(40,40,40,.9);border-radius:2px;
-  border:1px solid #333;
-}
-.bm-glasses::before{left:0}
-.bm-glasses::after{right:0}
-
-/* ── Expressions ── */
-/* Panic */
-.biz-man.face-panic .bm-eye{width:5px;height:6px}
-.biz-man.face-panic .bm-mouth{
-  width:8px;height:5px;border-radius:50%;background:#fff;
-}
-.biz-man.face-panic{animation:bmShake .3s ease infinite}
-
-/* Wow */
-.biz-man.face-wow .bm-eye{width:5px;height:6px}
-.biz-man.face-wow .bm-mouth{
-  width:7px;height:7px;border-radius:50%;bottom:4px;
-}
-
-/* Happy */
-.biz-man.face-happy .bm-eye{
-  width:5px;height:2px;border-radius:2px;top:11px;
-}
-.biz-man.face-happy .bm-mouth{
-  width:10px;height:5px;border-radius:0 0 6px 6px;
-}
-
-/* Cool */
-.biz-man.face-cool .bm-glasses{opacity:1}
-.biz-man.face-cool .bm-eye{opacity:0}
-.biz-man.face-cool .bm-mouth{
-  width:10px;height:4px;border-radius:0 0 5px 5px;
-}
-
-/* Thumbs up: right arm goes up */
-.biz-man.thumb-up .bm-arm.right{transform:rotate(-60deg)}
-/* Wave: right arm animated */
-.biz-man.wave .bm-arm.right{animation:bmWave .6s ease infinite}
-
-/* ── Character Animations ── */
-@keyframes bmShake{
-  0%,100%{transform:translateX(0)}
-  25%{transform:translateX(-3px)}
-  75%{transform:translateX(3px)}
-}
-@keyframes bmBounceIn{
-  0%{opacity:0;transform:translateY(40px) scale(.5)}
-  60%{opacity:1;transform:translateY(-4px) scale(1.05)}
+@keyframes icoBounceIn{
+  0%{opacity:0;transform:translateY(40px) scale(.4)}
+  60%{opacity:1;transform:translateY(-6px) scale(1.08)}
   100%{opacity:1;transform:translateY(0) scale(1)}
 }
-@keyframes bmSlideOut{
-  0%{opacity:1;transform:translateX(0)}
-  100%{opacity:0;transform:translateX(var(--exit-x,60px))}
+@keyframes icoShake{
+  0%,100%{transform:rotate(0deg)}
+  25%{transform:rotate(-8deg)}
+  75%{transform:rotate(8deg)}
 }
-@keyframes bmWave{
-  0%,100%{transform:rotate(-60deg)}
-  50%{transform:rotate(-100deg)}
+@keyframes icoBounce{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-8px)}
+}
+@keyframes icoFloat{
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  50%{transform:translateY(-5px) rotate(3deg)}
+}
+@keyframes icoWave{
+  0%,100%{transform:rotate(0deg)}
+  25%{transform:rotate(-12deg)}
+  75%{transform:rotate(12deg)}
 }
 
 /* ══════ Speech Bubble ══════ */
@@ -533,20 +456,8 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   <div class="fbadge pos-tl" id="bd3"><h2>팀 CRM 관리</h2><p>파이프라인을 한눈에</p></div>
   <div class="fbadge pos-bc" id="bd4"><h2>팀 관리</h2><p>팀원과 명함을 공유</p></div>
 
-  <!-- Biz-Man Character -->
-  <div class="biz-man" id="bizMan">
-    <div class="bm-head">
-      <div class="bm-eye left"></div>
-      <div class="bm-eye right"></div>
-      <div class="bm-mouth"></div>
-      <div class="bm-glasses"></div>
-    </div>
-    <div class="bm-body"><div class="bm-tie"></div></div>
-    <div class="bm-arm left"></div>
-    <div class="bm-arm right"></div>
-    <div class="bm-leg left"></div>
-    <div class="bm-leg right"></div>
-  </div>
+  <!-- Icon Mascot -->
+  <div class="icon-mascot" id="mascot"></div>
   <div class="speech-bubble" id="speechBubble"></div>
 
   <!-- CTA -->
@@ -586,46 +497,62 @@ const PHONE_GAP = 200;
   }
 })();
 
-/* ── Character scenes config ── */
-const CHAR_SCENES = [
-  // S1: Hook - panic, center bottom
-  { face:'face-panic', extra:'', x:156, y:540, text:'미팅 5분 전... 명함이 없다', bubbleX:110, bubbleY:508 },
-  // S2: Logo - wow, left peek
-  { face:'face-wow', extra:'', x:16, y:530, text:'이걸 왜 이제 알았지', bubbleX:10, bubbleY:498 },
-  // S3: Phone 0 (홈) - happy + thumb
-  { face:'face-happy', extra:'thumb-up', x:290, y:540, text:'이게 내 명함이라고?', bubbleX:190, bubbleY:508 },
-  // S4: Phone 1 (지갑) - happy
-  { face:'face-happy', extra:'', x:16, y:540, text:'3초 만에 찾았다', bubbleX:10, bubbleY:508 },
-  // S5: Phone 2 (퀵쉐어) - wow
-  { face:'face-wow', extra:'', x:290, y:540, text:'폰만 가까이 대면 끝?', bubbleX:180, bubbleY:508 },
-  // S6: Phone 3 (CRM) - cool
-  { face:'face-cool', extra:'', x:16, y:540, text:'영업왕 등극 가능', bubbleX:10, bubbleY:508 },
-  // S7: Phone 4 (팀관리) - happy + thumb
-  { face:'face-happy', extra:'thumb-up', x:290, y:540, text:'우리 팀도 바로 세팅', bubbleX:180, bubbleY:508 },
-  // S8: CTA - cool + wave, no bubble
-  { face:'face-cool', extra:'wave', x:156, y:540, text:'', bubbleX:0, bubbleY:0 },
+/* ── Mascot scenes config ── */
+const MASCOT_SCENES = [
+  // S1: Hook - shaking icon, center bottom
+  { mood:'mood-shake', x:156, y:570, text:'미팅 5분 전... 명함이 없다', bx:110, by:535 },
+  // S2: Logo - bouncing, left
+  { mood:'mood-bounce', x:24, y:565, text:'이걸 왜 이제 알았지', bx:18, by:530 },
+  // S3: Phone 0 (홈) - float
+  { mood:'mood-float', x:296, y:572, text:'이게 내 명함이라고?', bx:196, by:537 },
+  // S4: Phone 1 (지갑) - bounce
+  { mood:'mood-bounce', x:24, y:572, text:'3초 만에 찾았다', bx:18, by:537 },
+  // S5: Phone 2 (퀵쉐어) - float
+  { mood:'mood-float', x:296, y:572, text:'폰만 가까이 대면 끝?', bx:186, by:537 },
+  // S6: Phone 3 (CRM) - bounce
+  { mood:'mood-bounce', x:24, y:572, text:'영업왕 등극 가능', bx:18, by:537 },
+  // S7: Phone 4 (팀관리) - float
+  { mood:'mood-float', x:296, y:572, text:'우리 팀도 바로 세팅', bx:186, by:537 },
+  // S8: CTA - wave, no bubble
+  { mood:'mood-wave', x:156, y:555, text:'', bx:0, by:0 },
 ];
 
+/* Load mascot icon */
+let mascotReady=false;
+const mascotIco=new Image();
+mascotIco.src='../assets/Mapae_icon_big.png';
+mascotIco.onload=()=>{
+  const m=document.getElementById('mascot');
+  m.appendChild(mascotIco.cloneNode());
+  mascotReady=true;
+};
+mascotIco.onerror=()=>{
+  const m=document.getElementById('mascot');
+  m.innerHTML='<div class="ico-fb">M</div>';
+  mascotReady=true;
+};
+
 function showChar(idx){
-  const bm=document.getElementById('bizMan');
+  const m=document.getElementById('mascot');
   const sb=document.getElementById('speechBubble');
-  const c=CHAR_SCENES[idx];
-  // Reset z-index and classes
-  bm.style.zIndex='90';
+  const c=MASCOT_SCENES[idx];
+  // Reset
+  m.style.zIndex='90';
   sb.style.zIndex='91';
-  bm.className='biz-man';
-  bm.classList.add(c.face);
-  if(c.extra)bm.classList.add(c.extra);
-  bm.style.left=c.x+'px';
-  bm.style.top=c.y+'px';
-  // Bounce in
-  bm.style.animation='bmBounceIn .4s cubic-bezier(.22,1,.36,1) forwards';
-  bm.classList.add('show');
+  m.className='icon-mascot';
+  m.style.left=c.x+'px';
+  m.style.top=c.y+'px';
+  // Bounce in then apply mood
+  m.style.animation='icoBounceIn .4s cubic-bezier(.22,1,.36,1) forwards';
+  m.classList.add('show');
+  setTimeout(()=>{
+    if(m.classList.contains('show'))m.classList.add(c.mood);
+  },400);
   // Speech bubble
   if(c.text){
     sb.textContent=c.text;
-    sb.style.left=c.bubbleX+'px';
-    sb.style.top=c.bubbleY+'px';
+    sb.style.left=c.bx+'px';
+    sb.style.top=c.by+'px';
     setTimeout(()=>sb.classList.add('show'),250);
   } else {
     sb.classList.remove('show');
@@ -634,10 +561,10 @@ function showChar(idx){
 }
 
 function hideChar(){
-  const bm=document.getElementById('bizMan');
+  const m=document.getElementById('mascot');
   const sb=document.getElementById('speechBubble');
-  bm.classList.remove('show');
-  bm.style.animation='';
+  m.classList.remove('show');
+  m.style.animation='';
   sb.classList.remove('show');
 }
 
@@ -785,8 +712,8 @@ async function runSeq(){
 
   /* ── CTA ── */
   document.getElementById('ctaLayer').classList.add('on');
-  // Character on top of CTA
-  document.getElementById('bizMan').style.zIndex='110';
+  // Mascot on top of CTA
+  document.getElementById('mascot').style.zIndex='110';
   document.getElementById('speechBubble').style.zIndex='111';
   showChar(7);
   await wait(2500);
