@@ -72,6 +72,7 @@ class CardDetailScreen extends ConsumerWidget {
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
+                      color: theme.colorScheme.surfaceContainerHighest,
                       boxShadow: [
                         BoxShadow(
                           color: theme.colorScheme.shadow.withValues(alpha: 0.15),
@@ -85,32 +86,31 @@ class CardDetailScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    child: AspectRatio(
-                      aspectRatio: 1.75, // Standard business card ratio (3.5 x 2 inches)
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: CachedNetworkImage(
-                          imageUrl: card.imageUrl!,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: Center(
-                              child: Icon(
-                                Icons.credit_card,
-                                size: 40,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                              ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: card.imageUrl!,
+                        width: double.infinity,
+                        fit: BoxFit.contain,
+                        placeholder: (_, __) => Container(
+                          height: 200,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: Center(
+                            child: Icon(
+                              Icons.credit_card,
+                              size: 40,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                             ),
                           ),
-                          errorWidget: (_, __, ___) => Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: Center(
-                              child: Icon(
-                                Icons.broken_image_outlined,
-                                size: 40,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                              ),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
+                          height: 200,
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: Center(
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              size: 40,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                             ),
                           ),
                         ),
