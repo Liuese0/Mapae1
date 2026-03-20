@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/services/premium_service.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/utils/animated_list_item.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -94,6 +95,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
   }
 
   void _onAddPressed() {
+    // 무료 플랜 명함 제한 체크
+    final isPro = ref.read(isProProvider);
+    if (!isPro) {
+      final count = ref.read(cardCountProvider).valueOrNull ?? 0;
+      if (count >= PremiumService.freeMaxCards) {
+        _showCardLimitDialog();
+        return;
+      }
+    }
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -104,6 +114,34 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
           ref.invalidate(collectedCardsProvider);
           ref.invalidate(cardCountProvider);
         },
+      ),
+    );
+  }
+
+  void _showCardLimitDialog() {
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.cardLimitReached),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.cardLimitMessage(PremiumService.freeMaxCards)),
+            const SizedBox(height: 8),
+            Text(l10n.upgradeToProForMore),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.upgradeToPro),
+          ),
+        ],
       ),
     );
   }

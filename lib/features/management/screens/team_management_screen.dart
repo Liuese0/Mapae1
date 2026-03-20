@@ -13,6 +13,7 @@ import '../../shared/models/collected_card.dart';
 import '../../shared/models/category.dart';
 import '../../shared/models/crm_contact.dart';
 import '../../shared/widgets/invite_member_dialog.dart';
+import '../../../core/services/csv_export_service.dart';
 
 /// CRM 상태별 색상
 Color _crmStatusColor(CrmStatus status) {
@@ -1542,6 +1543,31 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
     });
   }
 
+  Future<void> _handleExportCrm() async {
+    final l10n = AppLocalizations.of(context);
+    // 선택 모드면 선택된 것만, 아니면 필터된 전체
+    final contacts = _selectionMode
+        ? _filteredContacts.where((c) => _selectedIds.contains(c.id)).toList()
+        : _filteredContacts;
+    if (contacts.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.noDataToExport)),
+        );
+      }
+      return;
+    }
+    try {
+      await CsvExportService.exportCrmContacts(contacts);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.csvExportFailed)),
+        );
+      }
+    }
+  }
+
   void _toggleSelection(String id) {
     setState(() {
       if (_selectedIds.contains(id)) {
@@ -1739,6 +1765,11 @@ class _CrmTabState extends ConsumerState<_CrmTab> {
                   ),
                   onPressed: () => setState(() => _showPipeline = !_showPipeline),
                   tooltip: l10n.pipelineView,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.download_outlined, size: 22),
+                  tooltip: l10n.exportToCsv,
+                  onPressed: _handleExportCrm,
                 ),
               ],
             ),

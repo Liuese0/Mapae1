@@ -120,7 +120,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<AppUser?>> {
   }
 }
 
-// ──────────────── Premium (광고 제거) ────────────────
+// ──────────────── Premium / Pro 구독 ────────────────
 
 final premiumServiceProvider = Provider<PremiumService>((ref) {
   final service = PremiumService();
@@ -128,34 +128,61 @@ final premiumServiceProvider = Provider<PremiumService>((ref) {
   return service;
 });
 
-/// 프리미엄(광고 제거) 상태 관리.
-///
-/// `true` → 광고 숨김 / `false` → 광고 표시
-final isPremiumProvider =
-StateNotifierProvider<PremiumNotifier, bool>((ref) {
+/// 프리미엄 + Pro 전체 상태 관리.
+final premiumStateProvider =
+    StateNotifierProvider<PremiumNotifier, PremiumState>((ref) {
   final service = ref.watch(premiumServiceProvider);
   return PremiumNotifier(service);
 });
 
-class PremiumNotifier extends StateNotifier<bool> {
+/// 광고 제거 여부 (Pro 또는 레거시 구매자 모두 true).
+/// 기존 코드 하위 호환용 derived provider.
+final isPremiumProvider = Provider<bool>((ref) {
+  return ref.watch(premiumStateProvider).hasAdsRemoved;
+});
+
+/// Pro 구독 활성 여부.
+final isProProvider = Provider<bool>((ref) {
+  return ref.watch(premiumStateProvider).isPro;
+});
+
+/// 레거시 광고제거 구매 여부.
+final isLegacyPremiumProvider = Provider<bool>((ref) {
+  return ref.watch(premiumStateProvider).isPremiumLegacy;
+});
+
+class PremiumNotifier extends StateNotifier<PremiumState> {
   final PremiumService _service;
 
-  PremiumNotifier(this._service) : super(false) {
+  PremiumNotifier(this._service) : super(PremiumState.initial) {
     _init();
   }
 
   Future<void> _init() async {
-    state = await _service.isPremium();
-    // 구매 완료/복원 이벤트 수신 시작
-    _service.startListening(() => state = true);
+    state = await _service.loadPremiumState();
+    _service.startListening(() async {
+      state = await _service.loadPremiumState();
+    });
   }
 
-  /// 광고 제거 구매를 시작합니다.
-  /// 성공 시 null, 실패 시 한국어 오류 메시지 반환.
-  Future<String?> purchase() => _service.purchaseRemoveAds();
+  /// 레거시 광고 제거 구매 (₩1,000 일회성).
+  Future<String?> purchaseLegacy() => _service.purchaseRemoveAds();
+
+  /// Pro 월간 구독 구매 (₩3,900/월).
+  Future<String?> purchaseProMonthly() => _service.purchaseProMonthly();
+
+  /// Pro 연간 구독 구매 (₩39,000/년).
+  Future<String?> purchaseProAnnual() => _service.purchaseProAnnual();
+
+  /// Pro 레거시 할인 구독 구매 (₩3,400/월, 기존 광고제거 구매자 전용).
+  Future<String?> purchaseProLegacyDiscount() =>
+      _service.purchaseProLegacyDiscount();
 
   /// 이전 구매 내역 복원.
   Future<void> restore() => _service.restorePurchases();
+
+  // 하위 호환: 기존 코드에서 purchase()를 사용하는 경우
+  Future<String?> purchase() => _service.purchaseRemoveAds();
 }
 
 // ──────────────── Theme Mode ────────────────
