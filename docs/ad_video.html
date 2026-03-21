@@ -302,31 +302,20 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 }
 @keyframes recBlink{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ══════ Icon Mascot ══════ */
-.icon-mascot{
+/* ══════ Emoji Character ══════ */
+.emoji-char{
   position:absolute;z-index:90;
-  width:48px;height:48px;
-  border-radius:12px;
-  overflow:hidden;
-  box-shadow:0 4px 16px rgba(0,0,0,.12);
-  pointer-events:none;
-  opacity:0;
-  transition:opacity .3s ease;
+  font-size:72px;line-height:1;
+  pointer-events:none;opacity:0;
+  transform:translate(-50%,-50%);
 }
-.icon-mascot.show{opacity:1}
-.icon-mascot img{width:100%;height:100%;object-fit:cover}
-/* Fallback if no icon */
-.icon-mascot .ico-fb{
-  width:100%;height:100%;background:#111;
-  display:flex;align-items:center;justify-content:center;
-  font-size:24px;font-weight:900;color:#fff;
-}
+.emoji-char.show{opacity:1}
 
-/* Mascot moods */
-.icon-mascot.mood-shake{animation:icoShake .3s ease infinite}
-.icon-mascot.mood-bounce{animation:icoBounce .8s ease infinite}
-.icon-mascot.mood-float{animation:icoFloat 1.5s ease-in-out infinite}
-.icon-mascot.mood-wave{animation:icoWave .5s ease infinite}
+/* Emoji moods */
+.emoji-char.mood-shake{animation:icoShake .3s ease infinite}
+.emoji-char.mood-bounce{animation:icoBounce .8s ease infinite}
+.emoji-char.mood-float{animation:icoFloat 1.5s ease-in-out infinite}
+.emoji-char.mood-wave{animation:icoWave .5s ease infinite}
 
 @keyframes icoBounceIn{
   0%{opacity:0;transform:translateY(40px) scale(.4)}
@@ -366,15 +355,15 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   transition:opacity .25s ease;
 }
 .speech-bubble.show{opacity:1}
-/* Tail pointing down */
+/* Tail pointing down - centered */
 .speech-bubble::after{
-  content:'';position:absolute;bottom:-7px;left:20px;
+  content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);
   width:0;height:0;
   border-left:6px solid transparent;border-right:6px solid transparent;
   border-top:7px solid #fff;
 }
 .speech-bubble::before{
-  content:'';position:absolute;bottom:-9px;left:19px;
+  content:'';position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);
   width:0;height:0;
   border-left:7px solid transparent;border-right:7px solid transparent;
   border-top:8px solid rgba(0,0,0,.06);
@@ -456,8 +445,8 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   <div class="fbadge pos-tl" id="bd3"><h2>팀 CRM 관리</h2><p>파이프라인을 한눈에</p></div>
   <div class="fbadge pos-bc" id="bd4"><h2>팀 관리</h2><p>팀원과 명함을 공유</p></div>
 
-  <!-- Icon Mascot -->
-  <div class="icon-mascot" id="mascot"></div>
+  <!-- Emoji Character -->
+  <div class="emoji-char" id="mascot"></div>
   <div class="speech-bubble" id="speechBubble"></div>
 
   <!-- CTA -->
@@ -497,62 +486,53 @@ const PHONE_GAP = 200;
   }
 })();
 
-/* ── Mascot scenes config ── */
-const MASCOT_SCENES = [
-  // S1: Hook - shaking icon, center bottom
-  { mood:'mood-shake', x:156, y:570, text:'미팅 5분 전... 명함이 없다', bx:110, by:535 },
-  // S2: Logo - bouncing, left
-  { mood:'mood-bounce', x:24, y:565, text:'이걸 왜 이제 알았지', bx:18, by:530 },
-  // S3: Phone 0 (홈) - float
-  { mood:'mood-float', x:296, y:572, text:'이게 내 명함이라고?', bx:196, by:537 },
-  // S4: Phone 1 (지갑) - bounce
-  { mood:'mood-bounce', x:24, y:572, text:'3초 만에 찾았다', bx:18, by:537 },
-  // S5: Phone 2 (퀵쉐어) - float
-  { mood:'mood-float', x:296, y:572, text:'폰만 가까이 대면 끝?', bx:186, by:537 },
-  // S6: Phone 3 (CRM) - bounce
-  { mood:'mood-bounce', x:24, y:572, text:'영업왕 등극 가능', bx:18, by:537 },
-  // S7: Phone 4 (팀관리) - float
-  { mood:'mood-float', x:296, y:572, text:'우리 팀도 바로 세팅', bx:186, by:537 },
-  // S8: CTA - wave, no bubble
-  { mood:'mood-wave', x:156, y:555, text:'', bx:0, by:0 },
+/* ── Emoji character scenes config ── */
+const CHAR_SCENES = [
+  // 0: S1 Hook
+  { emoji:'😩', mood:'mood-shake', x:180, y:520, text:'미팅 5분 전... 명함이 없다' },
+  // 1: S2 Logo - no character
+  null,
+  // 2: Phone 0 (홈) - situation centered
+  { emoji:'😮', mood:'mood-bounce', x:180, y:340, text:'이게 내 명함이라고?' },
+  // 3: Phone 1 (지갑)
+  { emoji:'😊', mood:'mood-float', x:180, y:340, text:'3초 만에 찾았다' },
+  // 4: Phone 2 (퀵쉐어)
+  { emoji:'😮', mood:'mood-bounce', x:180, y:340, text:'폰만 가까이 대면 끝?' },
+  // 5: Phone 3 (CRM)
+  { emoji:'😎', mood:'mood-float', x:180, y:340, text:'영업왕 등극 가능' },
+  // 6: Phone 4 (팀관리)
+  { emoji:'😊', mood:'mood-bounce', x:180, y:340, text:'우리 팀도 바로 세팅' },
+  // 7: CTA
+  null,
 ];
 
-/* Load mascot icon */
-let mascotReady=false;
-const mascotIco=new Image();
-mascotIco.src='../assets/Mapae_icon_big.png';
-mascotIco.onload=()=>{
-  const m=document.getElementById('mascot');
-  m.appendChild(mascotIco.cloneNode());
-  mascotReady=true;
-};
-mascotIco.onerror=()=>{
-  const m=document.getElementById('mascot');
-  m.innerHTML='<div class="ico-fb">M</div>';
-  mascotReady=true;
-};
-
 function showChar(idx){
+  const c=CHAR_SCENES[idx];
   const m=document.getElementById('mascot');
   const sb=document.getElementById('speechBubble');
-  const c=MASCOT_SCENES[idx];
-  // Reset
-  m.style.zIndex='90';
-  sb.style.zIndex='91';
-  m.className='icon-mascot';
+  if(!c){ hideChar(); return; }
+
+  // Reset & set emoji
+  m.className='emoji-char';
+  m.textContent=c.emoji;
   m.style.left=c.x+'px';
   m.style.top=c.y+'px';
+  m.style.zIndex='90';
+  sb.style.zIndex='91';
+
   // Bounce in then apply mood
   m.style.animation='icoBounceIn .4s cubic-bezier(.22,1,.36,1) forwards';
   m.classList.add('show');
   setTimeout(()=>{
     if(m.classList.contains('show'))m.classList.add(c.mood);
   },400);
-  // Speech bubble
+
+  // Speech bubble - auto-positioned above emoji center
   if(c.text){
     sb.textContent=c.text;
-    sb.style.left=c.bx+'px';
-    sb.style.top=c.by+'px';
+    sb.style.left=c.x+'px';
+    sb.style.top=(c.y-55)+'px';
+    sb.style.transform='translate(-50%,-100%)';
     setTimeout(()=>sb.classList.add('show'),250);
   } else {
     sb.classList.remove('show');
@@ -564,8 +544,10 @@ function hideChar(){
   const m=document.getElementById('mascot');
   const sb=document.getElementById('speechBubble');
   m.classList.remove('show');
+  m.textContent='';
   m.style.animation='';
   sb.classList.remove('show');
+  sb.textContent='';
 }
 
 /* ── State ── */
@@ -653,20 +635,23 @@ async function runSeq(){
   sc2.style.transition='opacity .3s ease';
   sc2.style.opacity='1';
   sc2.classList.add('on');
-  await wait(300);
-  showChar(1);
-  await wait(1500);
-  hideChar();
-  await wait(100);
+  await wait(1800);
   sc2.style.opacity='0';
   await wait(280);
 
-  /* ── Phone stacking ── */
+  /* ── Phone stacking: situation → solution ── */
   for(let i=0;i<PHONES.length;i++){
     const {ph,bd,dir}=PHONES[i];
     const phEl=document.getElementById(ph);
     const bdEl=document.getElementById(bd);
 
+    /* ─ Step 1: Situation (emoji + speech bubble) ─ */
+    showChar(2+i);
+    await wait(1100);
+    hideChar();
+    await wait(200);
+
+    /* ─ Step 2: Solution (phone slides in) ─ */
     phEl.style.zIndex=30+i;
     bdEl.style.zIndex=50+i;
 
@@ -676,10 +661,8 @@ async function runSeq(){
       prevPh.classList.remove('pushed-left','pushed-right','pushed-deep');
       void prevPh.offsetWidth;
       if(j===i-1){
-        // Most recent prev: push in opposite direction of incoming
         prevPh.classList.add(dir==='from-left'?'pushed-right':'pushed-left');
       } else {
-        // Older cards: push deeper
         prevPh.classList.add('pushed-deep');
       }
     }
@@ -689,9 +672,6 @@ async function runSeq(){
     void phEl.offsetWidth;
     phEl.classList.add('in');
 
-    // Show character for this phone scene (index 2+i maps to CHAR_SCENES[2..6])
-    showChar(2+i);
-
     // Badge in
     await wait(BADGE_DELAY);
     bdEl.style.transition='opacity .25s ease, transform .4s cubic-bezier(.22,1.4,.36,1), box-shadow .3s ease';
@@ -700,10 +680,9 @@ async function runSeq(){
 
     await wait(BADGE_SHOW);
 
-    // Badge out (float up)
+    // Badge out
     bdEl.classList.remove('in');
     bdEl.classList.add('out');
-    hideChar();
 
     await wait(PHONE_GAP);
   }
@@ -712,12 +691,7 @@ async function runSeq(){
 
   /* ── CTA ── */
   document.getElementById('ctaLayer').classList.add('on');
-  // Mascot on top of CTA
-  document.getElementById('mascot').style.zIndex='110';
-  document.getElementById('speechBubble').style.zIndex='111';
-  showChar(7);
   await wait(2500);
-  hideChar();
 
   playing=false;
 }
