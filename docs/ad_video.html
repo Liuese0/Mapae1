@@ -235,6 +235,16 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 }
 .fbadge.pos-bc.out{transform:translateX(-50%) translateY(-20px) scale(.95)}
 
+/* ══════ Situation overlay (white bg before each phone) ══════ */
+.situ-overlay{
+  position:absolute;inset:0;z-index:80;
+  background:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .25s ease;
+}
+.situ-overlay.on{opacity:1}
+
 /* ══════ CTA ══════ */
 .cta-layer{
   position:absolute;inset:0;z-index:100;
@@ -455,6 +465,9 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   <div class="fbadge pos-tl" id="bd3"><h2>팀 CRM 관리</h2><p>파이프라인을 한눈에</p></div>
   <div class="fbadge pos-bc" id="bd4"><h2>팀 관리</h2><p>팀원과 명함을 공유</p></div>
 
+  <!-- Situation overlay -->
+  <div class="situ-overlay" id="situOverlay"></div>
+
   <!-- Emoji Character -->
   <div class="emoji-char" id="mascot"></div>
   <div class="speech-bubble" id="speechBubble"></div>
@@ -616,6 +629,7 @@ function resetAll(){
     void bd.offsetWidth;
   });
   document.getElementById('ctaLayer').classList.remove('on');
+  document.getElementById('situOverlay').classList.remove('on');
   hideChar();
 }
 
@@ -644,18 +658,23 @@ async function runSeq(){
   await wait(280);
 
   /* ── Phone stacking: situation → solution ── */
+  const situ=document.getElementById('situOverlay');
   for(let i=0;i<PHONES.length;i++){
     const {ph,bd,dir}=PHONES[i];
     const phEl=document.getElementById(ph);
     const bdEl=document.getElementById(bd);
 
-    /* ─ Step 1: Situation (emoji + speech bubble) ─ */
+    /* ─ Step 1: Situation (white bg + emoji + bubble) ─ */
+    situ.classList.add('on');
+    await wait(150);
     showChar(i);
     await wait(1200);
     hideChar();
-    await wait(200);
+    await wait(100);
+    situ.classList.remove('on');
+    await wait(250);
 
-    /* ─ Step 2: Solution (phone slides in, no emoji) ─ */
+    /* ─ Step 2: Solution (phone slides in) ─ */
     phEl.style.zIndex=30+i;
     bdEl.style.zIndex=50+i;
 
