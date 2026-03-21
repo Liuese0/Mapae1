@@ -104,15 +104,15 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   color:#aaa;font-size:11px;font-weight:500;
   box-shadow:0 6px 24px rgba(0,0,0,.08);opacity:0;
 }
-.s1.on .pc{animation:cardDrop .4s cubic-bezier(.22,1.4,.36,1) both}
-.s1.on .pc:nth-child(1){animation-delay:.05s}
-.s1.on .pc:nth-child(2){animation-delay:.18s}
-.s1.on .pc:nth-child(3){animation-delay:.3s}
+.s1.on .pc{animation:cardDrop .7s cubic-bezier(.22,1.4,.36,1) both}
+.s1.on .pc:nth-child(1){animation-delay:.1s}
+.s1.on .pc:nth-child(2){animation-delay:.5s}
+.s1.on .pc:nth-child(3){animation-delay:.9s}
 .s1 .pc:nth-child(1){top:0;left:0;transform:rotate(-10deg)}
 .s1 .pc:nth-child(2){top:8px;left:16px;transform:rotate(-3deg)}
 .s1 .pc:nth-child(3){top:18px;left:32px;transform:rotate(6deg)}
 .s1 .htxt{font-size:28px;font-weight:900;text-align:center;line-height:1.4;color:#111;opacity:0}
-.s1.on .htxt{animation:textPop .45s .45s cubic-bezier(.22,1.4,.36,1) both}
+.s1.on .htxt{animation:textPop .45s 1.2s cubic-bezier(.22,1.4,.36,1) both}
 .s1 .htxt em{
   font-style:normal;color:#333;
   background:linear-gradient(to top,rgba(0,0,0,.06) 40%,transparent 40%);
@@ -262,6 +262,16 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   box-shadow:0 4px 16px rgba(0,0,0,.1);
 }
 .cta-layer.on .cb{animation:fadeUp .4s .5s ease both,ctaPulse 2s 1.5s ease infinite}
+.cta-layer .store-badge{
+  margin-top:18px;opacity:0;display:flex;align-items:center;gap:8px;
+  background:#000;color:#fff;padding:10px 20px;border-radius:10px;
+  font-size:12px;line-height:1.2;
+}
+.cta-layer .store-badge .gp-icon{font-size:24px}
+.cta-layer .store-badge .gp-text{text-align:left}
+.cta-layer .store-badge .gp-text small{font-size:9px;opacity:.8;display:block}
+.cta-layer .store-badge .gp-text span{font-size:14px;font-weight:700}
+.cta-layer.on .store-badge{animation:fadeUp .4s .7s ease both}
 
 /* ══════ Keyframes ══════ */
 @keyframes cardDrop{
@@ -454,6 +464,10 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
     <div class="cl">Mapae</div>
     <div class="ct2">명함의 새로운 기준</div>
     <div class="cb">지금 시작하세요</div>
+    <div class="store-badge">
+      <span class="gp-icon">&#9654;</span>
+      <div class="gp-text"><small>GET IT ON</small><span>Google Play</span></div>
+    </div>
   </div>
 </div>
 
@@ -486,24 +500,18 @@ const PHONE_GAP = 200;
   }
 })();
 
-/* ── Emoji character scenes config ── */
+/* ── Emoji character scenes (phone situations only) ── */
 const CHAR_SCENES = [
-  // 0: S1 Hook
-  { emoji:'😩', mood:'mood-shake', x:180, y:520, text:'미팅 5분 전... 명함이 없다' },
-  // 1: S2 Logo - no character
-  null,
-  // 2: Phone 0 (홈) - situation centered
-  { emoji:'😮', mood:'mood-bounce', x:180, y:340, text:'이게 내 명함이라고?' },
-  // 3: Phone 1 (지갑)
-  { emoji:'😊', mood:'mood-float', x:180, y:340, text:'3초 만에 찾았다' },
-  // 4: Phone 2 (퀵쉐어)
-  { emoji:'😮', mood:'mood-bounce', x:180, y:340, text:'폰만 가까이 대면 끝?' },
-  // 5: Phone 3 (CRM)
-  { emoji:'😎', mood:'mood-float', x:180, y:340, text:'영업왕 등극 가능' },
-  // 6: Phone 4 (팀관리)
-  { emoji:'😊', mood:'mood-bounce', x:180, y:340, text:'우리 팀도 바로 세팅' },
-  // 7: CTA
-  null,
+  // Phone 0 (홈)
+  { emoji:'😮', mood:'mood-bounce', x:180, y:320, text:'깔끔한 디자인의 명함 없나?' },
+  // Phone 1 (지갑)
+  { emoji:'😊', mood:'mood-float', x:180, y:320, text:'명함 관리가 간편해!' },
+  // Phone 2 (퀵쉐어)
+  { emoji:'😮', mood:'mood-bounce', x:180, y:320, text:'가까운 사람에게는 원터치로 전송!' },
+  // Phone 3 (CRM)
+  { emoji:'😎', mood:'mood-float', x:180, y:320, text:'회사 단위에서도 명함 관리' },
+  // Phone 4 (관리)
+  { emoji:'😊', mood:'mood-bounce', x:180, y:320, text:'명함을 간단하게!' },
 ];
 
 function showChar(idx){
@@ -617,16 +625,12 @@ async function runSeq(){
   resetAll();
   await wait(80);
 
-  /* ── S1: Hook (2.2s) ── */
+  /* ── S1: Hook (3s, no emoji) ── */
   const sc1=document.getElementById('sc1');
   sc1.style.transition='opacity .3s ease';
   sc1.style.opacity='1';
   sc1.classList.add('on');
-  await wait(300);
-  showChar(0);
-  await wait(1900);
-  hideChar();
-  await wait(100);
+  await wait(3000);
   sc1.style.opacity='0';
   await wait(280);
 
@@ -646,12 +650,12 @@ async function runSeq(){
     const bdEl=document.getElementById(bd);
 
     /* ─ Step 1: Situation (emoji + speech bubble) ─ */
-    showChar(2+i);
-    await wait(1100);
+    showChar(i);
+    await wait(1200);
     hideChar();
     await wait(200);
 
-    /* ─ Step 2: Solution (phone slides in) ─ */
+    /* ─ Step 2: Solution (phone slides in, no emoji) ─ */
     phEl.style.zIndex=30+i;
     bdEl.style.zIndex=50+i;
 
