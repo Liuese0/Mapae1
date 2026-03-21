@@ -238,12 +238,27 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 /* ══════ Situation overlay (white bg before each phone) ══════ */
 .situ-overlay{
   position:absolute;inset:0;z-index:80;
-  background:#fff;
+  background:radial-gradient(circle at 50% 45%,#f8f8fa 0%,#eeeef2 70%,#e4e4ea 100%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   opacity:0;pointer-events:none;
   transition:opacity .25s ease;
 }
 .situ-overlay.on{opacity:1}
+/* Soft ring behind emoji */
+.situ-ring{
+  position:absolute;width:160px;height:160px;border-radius:50%;
+  border:2px solid rgba(0,0,0,.04);
+  top:50%;left:50%;transform:translate(-50%,-55%);
+  opacity:0;pointer-events:none;
+}
+.situ-overlay.on .situ-ring:nth-child(1){animation:situRing 1.2s .1s ease both}
+.situ-overlay.on .situ-ring:nth-child(2){animation:situRing 1.2s .3s ease both}
+.situ-overlay.on .situ-ring:nth-child(3){animation:situRing 1.2s .5s ease both}
+@keyframes situRing{
+  0%{opacity:0;transform:translate(-50%,-55%) scale(.6)}
+  40%{opacity:.5}
+  100%{opacity:0;transform:translate(-50%,-55%) scale(2.5)}
+}
 
 /* ══════ CTA ══════ */
 .cta-layer{
@@ -325,9 +340,10 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 /* ══════ Emoji Character ══════ */
 .emoji-char{
   position:absolute;z-index:90;
-  font-size:72px;line-height:1;
+  font-size:96px;line-height:1;
   pointer-events:none;opacity:0;
   transform:translate(-50%,-50%);
+  filter:drop-shadow(0 6px 20px rgba(0,0,0,.12));
 }
 .emoji-char.show{opacity:1}
 
@@ -365,28 +381,34 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 .speech-bubble{
   position:absolute;z-index:91;
   background:#fff;
-  border:1.5px solid rgba(0,0,0,.08);
-  border-radius:12px;
-  padding:7px 12px;
-  font-size:11px;font-weight:600;color:#222;
-  box-shadow:0 4px 16px rgba(0,0,0,.08);
+  border:1.5px solid rgba(0,0,0,.06);
+  border-radius:16px;
+  padding:10px 18px;
+  font-size:15px;font-weight:700;color:#111;
+  box-shadow:0 6px 24px rgba(0,0,0,.1);
   white-space:nowrap;
   opacity:0;pointer-events:none;
-  transition:opacity .25s ease;
 }
-.speech-bubble.show{opacity:1}
+.speech-bubble.show{
+  animation:bubblePop .35s cubic-bezier(.22,1.4,.36,1) both;
+}
+@keyframes bubblePop{
+  0%{opacity:0;transform:translate(-50%,-100%) scale(.6)}
+  70%{opacity:1;transform:translate(-50%,-100%) scale(1.05)}
+  100%{opacity:1;transform:translate(-50%,-100%) scale(1)}
+}
 /* Tail pointing down - centered */
 .speech-bubble::after{
-  content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);
-  width:0;height:0;
-  border-left:6px solid transparent;border-right:6px solid transparent;
-  border-top:7px solid #fff;
-}
-.speech-bubble::before{
-  content:'';position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);
+  content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
   width:0;height:0;
   border-left:7px solid transparent;border-right:7px solid transparent;
-  border-top:8px solid rgba(0,0,0,.06);
+  border-top:8px solid #fff;
+}
+.speech-bubble::before{
+  content:'';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);
+  width:0;height:0;
+  border-left:8px solid transparent;border-right:8px solid transparent;
+  border-top:9px solid rgba(0,0,0,.05);
 }
 </style>
 </head>
@@ -466,7 +488,11 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   <div class="fbadge pos-bc" id="bd4"><h2>팀 관리</h2><p>팀원과 명함을 공유</p></div>
 
   <!-- Situation overlay -->
-  <div class="situ-overlay" id="situOverlay"></div>
+  <div class="situ-overlay" id="situOverlay">
+    <div class="situ-ring"></div>
+    <div class="situ-ring"></div>
+    <div class="situ-ring"></div>
+  </div>
 
   <!-- Emoji Character -->
   <div class="emoji-char" id="mascot"></div>
@@ -516,15 +542,15 @@ const PHONE_GAP = 200;
 /* ── Emoji character scenes (phone situations only) ── */
 const CHAR_SCENES = [
   // Phone 0 (홈)
-  { emoji:'😮', mood:'mood-bounce', x:180, y:320, text:'깔끔한 디자인의 명함 없나?' },
+  { emoji:'😮', mood:'mood-bounce', x:180, y:340, text:'깔끔한 디자인의 명함 없나?' },
   // Phone 1 (지갑)
-  { emoji:'😊', mood:'mood-float', x:180, y:320, text:'명함 관리가 간편해!' },
+  { emoji:'😊', mood:'mood-float', x:180, y:340, text:'명함 관리가 간편해!' },
   // Phone 2 (퀵쉐어)
-  { emoji:'😮', mood:'mood-bounce', x:180, y:320, text:'가까운 사람에게는 원터치로 전송!' },
+  { emoji:'😮', mood:'mood-bounce', x:180, y:340, text:'가까운 사람에게는 원터치로 전송!' },
   // Phone 3 (CRM)
-  { emoji:'😎', mood:'mood-float', x:180, y:320, text:'회사 단위에서도 명함 관리' },
+  { emoji:'😎', mood:'mood-float', x:180, y:340, text:'회사 단위에서도 명함 관리' },
   // Phone 4 (관리)
-  { emoji:'😊', mood:'mood-bounce', x:180, y:320, text:'명함을 간단하게!' },
+  { emoji:'😊', mood:'mood-bounce', x:180, y:340, text:'명함을 간단하게!' },
 ];
 
 function showChar(idx){
@@ -552,7 +578,7 @@ function showChar(idx){
   if(c.text){
     sb.textContent=c.text;
     sb.style.left=c.x+'px';
-    sb.style.top=(c.y-55)+'px';
+    sb.style.top=(c.y-65)+'px';
     sb.style.transform='translate(-50%,-100%)';
     setTimeout(()=>sb.classList.add('show'),250);
   } else {
@@ -567,7 +593,7 @@ function hideChar(){
   m.classList.remove('show');
   m.textContent='';
   m.style.animation='';
-  sb.classList.remove('show');
+  sb.className='speech-bubble';
   sb.textContent='';
 }
 
