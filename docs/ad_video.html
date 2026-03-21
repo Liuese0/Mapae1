@@ -245,58 +245,106 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
 }
 .situ-overlay.on{opacity:1}
 
-/* Chat header */
+/* ── Chat header (Instagram style) ── */
 .chat-hdr{
-  padding:14px 16px 10px;
-  border-bottom:1px solid #eee;
+  height:54px;padding:0 12px;
   display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid #efefef;
+  background:#fff;
 }
-.chat-hdr .ava{
-  width:32px;height:32px;border-radius:50%;
-  background:#eee;display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:700;color:#555;
+.chat-hdr .back-arrow{font-size:18px;color:#111;font-weight:300;line-height:1}
+.chat-hdr .hdr-ava{
+  width:28px;height:28px;border-radius:50%;overflow:hidden;
+  background:linear-gradient(135deg,#f58529,#dd2a7b,#8134af);
+  padding:1.5px;flex-shrink:0;
 }
-.chat-hdr .nm{font-size:13px;font-weight:700;color:#111}
-.chat-hdr .on-dot{font-size:11px;color:#aaa;font-weight:400}
+.chat-hdr .hdr-ava-inner{
+  width:100%;height:100%;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#333;
+}
+.chat-hdr .hdr-info{flex:1;min-width:0}
+.chat-hdr .hdr-nm{font-size:13px;font-weight:600;color:#111;line-height:1.2}
+.chat-hdr .hdr-st{font-size:10px;color:#8e8e8e;font-weight:400}
+.chat-hdr .hdr-icons{display:flex;gap:14px;color:#111;font-size:16px}
 
-/* Chat body */
+/* ── Chat body ── */
 .chat-body{
-  flex:1;padding:16px 14px;
-  display:flex;flex-direction:column;justify-content:center;gap:8px;
-  overflow:hidden;
+  flex:1;padding:14px 14px 10px;
+  display:flex;flex-direction:column;justify-content:flex-end;gap:6px;
+  overflow:hidden;background:#fff;
 }
 
-/* Chat bubbles */
-.chat-row{display:flex;align-items:flex-end;gap:6px;opacity:0;transform:translateY(12px)}
-.chat-row.show{opacity:1;transform:translateY(0);transition:opacity .25s ease,transform .3s cubic-bezier(.22,1,.36,1)}
-.chat-row.left{justify-content:flex-start}
-.chat-row.right{justify-content:flex-end}
+/* ── Chat rows ── */
+.chat-row{display:flex;align-items:flex-end;gap:6px;opacity:0}
+.chat-row.left{justify-content:flex-start;padding-right:40px}
+.chat-row.right{justify-content:flex-end;padding-left:40px}
+.chat-row.show{animation:chatMsgIn .3s cubic-bezier(.22,1,.36,1) both}
 
 .chat-row .ava-sm{
-  width:24px;height:24px;border-radius:50%;flex-shrink:0;
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;overflow:hidden;
+  background:#efefef;
   display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:700;color:#fff;
+  font-size:9px;font-weight:700;color:#666;
 }
-.chat-row.left .ava-sm{background:#bbb;order:0}
-.chat-row.right .ava-sm{background:#555;order:1}
 
+/* ── Bubbles ── */
 .chat-bub{
-  max-width:220px;padding:9px 13px;font-size:12.5px;line-height:1.5;
+  max-width:210px;padding:8px 12px;font-size:13px;line-height:1.55;
   word-break:keep-all;
 }
 .chat-row.left .chat-bub{
-  background:#f0f0f0;color:#111;
-  border-radius:16px 16px 16px 4px;
+  background:#efefef;color:#111;
+  border-radius:18px 18px 18px 4px;
 }
 .chat-row.right .chat-bub{
-  background:#111;color:#fff;
-  border-radius:16px 16px 4px 16px;
+  background:linear-gradient(135deg,#6366f1,#3b82f6);color:#fff;
+  border-radius:18px 18px 4px 18px;
 }
+/* Time stamp */
+.chat-time{
+  font-size:9px;color:#bbb;align-self:flex-end;flex-shrink:0;padding-bottom:2px;
+}
+
+/* ── Typing indicator ── */
+.typing-dots{
+  display:inline-flex;gap:3px;padding:10px 14px;
+  background:#efefef;border-radius:18px 18px 18px 4px;
+}
+.typing-dots span{
+  width:6px;height:6px;border-radius:50%;background:#999;
+  animation:dotBounce .9s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2){animation-delay:.15s}
+.typing-dots span:nth-child(3){animation-delay:.3s}
+@keyframes dotBounce{
+  0%,60%,100%{transform:translateY(0);opacity:.4}
+  30%{transform:translateY(-4px);opacity:1}
+}
+
+/* ── Chat input bar ── */
+.chat-input-bar{
+  height:46px;padding:6px 10px;
+  display:flex;align-items:center;gap:8px;
+  border-top:1px solid #efefef;background:#fff;
+}
+.chat-input-bar .cam-btn{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,#6366f1,#3b82f6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:#fff;flex-shrink:0;
+}
+.chat-input-fake{
+  flex:1;height:32px;border:1px solid #dbdbdb;border-radius:20px;
+  padding:0 14px;font-size:12px;color:#bbb;
+  display:flex;align-items:center;
+}
+.chat-input-bar .send-icons{display:flex;gap:10px;color:#111;font-size:16px}
+
 @keyframes chatMsgIn{
-  0%{opacity:0;transform:translateY(14px) scale(.95)}
+  0%{opacity:0;transform:translateY(12px) scale(.97)}
   100%{opacity:1;transform:translateY(0) scale(1)}
 }
-.chat-row.show{animation:chatMsgIn .3s cubic-bezier(.22,1,.36,1) both}
 
 /* ══════ CTA ══════ */
 .cta-layer{
@@ -455,10 +503,23 @@ h1{font-size:20px;margin-bottom:4px;font-weight:700}
   <!-- Situation chat overlay -->
   <div class="situ-overlay" id="situOverlay">
     <div class="chat-hdr">
-      <div class="ava">A</div>
-      <div><div class="nm">친구 <span class="on-dot">· 온라인</span></div></div>
+      <span class="back-arrow">&#10094;</span>
+      <div class="hdr-ava"><div class="hdr-ava-inner">B</div></div>
+      <div class="hdr-info">
+        <div class="hdr-nm">친구B</div>
+        <div class="hdr-st">활동 중</div>
+      </div>
+      <div class="hdr-icons">
+        <span>&#9742;</span>
+        <span>&#9000;</span>
+      </div>
     </div>
     <div class="chat-body" id="chatBody"></div>
+    <div class="chat-input-bar">
+      <div class="cam-btn">&#9679;</div>
+      <div class="chat-input-fake">메시지 보내기...</div>
+      <div class="send-icons"><span>&#9825;</span><span>&#8942;</span></div>
+    </div>
   </div>
 
   <!-- CTA -->
@@ -482,9 +543,9 @@ const PHONES = [
   { ph:'ph3', bd:'bd3', dir:'from-right' },
   { ph:'ph4', bd:'bd4', dir:'from-left' },
 ];
-const BADGE_DELAY = 400;
-const BADGE_SHOW = 1600;
-const PHONE_GAP = 200;
+const BADGE_DELAY = 500;
+const BADGE_SHOW = 1800;
+const PHONE_GAP = 300;
 
 /* ── Particles ── */
 (function(){
@@ -531,7 +592,30 @@ const CHAT_SCENES = [
   ],
 ];
 
-const MSG_DELAY = 500;   // delay between A and B messages
+const MSG_DELAY = 600;   // delay between messages
+
+function makeRow(side, content, isTyping){
+  const row=document.createElement('div');
+  row.className='chat-row '+side;
+  if(side==='left'){
+    const ava=document.createElement('div');
+    ava.className='ava-sm';
+    ava.textContent='A';
+    row.appendChild(ava);
+  }
+  if(isTyping){
+    const dots=document.createElement('div');
+    dots.className='typing-dots';
+    dots.innerHTML='<span></span><span></span><span></span>';
+    row.appendChild(dots);
+  } else {
+    const bub=document.createElement('div');
+    bub.className='chat-bub';
+    bub.textContent=content;
+    row.appendChild(bub);
+  }
+  return row;
+}
 
 async function showChat(idx){
   const body=document.getElementById('chatBody');
@@ -540,18 +624,17 @@ async function showChat(idx){
   if(!msgs) return;
   for(let i=0;i<msgs.length;i++){
     const m=msgs[i];
-    const row=document.createElement('div');
-    row.className='chat-row '+m.side;
-    const ava=document.createElement('div');
-    ava.className='ava-sm';
-    ava.textContent=m.side==='left'?'A':'B';
-    const bub=document.createElement('div');
-    bub.className='chat-bub';
-    bub.textContent=m.text;
-    if(m.side==='left'){row.appendChild(ava);row.appendChild(bub)}
-    else{row.appendChild(bub);row.appendChild(ava)}
+    // Show typing indicator first
+    const typing=makeRow(m.side,'',true);
+    body.appendChild(typing);
+    await wait(30);
+    typing.classList.add('show');
+    await wait(450);
+    // Replace typing with actual message
+    body.removeChild(typing);
+    const row=makeRow(m.side, m.text, false);
     body.appendChild(row);
-    await wait(60);
+    await wait(30);
     row.classList.add('show');
     if(i<msgs.length-1) await wait(MSG_DELAY);
   }
@@ -629,23 +712,23 @@ async function runSeq(){
   resetAll();
   await wait(80);
 
-  /* ── S1: Hook (3s, no emoji) ── */
+  /* ── S1: Hook (3.3s) ── */
   const sc1=document.getElementById('sc1');
   sc1.style.transition='opacity .3s ease';
   sc1.style.opacity='1';
   sc1.classList.add('on');
-  await wait(3000);
+  await wait(3300);
   sc1.style.opacity='0';
-  await wait(280);
+  await wait(300);
 
-  /* ── S2: Logo (1.8s) ── */
+  /* ── S2: Logo (2s) ── */
   const sc2=document.getElementById('sc2');
   sc2.style.transition='opacity .3s ease';
   sc2.style.opacity='1';
   sc2.classList.add('on');
-  await wait(1800);
+  await wait(2000);
   sc2.style.opacity='0';
-  await wait(280);
+  await wait(300);
 
   /* ── Phone stacking: situation → solution ── */
   const situ=document.getElementById('situOverlay');
@@ -656,12 +739,12 @@ async function runSeq(){
 
     /* ─ Step 1: Situation (chat conversation) ─ */
     situ.classList.add('on');
-    await wait(200);
+    await wait(250);
     await showChat(i);
-    await wait(1000);
+    await wait(1100);
     situ.classList.remove('on');
     hideChat();
-    await wait(250);
+    await wait(280);
 
     /* ─ Step 2: Solution (phone slides in) ─ */
     phEl.style.zIndex=30+i;
@@ -703,7 +786,7 @@ async function runSeq(){
 
   /* ── CTA ── */
   document.getElementById('ctaLayer').classList.add('on');
-  await wait(2500);
+  await wait(2800);
 
   playing=false;
 }
