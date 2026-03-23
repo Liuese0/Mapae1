@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image/image.dart' as img;
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -60,10 +61,33 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
         language: locale,
       );
 
+      // Post-process image for quality (perspective + color enhancement)
+      _updateStatus(l10n.processingCard);
+      final imageProcessor = ref.read(imageProcessingServiceProvider);
+      File processedFile = imageFile;
+      try {
+        // Auto perspective correction
+        final rawBytes = await imageFile.readAsBytes();
+        final decoded = img.decodeImage(rawBytes);
+        if (decoded != null) {
+          final corners = imageProcessor.detectCardEdges(decoded);
+          if (corners != null) {
+            processedFile = await imageProcessor.perspectiveCorrect(
+              processedFile,
+              corners,
+            );
+          }
+        }
+        // Pro enhancement pipeline
+        processedFile = await imageProcessor.enhanceCardImagePro(processedFile);
+      } catch (_) {
+        processedFile = imageFile; // Fallback to original
+      }
+
       _updateStatus(l10n.savingInfo);
 
       // Upload image
-      final imageBytes = await imageFile.readAsBytes();
+      final imageBytes = await processedFile.readAsBytes();
       final fileName = '${const Uuid().v4()}.jpg';
       final imageUrl = await supabaseService.uploadCardImage(
         fileName,

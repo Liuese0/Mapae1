@@ -134,6 +134,50 @@ class ImageProcessingService {
     return _saveImage(result, 'enhanced');
   }
 
+  /// Pro-level enhancement pipeline for saved card images (Vflat Scan quality).
+  /// 5 stages: white-point WB → gamma → per-channel contrast → saturation → sharpening.
+  /// Does NOT modify the input file; returns a new enhanced file.
+  Future<File> enhanceCardImagePro(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    final srcImage = img.decodeImage(bytes);
+    if (srcImage == null) throw Exception('이미지를 디코딩할 수 없습니다');
+
+    var result = srcImage;
+
+    // Downscale if too large
+    final maxDim = math.max(result.width, result.height);
+    if (maxDim > 2000) {
+      final scale = 2000.0 / maxDim;
+      result = img.copyResize(
+        result,
+        width: (result.width * scale).round(),
+        height: (result.height * scale).round(),
+        interpolation: img.Interpolation.cubic,
+      );
+    }
+
+    // Compute average luminance once for all stages
+    final avgLum = _computeAvgLuminance(result);
+    final isDark = avgLum < 60;
+
+    // Stage 1: White-point aware white balance
+    result = _whiteBalancePro(result, avgLum, isDark);
+
+    // Stage 2: Gamma correction
+    result = _gammaCorrect(result, avgLum, isDark);
+
+    // Stage 3: Per-channel contrast stretching
+    result = _contrastStretchPro(result, isDark);
+
+    // Stage 4: Saturation boost
+    result = _saturateBoost(result, isDark);
+
+    // Stage 5: Sharpening (stronger)
+    result = _sharpenPro(result);
+
+    return _saveImageHQ(result, 'enhanced_pro');
+  }
+
   /// Lightweight preprocessing for OCR: only contrast stretching via LUT.
   /// Avoids heavy gaussianBlur operations that are too slow in pure Dart.
   /// OCR.space API handles orientation detection and scaling itself.
@@ -668,8 +712,291 @@ class ImageProcessingService {
   }
 
   // ──────────────────────────────────────────────
+  // Private: Pro enhancement helpers
+  // ──────────────────────────────────────────────
+
+  /// Compute average luminance by sampling every 4th pixel.
+  double _computeAvgLuminance(img.Image image) {
+    double total = 0;
+    int count = 0;
+    for (int y = 0; y < image.height; y += 4) {
+      for (int x = 0; x < image.width; x += 4) {
+        final p = image.getPixel(x, y);
+        total += 0.299 * p.r.toDouble() +
+            0.587 * p.g.toDouble() +
+            0.114 * p.b.toDouble();
+        count++;
+      }
+    }
+    return count > 0 ? total / count : 128.0;
+  }
+
+  /// White-point based white balance: uses top 5% bright pixels as reference.
+  img.Image _whiteBalancePro(img.Image image, double avgLum, bool isDark) {
+    // Build luminance histogram and collect bright pixel channel sums
+    final histogram = List<int>.filled(256, 0);
+    int count = 0;
+
+    for (int y = 0; y < image.height; y += 4) {
+      for (int x = 0; x < image.width; x += 4) {
+        final p = image.getPixel(x, y);
+        final lum = (0.299 * p.r.toDouble() +
+            0.587 * p.g.toDouble() +
+            0.114 * p.b.toDouble())
+            .round()
+            .clamp(0, 255);
+        histogram[lum]++;
+        count++;
+      }
+    }
+
+    if (count == 0) return image;
+
+    // Find 95th percentile luminance threshold
+    final p95Target = (count * 0.95).round();
+    int cumulative = 0;
+    int lumThreshold = 200;
+    for (int i = 0; i < 256; i++) {
+      cumulative += histogram[i];
+      if (cumulative >= p95Target) {
+        lumThreshold = i;
+        break;
+      }
+    }
+
+    // Collect average RGB of pixels above threshold
+    double brightR = 0, brightG = 0, brightB = 0;
+    int brightCount = 0;
+
+    for (int y = 0; y < image.height; y += 4) {
+      for (int x = 0; x < image.width; x += 4) {
+        final p = image.getPixel(x, y);
+        final lum = (0.299 * p.r.toDouble() +
+            0.587 * p.g.toDouble() +
+            0.114 * p.b.toDouble())
+            .round();
+        if (lum >= lumThreshold) {
+          brightR += p.r.toDouble();
+          brightG += p.g.toDouble();
+          brightB += p.b.toDouble();
+          brightCount++;
+        }
+      }
+    }
+
+    if (brightCount < 10) return image; // Not enough bright pixels
+
+    final avgBrightR = brightR / brightCount;
+    final avgBrightG = brightG / brightCount;
+    final avgBrightB = brightB / brightCount;
+
+    const targetWhite = 250.0;
+    var scaleR = avgBrightR > 1 ? targetWhite / avgBrightR : 1.0;
+    var scaleG = avgBrightG > 1 ? targetWhite / avgBrightG : 1.0;
+    var scaleB = avgBrightB > 1 ? targetWhite / avgBrightB : 1.0;
+
+    scaleR = scaleR.clamp(0.8, 1.5);
+    scaleG = scaleG.clamp(0.8, 1.5);
+    scaleB = scaleB.clamp(0.8, 1.5);
+
+    // For dark cards, blend toward 1.0 to reduce effect
+    if (isDark) {
+      scaleR = 1.0 + (scaleR - 1.0) * 0.5;
+      scaleG = 1.0 + (scaleG - 1.0) * 0.5;
+      scaleB = 1.0 + (scaleB - 1.0) * 0.5;
+    }
+
+    final result = img.Image(width: image.width, height: image.height);
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final p = image.getPixel(x, y);
+        result.setPixelRgba(
+          x,
+          y,
+          (p.r * scaleR).round().clamp(0, 255),
+          (p.g * scaleG).round().clamp(0, 255),
+          (p.b * scaleB).round().clamp(0, 255),
+          p.a.toInt(),
+        );
+      }
+    }
+    return result;
+  }
+
+  /// Gamma correction to lift dark midtones for a clean scan look.
+  img.Image _gammaCorrect(img.Image image, double avgLum, bool isDark) {
+    double gamma;
+    if (isDark) {
+      gamma = 0.92; // Gentle for dark-background cards
+    } else if (avgLum < 80) {
+      gamma = 0.75;
+    } else if (avgLum < 130) {
+      gamma = 0.85;
+    } else if (avgLum < 180) {
+      gamma = 0.95;
+    } else {
+      return image; // Already bright enough
+    }
+
+    // Build gamma LUT
+    final lut = Uint8List(256);
+    for (int i = 0; i < 256; i++) {
+      lut[i] =
+          (255.0 * math.pow(i / 255.0, gamma)).round().clamp(0, 255);
+    }
+
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final p = image.getPixel(x, y);
+        image.setPixelRgba(
+          x,
+          y,
+          lut[p.r.toInt().clamp(0, 255)],
+          lut[p.g.toInt().clamp(0, 255)],
+          lut[p.b.toInt().clamp(0, 255)],
+          p.a.toInt(),
+        );
+      }
+    }
+    return image;
+  }
+
+  /// Per-channel contrast stretching for stronger, more accurate correction.
+  img.Image _contrastStretchPro(img.Image image, bool isDark) {
+    final histR = List<int>.filled(256, 0);
+    final histG = List<int>.filled(256, 0);
+    final histB = List<int>.filled(256, 0);
+    int count = 0;
+
+    for (int y = 0; y < image.height; y += 2) {
+      for (int x = 0; x < image.width; x += 2) {
+        final p = image.getPixel(x, y);
+        histR[p.r.toInt().clamp(0, 255)]++;
+        histG[p.g.toInt().clamp(0, 255)]++;
+        histB[p.b.toInt().clamp(0, 255)]++;
+        count++;
+      }
+    }
+
+    if (count == 0) return image;
+
+    final lowPct = isDark ? 0.02 : 0.01;
+    final highPct = isDark ? 0.98 : 0.99;
+
+    Uint8List buildChannelLut(List<int> hist) {
+      final lowTarget = (count * lowPct).round();
+      final highTarget = (count * highPct).round();
+      int low = 0, high = 255;
+      int cum = 0;
+
+      for (int i = 0; i < 256; i++) {
+        cum += hist[i];
+        if (cum >= lowTarget && low == 0) low = i;
+        if (cum >= highTarget) {
+          high = i;
+          break;
+        }
+      }
+
+      final lut = Uint8List(256);
+      if (high <= low) {
+        for (int i = 0; i < 256; i++) lut[i] = i;
+        return lut;
+      }
+      for (int i = 0; i < 256; i++) {
+        lut[i] = ((i - low) * 255.0 / (high - low)).round().clamp(0, 255);
+      }
+      return lut;
+    }
+
+    final lutR = buildChannelLut(histR);
+    final lutG = buildChannelLut(histG);
+    final lutB = buildChannelLut(histB);
+
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final p = image.getPixel(x, y);
+        image.setPixelRgba(
+          x,
+          y,
+          lutR[p.r.toInt().clamp(0, 255)],
+          lutG[p.g.toInt().clamp(0, 255)],
+          lutB[p.b.toInt().clamp(0, 255)],
+          p.a.toInt(),
+        );
+      }
+    }
+    return image;
+  }
+
+  /// Saturation boost using BT.709 luminance-preserving formula.
+  img.Image _saturateBoost(img.Image image, bool isDark) {
+    const lr = 0.2126;
+    const lg = 0.7152;
+    const lb = 0.0722;
+    final s = isDark ? 1.10 : 1.20;
+
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final p = image.getPixel(x, y);
+        final r = p.r.toDouble();
+        final g = p.g.toDouble();
+        final b = p.b.toDouble();
+        final lum = lr * r + lg * g + lb * b;
+
+        image.setPixelRgba(
+          x,
+          y,
+          (lum + s * (r - lum)).round().clamp(0, 255),
+          (lum + s * (g - lum)).round().clamp(0, 255),
+          (lum + s * (b - lum)).round().clamp(0, 255),
+          p.a.toInt(),
+        );
+      }
+    }
+    return image;
+  }
+
+  /// Stronger unsharp mask sharpening (amount 1.0).
+  img.Image _sharpenPro(img.Image image) {
+    final blurred = img.gaussianBlur(image, radius: 1);
+    final result = img.Image(width: image.width, height: image.height);
+    const amount = 1.0;
+
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final orig = image.getPixel(x, y);
+        final blur = blurred.getPixel(x, y);
+
+        final r = (orig.r + (orig.r - blur.r) * amount)
+            .round()
+            .clamp(0, 255);
+        final g = (orig.g + (orig.g - blur.g) * amount)
+            .round()
+            .clamp(0, 255);
+        final b = (orig.b + (orig.b - blur.b) * amount)
+            .round()
+            .clamp(0, 255);
+
+        result.setPixelRgba(x, y, r, g, b, orig.a.toInt());
+      }
+    }
+    return result;
+  }
+
+  // ──────────────────────────────────────────────
   // Private: Utility
   // ──────────────────────────────────────────────
+
+  Future<File> _saveImageHQ(img.Image image, String prefix) async {
+    final tempDir = await getTemporaryDirectory();
+    final outPath =
+        '${tempDir.path}/${prefix}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final encoded = img.encodeJpg(image, quality: 95);
+    final outFile = File(outPath);
+    await outFile.writeAsBytes(encoded);
+    return outFile;
+  }
 
   Future<File> _saveImage(img.Image image, String prefix) async {
     final tempDir = await getTemporaryDirectory();

@@ -328,8 +328,7 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
                         child: CachedNetworkImage(
                           imageUrl: card.imageUrl!,
                           width: double.infinity,
-                          height: 180,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           placeholder: (context, url) => Container(
                             height: 180,
                             color: theme.colorScheme.surfaceContainerHighest,

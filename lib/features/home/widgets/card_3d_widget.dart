@@ -122,7 +122,7 @@ class _Card3DWidgetState extends State<Card3DWidget>
   Widget _buildImageCard() {
     return Image.network(
       widget.card.imageUrl!,
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       errorBuilder: (_, __, ___) => _buildInfoCard(
         Theme.of(context),
         Theme.of(context).brightness == Brightness.dark,

@@ -209,8 +209,7 @@ class _SharedCardReceiveScreenState
               child: Image.network(
                 imageUrl,
                 width: double.infinity,
-                height: 200,
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
             ),

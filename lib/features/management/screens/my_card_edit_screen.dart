@@ -359,14 +359,14 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                     child: _newImage != null
                         ? ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.file(_newImage!, fit: BoxFit.cover),
+                      child: Image.file(_newImage!, fit: BoxFit.contain),
                     )
                         : _imageUrl != null
                         ? ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
                         _imageUrl!,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                       ),
                     )
                         : Column(

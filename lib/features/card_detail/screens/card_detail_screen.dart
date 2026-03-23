@@ -73,8 +73,7 @@ class CardDetailScreen extends ConsumerWidget {
                     child: Image.network(
                       card.imageUrl!,
                       width: double.infinity,
-                      height: 200,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 const SizedBox(height: 24),
