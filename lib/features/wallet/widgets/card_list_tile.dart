@@ -11,6 +11,9 @@ class CardListTile extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
   final ValueChanged<bool>? onFavoriteToggle;
+  final bool isSelected;
+  final bool selectionMode;
+  final VoidCallback? onLongPress;
 
   const CardListTile({
     super.key,
@@ -19,6 +22,9 @@ class CardListTile extends StatelessWidget {
     this.onDelete,
     this.onEdit,
     this.onFavoriteToggle,
+    this.isSelected = false,
+    this.selectionMode = false,
+    this.onLongPress,
   });
 
   @override
@@ -29,15 +35,38 @@ class CardListTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outline.withValues(alpha: 0.5),
+              width: isSelected ? 1.5 : 1.0,
+            ),
+            color: isSelected
+                ? theme.colorScheme.primary.withValues(alpha: 0.06)
+                : null,
           ),
           child: Row(
             children: [
+              // Checkbox in selection mode
+              if (selectionMode) ...[
+                Checkbox(
+                  value: isSelected,
+                  onChanged: (_) => onTap(),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                const SizedBox(width: 8),
+              ],
               // Left side: info
               Expanded(
                 child: Column(
@@ -98,8 +127,8 @@ class CardListTile extends StatelessWidget {
                   ],
                 ),
               ),
-              // Favorite toggle
-              if (onFavoriteToggle != null)
+              // Favorite toggle (hidden in selection mode)
+              if (!selectionMode && onFavoriteToggle != null)
                 GestureDetector(
                   onTap: () => onFavoriteToggle!(!card.isFavorite),
                   child: Padding(
@@ -135,8 +164,8 @@ class CardListTile extends StatelessWidget {
       ),
     );
 
-    // Swipe 액션 래핑
-    if (onDelete != null || onEdit != null) {
+    // Swipe 액션 래핑 (selection mode에서는 비활성화)
+    if (!selectionMode && (onDelete != null || onEdit != null)) {
       tile = Dismissible(
         key: ValueKey(card.id),
         background: Container(

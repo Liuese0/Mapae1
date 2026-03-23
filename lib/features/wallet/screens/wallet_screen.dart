@@ -66,6 +66,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
   late Animation<Offset> _headerSlide;
   Timer? _debounceTimer;
 
+  // ── Selection mode state ──
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -153,6 +157,83 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
     });
   }
 
+  // ── Selection mode methods ──
+
+  void _enterSelectionMode(String cardId) {
+    setState(() {
+      _selectionMode = true;
+      _selectedIds.add(cardId);
+    });
+  }
+
+  void _toggleSelection(String cardId) {
+    setState(() {
+      if (_selectedIds.contains(cardId)) {
+        _selectedIds.remove(cardId);
+        if (_selectedIds.isEmpty) {
+          _selectionMode = false;
+        }
+      } else {
+        _selectedIds.add(cardId);
+      }
+    });
+  }
+
+  void _selectAll(List<CollectedCard> cards) {
+    setState(() {
+      _selectedIds.addAll(cards.map((c) => c.id));
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  Future<void> _batchDelete() async {
+    final l10n = AppLocalizations.of(context);
+    final count = _selectedIds.length;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.batchDelete),
+        content: Text(l10n.confirmBatchDeleteCards(count)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final service = ref.read(supabaseServiceProvider);
+    for (final id in _selectedIds) {
+      await service.deleteCollectedCard(id);
+    }
+
+    ref.invalidate(collectedCardsProvider);
+    ref.invalidate(cardCountProvider);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.batchDeletedCards(count))),
+      );
+    }
+
+    _exitSelectionMode();
+  }
+
   /// 명함 리스트에 광고 슬롯을 삽입한 혼합 아이템 목록을 생성합니다.
   ///
   /// 프리미엄 사용자이면 광고 없이 반환.
@@ -192,7 +273,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
           children: [
             Column(
               children: [
-                // Header with card count
+                // Header with card count (always visible)
                 SlideTransition(
                   position: _headerSlide,
                   child: FadeTransition(
@@ -223,7 +304,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                   ),
                 ),
 
-                // Search bar + filter chips
+                // Search bar + filter chips (always visible)
                 SearchFilterBar(
                   categories: categories.valueOrNull ?? [],
                 ),
@@ -264,21 +345,23 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                           padding: EdgeInsets.only(
                             left: hPadding,
                             right: hPadding,
-                            bottom: 120,
+                            bottom: _selectionMode ? 80 : 120,
                           ),
                           itemCount: mixedList.length,
                           itemBuilder: (context, index) {
                             final item = mixedList[index];
 
-                            // ── 광고 슬롯 ──
+                            // ── 광고 슬롯 (선택 모드에서는 숨김) ──
                             if (item == null) {
+                              if (_selectionMode) {
+                                return const SizedBox.shrink();
+                              }
                               return const NativeAdCard();
                             }
 
                             // ── 명함 카드 ──
                             final animIndex = cardAnimIndex++;
                             final isLast = index == mixedList.length - 1;
-                            // 다음 아이템이 광고이면 간격을 NativeAdCard가 처리하므로 축소
                             final nextIsAd = !isLast &&
                                 index + 1 < mixedList.length &&
                                 mixedList[index + 1] == null;
@@ -295,16 +378,27 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                                 index: animIndex,
                                 child: CardListTile(
                                   card: item,
-                                  onTap: () =>
-                                      context.push('/card/${item.id}'),
-                                  onDelete: () async {
+                                  selectionMode: _selectionMode,
+                                  isSelected: _selectedIds.contains(item.id),
+                                  onTap: _selectionMode
+                                      ? () => _toggleSelection(item.id)
+                                      : () => context.push('/card/${item.id}'),
+                                  onLongPress: _selectionMode
+                                      ? () => _toggleSelection(item.id)
+                                      : () => _enterSelectionMode(item.id),
+                                  onDelete: _selectionMode
+                                      ? null
+                                      : () async {
                                     await ref.read(supabaseServiceProvider).deleteCollectedCard(item.id);
                                     ref.invalidate(collectedCardsProvider);
                                     ref.invalidate(cardCountProvider);
                                   },
-                                  onEdit: () =>
-                                      context.push('/card/${item.id}/edit'),
-                                  onFavoriteToggle: (isFavorite) async {
+                                  onEdit: _selectionMode
+                                      ? null
+                                      : () => context.push('/card/${item.id}/edit'),
+                                  onFavoriteToggle: _selectionMode
+                                      ? null
+                                      : (isFavorite) async {
                                     await ref.read(supabaseServiceProvider).toggleFavorite(item.id, isFavorite);
                                     ref.invalidate(collectedCardsProvider);
                                   },
@@ -322,19 +416,110 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
               ],
             ),
 
-            // Floating add button with pulse animation
-            Positioned(
-              bottom: Responsive.value(context, mobile: 90.0, tablet: 100.0),
-              left: 0,
-              right: 0,
-              child: Center(
-                child: _AnimatedFAB(
-                  onTap: _onAddPressed,
+            // ── Selection action bar (bottom overlay) ──
+            if (_selectionMode)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _buildSelectionBar(theme, l10n, cards.valueOrNull ?? []),
+              ),
+
+            // Floating add button (hidden in selection mode)
+            if (!_selectionMode)
+              Positioned(
+                bottom: Responsive.value(context, mobile: 90.0, tablet: 100.0),
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: _AnimatedFAB(
+                    onTap: _onAddPressed,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSelectionBar(
+      ThemeData theme, AppLocalizations l10n, List<CollectedCard> allCards) {
+    final searchQuery = ref.watch(walletSearchQueryProvider);
+    final filteredList = searchQuery.isEmpty
+        ? allCards
+        : allCards.where((card) {
+      final q = searchQuery.toLowerCase();
+      return (card.name?.toLowerCase().contains(q) ?? false) ||
+          (card.company?.toLowerCase().contains(q) ?? false) ||
+          (card.position?.toLowerCase().contains(q) ?? false) ||
+          (card.department?.toLowerCase().contains(q) ?? false) ||
+          (card.email?.toLowerCase().contains(q) ?? false) ||
+          (card.phone?.contains(q) ?? false) ||
+          (card.mobile?.contains(q) ?? false);
+    }).toList();
+
+    final allSelected = filteredList.isNotEmpty &&
+        filteredList.every((c) => _selectedIds.contains(c.id));
+
+    return Container(
+      padding: EdgeInsets.only(
+        left: 12, right: 12, top: 8,
+        bottom: MediaQuery.of(context).viewPadding.bottom + 8,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Close button
+          IconButton(
+            icon: const Icon(Icons.close, size: 20),
+            onPressed: _exitSelectionMode,
+            tooltip: l10n.cancel,
+          ),
+          // Selected count
+          Text(
+            l10n.selectedCount(_selectedIds.length),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          // Select all / deselect all
+          TextButton(
+            onPressed: () {
+              if (allSelected) {
+                _exitSelectionMode();
+              } else {
+                _selectAll(filteredList);
+              }
+            },
+            child: Text(
+              allSelected ? l10n.deselectAll : l10n.selectAll,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+          const SizedBox(width: 4),
+          // Delete button
+          FilledButton.icon(
+            onPressed: _selectedIds.isEmpty ? null : _batchDelete,
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: Text(l10n.batchDelete),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: Colors.red.withValues(alpha: 0.3),
+            ),
+          ),
+        ],
       ),
     );
   }

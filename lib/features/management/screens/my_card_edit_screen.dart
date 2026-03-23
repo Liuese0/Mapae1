@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -143,6 +144,57 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
     }
   }
 
+  Future<void> _pickFromGallery() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null && mounted) {
+      final file = File(picked.path);
+      setState(() => _newImage = file);
+      await _extractText(file);
+    }
+  }
+
+  void _showScanOptions() {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.document_scanner_outlined,
+                    color: theme.colorScheme.primary),
+                title: Text(l10n.scanCard),
+                subtitle: Text(l10n.scanCardSubtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    )),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _scanWithDocumentScanner();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library_outlined,
+                    color: theme.colorScheme.primary),
+                title: Text(l10n.chooseFromGallery),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickFromGallery();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _extractText(File imageFile) async {
     setState(() => _isExtracting = true);
     try {
@@ -155,33 +207,20 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
 
       if (mounted) {
         setState(() {
-          if (result.name != null && result.name!.isNotEmpty && _cardControllers['name']!.text.isEmpty) {
-            _cardControllers['name']!.text = result.name!;
+          void _fill(String key, String? value) {
+            if (value != null && value.isNotEmpty) {
+              _cardControllers[key]!.text = value;
+            }
           }
-          if (result.company != null && result.company!.isNotEmpty && _cardControllers['company']!.text.isEmpty) {
-            _cardControllers['company']!.text = result.company!;
-          }
-          if (result.position != null && result.position!.isNotEmpty && _cardControllers['position']!.text.isEmpty) {
-            _cardControllers['position']!.text = result.position!;
-          }
-          if (result.department != null && result.department!.isNotEmpty && _cardControllers['department']!.text.isEmpty) {
-            _cardControllers['department']!.text = result.department!;
-          }
-          if (result.email != null && result.email!.isNotEmpty && _cardControllers['email']!.text.isEmpty) {
-            _cardControllers['email']!.text = result.email!;
-          }
-          if (result.phone != null && result.phone!.isNotEmpty && _cardControllers['phone']!.text.isEmpty) {
-            _cardControllers['phone']!.text = result.phone!;
-          }
-          if (result.mobile != null && result.mobile!.isNotEmpty && _cardControllers['mobile']!.text.isEmpty) {
-            _cardControllers['mobile']!.text = result.mobile!;
-          }
-          if (result.address != null && result.address!.isNotEmpty && _cardControllers['address']!.text.isEmpty) {
-            _cardControllers['address']!.text = result.address!;
-          }
-          if (result.website != null && result.website!.isNotEmpty && _cardControllers['website']!.text.isEmpty) {
-            _cardControllers['website']!.text = result.website!;
-          }
+          _fill('name', result.name);
+          _fill('company', result.company);
+          _fill('position', result.position);
+          _fill('department', result.department);
+          _fill('email', result.email);
+          _fill('phone', result.phone);
+          _fill('mobile', result.mobile);
+          _fill('address', result.address);
+          _fill('website', result.website);
         });
       }
     } catch (e) {
@@ -305,7 +344,7 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
               // Card image
               Center(
                 child: GestureDetector(
-                  onTap: _scanWithDocumentScanner,
+                  onTap: _showScanOptions,
                   child: Container(
                     width: double.infinity,
                     height: 180,
@@ -372,6 +411,33 @@ class _MyCardEditScreenState extends ConsumerState<MyCardEditScreen> {
                       ),
                     ),
                   ],
+                ),
+              ],
+              // OCR 스캔 버튼
+              if (!_isExtracting) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _showScanOptions,
+                  icon: Icon(Icons.document_scanner_outlined, size: 18,
+                      color: theme.colorScheme.primary),
+                  label: Text(
+                    AppLocalizations.of(context).scanToAutoFill,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10,
+                    ),
+                  ),
                 ),
               ],
               const SizedBox(height: 24),

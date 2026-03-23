@@ -213,11 +213,11 @@ class ImageProcessingService {
 
     if (high <= low) return image;
 
-    // Build LUT with slight gamma darkening for text
+    // Build LUT with linear stretching only (no gamma correction
+    // to avoid color distortion on dark background cards)
     final lut = Uint8List(256);
     for (int i = 0; i < 256; i++) {
-      final stretched = ((i - low) * 255.0 / (high - low)).clamp(0.0, 255.0);
-      lut[i] = (255 * math.pow(stretched / 255.0, 0.9)).round().clamp(0, 255);
+      lut[i] = ((i - low) * 255.0 / (high - low)).round().clamp(0, 255);
     }
 
     // Apply LUT in single pass
@@ -510,6 +510,7 @@ class ImageProcessingService {
   // ──────────────────────────────────────────────
 
   /// White balance correction using gray-world assumption.
+  /// Skips correction for dark images to avoid color inversion.
   img.Image _whiteBalance(img.Image image) {
     double totalR = 0, totalG = 0, totalB = 0;
     int count = 0;
@@ -532,16 +533,20 @@ class ImageProcessingService {
     final avgB = totalB / count;
     final avgGray = (avgR + avgG + avgB) / 3.0;
 
+    // Skip white balance for dark images (dark background cards)
+    // to avoid color inversion artifacts
+    if (avgGray < 80) return image;
+
     if (avgGray < 1) return image;
 
     final scaleR = avgGray / (avgR < 1 ? 1 : avgR);
     final scaleG = avgGray / (avgG < 1 ? 1 : avgG);
     final scaleB = avgGray / (avgB < 1 ? 1 : avgB);
 
-    // Clamp scale factors to avoid extreme corrections
-    final clampedR = scaleR.clamp(0.7, 1.5);
-    final clampedG = scaleG.clamp(0.7, 1.5);
-    final clampedB = scaleB.clamp(0.7, 1.5);
+    // Tighter clamping to prevent aggressive color shifts
+    final clampedR = scaleR.clamp(0.85, 1.2);
+    final clampedG = scaleG.clamp(0.85, 1.2);
+    final clampedB = scaleB.clamp(0.85, 1.2);
 
     final result = img.Image(width: image.width, height: image.height);
     for (int y = 0; y < image.height; y++) {
@@ -561,6 +566,7 @@ class ImageProcessingService {
   }
 
   /// Adaptive contrast enhancement (simplified CLAHE-like approach).
+  /// Uses conservative stretching to prevent color inversion on dark cards.
   img.Image _adaptiveContrastEnhance(img.Image image) {
     // Compute histogram
     final histogram = List<int>.filled(256, 0);
@@ -580,9 +586,20 @@ class ImageProcessingService {
 
     if (count == 0) return image;
 
-    // Find 5th and 95th percentile for contrast stretching
-    final p5Target = (count * 0.05).round();
-    final p95Target = (count * 0.95).round();
+    // Determine average luminance to decide stretching aggressiveness
+    double totalLum = 0;
+    for (int i = 0; i < 256; i++) {
+      totalLum += i * histogram[i];
+    }
+    final avgLum = totalLum / count;
+
+    // For dark images (avg lum < 80), use more conservative percentiles
+    // to preserve the original dark appearance and prevent color inversion
+    final lowPct = avgLum < 80 ? 0.01 : 0.05;
+    final highPct = avgLum < 80 ? 0.99 : 0.95;
+
+    final p5Target = (count * lowPct).round();
+    final p95Target = (count * highPct).round();
     int p5 = 0, p95 = 255;
     int cumulative = 0;
 
@@ -596,6 +613,9 @@ class ImageProcessingService {
     }
 
     if (p95 <= p5) return image;
+
+    // If the range is already wide enough, skip stretching
+    if (p95 - p5 > 200) return image;
 
     // Build lookup table for contrast stretching
     final lut = Uint8List(256);

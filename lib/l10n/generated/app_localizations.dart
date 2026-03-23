@@ -377,6 +377,9 @@ abstract class AppLocalizations {
   String batchStatusChanged(int count);
   String batchDeleted(int count);
   String get longPressToSelect;
+  String confirmBatchDeleteCards(int count);
+  String batchDeletedCards(int count);
+  String get scanToAutoFill;
   String get conversionRate;
 
   // ── Share Code ──
@@ -820,6 +823,9 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String batchStatusChanged(int count) => '${count}개 연락처의 상태가 변경되었습니다';
   @override String batchDeleted(int count) => '${count}개 연락처가 삭제되었습니다';
   @override String get longPressToSelect => '길게 눌러 선택';
+  @override String confirmBatchDeleteCards(int count) => '${count}개 명함을 삭제하시겠습니까?';
+  @override String batchDeletedCards(int count) => '${count}개 명함이 삭제되었습니다';
+  @override String get scanToAutoFill => '명함 스캔으로 자동 입력';
   @override String get conversionRate => '전환율';
 
   // ── Share Code ──
@@ -1253,6 +1259,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String batchStatusChanged(int count) => 'Status changed for $count contacts';
   @override String batchDeleted(int count) => '$count contacts deleted';
   @override String get longPressToSelect => 'Long press to select';
+  @override String confirmBatchDeleteCards(int count) => 'Delete $count cards?';
+  @override String batchDeletedCards(int count) => '$count cards deleted';
+  @override String get scanToAutoFill => 'Scan card to auto-fill';
   @override String get conversionRate => 'Conversion';
 
   // ── Share Code ──
