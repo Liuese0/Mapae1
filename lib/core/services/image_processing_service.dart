@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 /// Service for advanced business card image processing using OpenCV native:
 /// - Perspective correction (flatten warped/tilted cards)
 /// - Contour-based auto edge detection
+/// - Dust & noise removal (median filter + morphological open)
 /// - Shadow removal & illumination normalization
 /// - CLAHE adaptive contrast
 /// - Color & light normalization
@@ -335,33 +336,38 @@ class ImageProcessingService {
         mat = resized;
       }
 
+      // Stage 0: Dust & noise removal
+      final denoised = _removeDustAndNoise(mat);
+      mat.dispose();
+      mat = denoised;
+
       // Compute average luminance to detect dark cards
       final avgLum = _computeAvgLuminance(mat);
       final isDark = avgLum < 60;
 
-      // Stage 0: Shadow removal (skip for dark background cards)
+      // Stage 1: Shadow removal (skip for dark background cards)
       if (!isDark) {
         final shadowRemoved = _removeShadows(mat);
         mat.dispose();
         mat = shadowRemoved;
       }
 
-      // Stage 1: White balance (gray world)
+      // Stage 2: White balance (gray world)
       final balanced = _whiteBalance(mat, isDark);
       mat.dispose();
       mat = balanced;
 
-      // Stage 2: CLAHE adaptive contrast
+      // Stage 3: CLAHE adaptive contrast
       final claheResult = _applyCLAHE(mat, isDark);
       mat.dispose();
       mat = claheResult;
 
-      // Stage 3: Sharpening (unsharp mask)
+      // Stage 4: Sharpening (unsharp mask)
       final sharpened = _sharpen(mat);
       mat.dispose();
       mat = sharpened;
 
-      // Stage 4: Background edge cleanup + scan margin
+      // Stage 5: Background edge cleanup + scan margin
       if (!isDark) {
         final cleaned = _cleanEdgesAndAddMargin(mat);
         mat.dispose();
@@ -394,19 +400,24 @@ class ImageProcessingService {
         mat = resized;
       }
 
+      // Dust & noise removal
+      final denoised = _removeDustAndNoise(mat);
+      mat.dispose();
+      mat = denoised;
+
       final isDark = _computeAvgLuminance(mat) < 60;
 
-      // Stage 1: White balance
+      // White balance
       final balanced = _whiteBalance(mat, isDark);
       mat.dispose();
       mat = balanced;
 
-      // Stage 2: CLAHE
+      // CLAHE
       final claheResult = _applyCLAHE(mat, isDark);
       mat.dispose();
       mat = claheResult;
 
-      // Stage 3: Light sharpening
+      // Light sharpening
       final sharpened = _sharpen(mat);
       mat.dispose();
       mat = sharpened;
@@ -449,6 +460,11 @@ class ImageProcessingService {
         mat = resized;
       }
 
+      // Dust & noise removal (critical for OCR — prevents dust as stray characters)
+      final denoised = _removeDustAndNoise(mat);
+      mat.dispose();
+      mat = denoised;
+
       // CLAHE for contrast enhancement
       final enhanced = _applyCLAHE(mat, false);
       mat.dispose();
@@ -465,6 +481,25 @@ class ImageProcessingService {
   // ──────────────────────────────────────────────
   // Private: Enhancement stages
   // ──────────────────────────────────────────────
+
+  /// Remove dust particles and small noise spots from scanned card images.
+  /// Two-stage pipeline:
+  ///   1. Median filter (ksize=3) — salt-and-pepper dust, edge-preserving
+  ///   2. Morphological open (2×2 ellipse) — erases isolated 1-2px spots
+  static cv.Mat _removeDustAndNoise(cv.Mat mat) {
+    // Stage 1: Median filter — removes salt-and-pepper noise
+    final median = cv.medianBlur(mat, 3);
+
+    // Stage 2: Morphological open (erode → dilate) — removes small isolated spots
+    final kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (2, 2));
+    final eroded = cv.erode(median, kernel);
+    median.dispose();
+    final result = cv.dilate(eroded, kernel);
+    kernel.dispose();
+    eroded.dispose();
+
+    return result;
+  }
 
   /// Shadow removal using morphological divide technique.
   /// Creates illumination estimate via dilate+medianBlur, then divides original.
