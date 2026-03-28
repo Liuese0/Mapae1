@@ -34,6 +34,11 @@
     java.lang.Object readResolve();
 }
 
+# Google Play Core (deferred components)
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+
 # OpenCV
 -keep class org.opencv.** { *; }
 -dontwarn org.opencv.**
