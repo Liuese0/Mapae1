@@ -2,18 +2,44 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
+import 'package:opencv_dart/opencv_dart.dart' as cv;
 import 'package:path_provider/path_provider.dart';
 
-/// Service for advanced business card image processing:
+/// Service for advanced business card image processing using OpenCV native:
 /// - Perspective correction (flatten warped/tilted cards)
-/// - Auto edge detection
+/// - Contour-based auto edge detection
+/// - Shadow removal & illumination normalization
+/// - CLAHE adaptive contrast
 /// - Color & light normalization
 /// - OCR-optimized preprocessing
 class ImageProcessingService {
+  // ──────────────────────────────────────────────
+  // Public API
+  // ──────────────────────────────────────────────
+
+  /// Detect card edges automatically from image bytes or img.Image.
+  /// Returns 4 corner points [topLeft, topRight, bottomRight, bottomLeft]
+  /// in image pixel coordinates, or null if detection fails.
+  /// Accepts either Uint8List (JPEG/PNG bytes) or img.Image.
+  List<math.Point<double>>? detectCardEdges(dynamic image) {
+    try {
+      Uint8List bytes;
+      if (image is Uint8List) {
+        bytes = image;
+      } else if (image is img.Image) {
+        bytes = Uint8List.fromList(img.encodeJpg(image, quality: 85));
+      } else {
+        return null;
+      }
+      return _detectCardEdgesImpl(bytes);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Apply perspective correction using 4 source corner points.
   /// [srcCorners] are the 4 corners of the detected card in the original image
   /// in order: topLeft, topRight, bottomRight, bottomLeft.
-  /// [imageFile] is the source image file.
   /// Returns a new file with the perspective-corrected image.
   Future<File> perspectiveCorrect(
       File imageFile,
@@ -22,991 +48,628 @@ class ImageProcessingService {
         int? outputHeight,
       }) async {
     final bytes = await imageFile.readAsBytes();
-    final srcImage = img.decodeImage(bytes);
-    if (srcImage == null) throw Exception('이미지를 디코딩할 수 없습니다');
-
-    // Calculate output dimensions from the card corners if not specified
-    final topEdge = _distance(srcCorners[0], srcCorners[1]);
-    final bottomEdge = _distance(srcCorners[3], srcCorners[2]);
-    final leftEdge = _distance(srcCorners[0], srcCorners[3]);
-    final rightEdge = _distance(srcCorners[1], srcCorners[2]);
-
-    final outW = outputWidth ?? math.max(topEdge, bottomEdge).round();
-    final outH = outputHeight ?? math.max(leftEdge, rightEdge).round();
-
-    // Destination corners: a flat rectangle
-    final dstCorners = [
-      math.Point<double>(0, 0),
-      math.Point<double>(outW.toDouble(), 0),
-      math.Point<double>(outW.toDouble(), outH.toDouble()),
-      math.Point<double>(0, outH.toDouble()),
-    ];
-
-    // Compute the inverse homography (dst -> src) for sampling
-    final h = _computeHomography(dstCorners, srcCorners);
-
-    final result = img.Image(width: outW, height: outH);
-
-    for (int y = 0; y < outH; y++) {
-      for (int x = 0; x < outW; x++) {
-        final srcPt = _applyHomography(h, x.toDouble(), y.toDouble());
-        final sx = srcPt.x;
-        final sy = srcPt.y;
-
-        if (sx >= 0 &&
-            sx < srcImage.width - 1 &&
-            sy >= 0 &&
-            sy < srcImage.height - 1) {
-          final pixel = _bilinearSample(srcImage, sx, sy);
-          result.setPixel(x, y, pixel);
-        } else {
-          result.setPixelRgba(x, y, 255, 255, 255, 255);
-        }
-      }
-    }
-
-    return _saveImage(result, 'perspective');
+    final resultBytes = _perspectiveCorrectImpl(
+      bytes,
+      srcCorners,
+      outputWidth: outputWidth,
+      outputHeight: outputHeight,
+    );
+    return _writeTempFile(resultBytes, 'perspective');
   }
 
-  /// Detect card edges automatically from the image.
-  /// Returns 4 corner points [topLeft, topRight, bottomRight, bottomLeft]
-  /// in image pixel coordinates, or null if detection fails.
-  List<math.Point<double>>? detectCardEdges(img.Image image) {
-    // Downscale for faster processing
-    final scale = math.min(1.0, 500.0 / math.max(image.width, image.height));
-    final small = scale < 1.0
-        ? img.copyResize(image,
-        width: (image.width * scale).round(),
-        height: (image.height * scale).round())
-        : image;
-
-    // Convert to grayscale
-    final gray = img.grayscale(small);
-
-    // Apply Gaussian blur to reduce noise
-    final blurred = img.gaussianBlur(gray, radius: 3);
-
-    // Edge detection using Sobel
-    final edges = _sobelEdgeDetection(blurred);
-
-    // Find the largest rectangular contour
-    final corners = _findLargestQuad(edges, small.width, small.height);
-
-    if (corners == null) return null;
-
-    // Scale corners back to original image coordinates
-    final invScale = 1.0 / scale;
-    return corners
-        .map((p) => math.Point<double>(p.x * invScale, p.y * invScale))
-        .toList();
-  }
-
-  /// Enhanced color and light correction for business card images.
-  /// Uses lightweight operations for speed.
-  Future<File> enhanceCardImage(File imageFile) async {
-    final bytes = await imageFile.readAsBytes();
-    final srcImage = img.decodeImage(bytes);
-    if (srcImage == null) throw Exception('이미지를 디코딩할 수 없습니다');
-
-    var result = srcImage;
-
-    // Downscale if too large for pixel-level processing
-    final maxDim = math.max(result.width, result.height);
-    if (maxDim > 2000) {
-      final scale = 2000.0 / maxDim;
-      result = img.copyResize(
-        result,
-        width: (result.width * scale).round(),
-        height: (result.height * scale).round(),
-        interpolation: img.Interpolation.cubic,
-      );
-    }
-
-    // Step 1: White balance correction (fast, sampling-based)
-    result = _whiteBalance(result);
-
-    // Step 2: Adaptive contrast enhancement (LUT-based, fast)
-    result = _adaptiveContrastEnhance(result);
-
-    // Step 3: Light sharpening (small radius blur only)
-    result = _sharpen(result);
-
-    return _saveImage(result, 'enhanced');
-  }
-
-  /// Pro-level enhancement pipeline for saved card images (Vflat Scan quality).
-  /// 5 stages: white-point WB → gamma → per-channel contrast → saturation → sharpening.
-  /// Does NOT modify the input file; returns a new enhanced file.
+  /// Pro-level enhancement pipeline for saved card images (vFlat Scan quality).
+  /// Stages: shadow removal → white balance → CLAHE → sharpening → background cleanup.
   Future<File> enhanceCardImagePro(File imageFile) async {
     final bytes = await imageFile.readAsBytes();
-    final srcImage = img.decodeImage(bytes);
-    if (srcImage == null) throw Exception('이미지를 디코딩할 수 없습니다');
-
-    var result = srcImage;
-
-    // Downscale if too large
-    final maxDim = math.max(result.width, result.height);
-    if (maxDim > 2000) {
-      final scale = 2000.0 / maxDim;
-      result = img.copyResize(
-        result,
-        width: (result.width * scale).round(),
-        height: (result.height * scale).round(),
-        interpolation: img.Interpolation.cubic,
-      );
-    }
-
-    // Compute average luminance once for all stages
-    final avgLum = _computeAvgLuminance(result);
-    final isDark = avgLum < 60;
-
-    // Stage 1: White-point aware white balance
-    result = _whiteBalancePro(result, avgLum, isDark);
-
-    // Stage 2: Gamma correction
-    result = _gammaCorrect(result, avgLum, isDark);
-
-    // Stage 3: Per-channel contrast stretching
-    result = _contrastStretchPro(result, isDark);
-
-    // Stage 4: Saturation boost
-    result = _saturateBoost(result, isDark);
-
-    // Stage 5: Sharpening (stronger)
-    result = _sharpenPro(result);
-
-    return _saveImageHQ(result, 'enhanced_pro');
+    final resultBytes = _enhanceCardImageProImpl(bytes);
+    return _writeTempFile(resultBytes, 'enhanced_pro');
   }
 
-  /// Lightweight preprocessing for OCR: only contrast stretching via LUT.
-  /// Avoids heavy gaussianBlur operations that are too slow in pure Dart.
-  /// OCR.space API handles orientation detection and scaling itself.
+  /// Standard enhancement (lighter than Pro). Used by CardCropScreen.
+  /// Stages: white balance → CLAHE → light sharpening.
+  Future<File> enhanceCardImage(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    final resultBytes = _enhanceCardImageImpl(bytes);
+    return _writeTempFile(resultBytes, 'enhanced');
+  }
+
+  /// Lightweight preprocessing for OCR: contrast stretching + resize.
   Future<File> preprocessForOcr(File imageFile) async {
     final bytes = await imageFile.readAsBytes();
-    final srcImage = img.decodeImage(bytes);
-    if (srcImage == null) return imageFile;
-
-    var result = srcImage;
-
-    // Downscale large images to max 2000px for faster processing
-    final maxDim = math.max(result.width, result.height);
-    if (maxDim > 2000) {
-      final scale = 2000.0 / maxDim;
-      result = img.copyResize(
-        result,
-        width: (result.width * scale).round(),
-        height: (result.height * scale).round(),
-        interpolation: img.Interpolation.cubic,
-      );
-    }
-
-    // Ensure minimum resolution for OCR
-    final minDim = math.min(result.width, result.height);
-    if (minDim < 800) {
-      final scale = 800.0 / minDim;
-      result = img.copyResize(
-        result,
-        width: (result.width * scale).round(),
-        height: (result.height * scale).round(),
-        interpolation: img.Interpolation.cubic,
-      );
-    }
-
-    // Fast contrast stretching only (single-pass LUT, no blur)
-    result = _fastContrastStretch(result);
-
-    return _saveImage(result, 'ocr_preprocessed');
+    final resultBytes = _preprocessForOcrImpl(bytes);
+    return _writeTempFile(resultBytes, 'ocr_preprocessed');
   }
 
-  /// Fast single-pass contrast stretching using a lookup table.
-  /// Much faster than gaussianBlur-based approaches.
-  img.Image _fastContrastStretch(img.Image image) {
-    // Build histogram by sampling every 4th pixel (fast)
-    final histogram = List<int>.filled(256, 0);
-    int count = 0;
-
-    for (int y = 0; y < image.height; y += 4) {
-      for (int x = 0; x < image.width; x += 4) {
-        final p = image.getPixel(x, y);
-        final lum = (0.299 * p.r.toDouble() +
-            0.587 * p.g.toDouble() +
-            0.114 * p.b.toDouble())
-            .round()
-            .clamp(0, 255);
-        histogram[lum]++;
-        count++;
-      }
-    }
-
-    if (count == 0) return image;
-
-    // Find 2nd and 98th percentile
-    final lowTarget = (count * 0.02).round();
-    final highTarget = (count * 0.98).round();
-    int low = 0, high = 255;
-    int cumulative = 0;
-
-    for (int i = 0; i < 256; i++) {
-      cumulative += histogram[i];
-      if (cumulative >= lowTarget && low == 0) low = i;
-      if (cumulative >= highTarget) {
-        high = i;
-        break;
-      }
-    }
-
-    if (high <= low) return image;
-
-    // Build LUT with linear stretching only (no gamma correction
-    // to avoid color distortion on dark background cards)
-    final lut = Uint8List(256);
-    for (int i = 0; i < 256; i++) {
-      lut[i] = ((i - low) * 255.0 / (high - low)).round().clamp(0, 255);
-    }
-
-    // Apply LUT in single pass
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final p = image.getPixel(x, y);
-        image.setPixelRgba(
-          x,
-          y,
-          lut[p.r.toInt().clamp(0, 255)],
-          lut[p.g.toInt().clamp(0, 255)],
-          lut[p.b.toInt().clamp(0, 255)],
-          p.a.toInt(),
-        );
-      }
-    }
-    return image;
+  /// Detect edges from camera frame bytes (YUV420 or raw).
+  /// Used for real-time camera preview overlay.
+  /// Returns corners in the frame's coordinate space, or null.
+  List<math.Point<double>>? detectCardEdgesFromFrame(
+      Uint8List yPlane,
+      int width,
+      int height,
+      ) {
+    return _detectEdgesFromYPlane(yPlane, width, height);
   }
 
   // ──────────────────────────────────────────────
-  // Private: Perspective transform helpers
+  // Static implementations (isolate-safe)
   // ──────────────────────────────────────────────
 
-  double _distance(math.Point<double> a, math.Point<double> b) {
+  /// Edge detection using Canny + findContours + approxPolyDP.
+  static List<math.Point<double>>? _detectCardEdgesImpl(Uint8List imageBytes) {
+    final mat = cv.imdecode(imageBytes, cv.IMREAD_COLOR);
+    if (mat.isEmpty) return null;
+
+    try {
+      final result = _detectEdgesFromMat(mat);
+      return result;
+    } finally {
+      mat.dispose();
+    }
+  }
+
+  /// Core edge detection logic on a cv.Mat.
+  static List<math.Point<double>>? _detectEdgesFromMat(cv.Mat mat) {
+    // Downscale for faster processing
+    final scale = math.min(1.0, 500.0 / math.max(mat.cols, mat.rows));
+    cv.Mat working;
+    if (scale < 1.0) {
+      working = cv.resize(mat, (
+      (mat.cols * scale).round(),
+      (mat.rows * scale).round(),
+      ));
+    } else {
+      working = mat.clone();
+    }
+
+    late cv.Mat gray;
+    late cv.Mat blurred;
+    late cv.Mat edges;
+
+    try {
+      // Grayscale → Blur → Canny
+      gray = cv.cvtColor(working, cv.COLOR_BGR2GRAY);
+      blurred = cv.gaussianBlur(gray, (5, 5), 1.0);
+      edges = cv.canny(blurred, 50, 150);
+
+      // Dilate to close gaps in edges
+      final kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3));
+      final dilated = cv.dilate(edges, kernel);
+      kernel.dispose();
+      edges.dispose();
+      edges = dilated;
+
+      // Find contours
+      final (contours, hierarchy) =
+      cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+      // Find largest quadrilateral contour
+      List<math.Point<double>>? bestCorners;
+      double maxArea = working.cols * working.rows * 0.15; // Minimum 15% of image
+
+      for (int i = 0; i < contours.length; i++) {
+        final area = cv.contourArea(contours[i]);
+        if (area < maxArea) continue;
+
+        final peri = cv.arcLength(contours[i], true);
+        final approx = cv.approxPolyDP(contours[i], 0.02 * peri, true);
+
+        if (approx.length == 4) {
+          // Validate aspect ratio (card is roughly 1.4:1 to 2.2:1)
+          final corners = _vecPointToList(approx);
+          final sorted = _orderCorners(corners);
+          if (sorted != null) {
+            final w = _distance(sorted[0], sorted[1]);
+            final h = _distance(sorted[0], sorted[3]);
+            final aspect = w > h ? w / h : h / w;
+            if (aspect >= 1.3 && aspect <= 2.5) {
+              maxArea = area;
+              bestCorners = sorted;
+            }
+          }
+        }
+        approx.dispose();
+      }
+
+      contours.dispose();
+      hierarchy.dispose();
+
+      if (bestCorners == null) return null;
+
+      // Scale corners back to original image coordinates
+      final invScale = 1.0 / scale;
+      return bestCorners
+          .map((p) => math.Point<double>(p.x * invScale, p.y * invScale))
+          .toList();
+    } finally {
+      working.dispose();
+      gray.dispose();
+      blurred.dispose();
+      edges.dispose();
+    }
+  }
+
+  /// Detect edges from Y plane (camera frame) for real-time preview.
+  static List<math.Point<double>>? _detectEdgesFromYPlane(
+      Uint8List yPlane,
+      int width,
+      int height,
+      ) {
+    // Create grayscale Mat from Y plane
+    final mat = cv.Mat.create(rows: height, cols: width, type: cv.MatType.CV_8UC1);
+    mat.data.setAll(0, yPlane);
+
+    try {
+      // Downscale to ~300px for speed
+      final scale = math.min(1.0, 300.0 / math.max(width, height));
+      final small = scale < 1.0
+          ? cv.resize(mat, (
+      (width * scale).round(),
+      (height * scale).round(),
+      ))
+          : mat.clone();
+
+      final blurred = cv.gaussianBlur(small, (5, 5), 1.0);
+      final edges = cv.canny(blurred, 50, 150);
+
+      final kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3));
+      final dilated = cv.dilate(edges, kernel);
+
+      final (contours, hierarchy) =
+      cv.findContours(dilated, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+      List<math.Point<double>>? bestCorners;
+      double maxArea = small.cols * small.rows * 0.15;
+
+      for (int i = 0; i < contours.length; i++) {
+        final area = cv.contourArea(contours[i]);
+        if (area < maxArea) continue;
+
+        final peri = cv.arcLength(contours[i], true);
+        final approx = cv.approxPolyDP(contours[i], 0.02 * peri, true);
+
+        if (approx.length == 4) {
+          final corners = _vecPointToList(approx);
+          final sorted = _orderCorners(corners);
+          if (sorted != null) {
+            maxArea = area;
+            bestCorners = sorted;
+          }
+        }
+        approx.dispose();
+      }
+
+      contours.dispose();
+      hierarchy.dispose();
+      small.dispose();
+      blurred.dispose();
+      edges.dispose();
+      kernel.dispose();
+      dilated.dispose();
+
+      if (bestCorners == null) return null;
+
+      // Scale back to original frame coordinates
+      final invScale = 1.0 / scale;
+      return bestCorners
+          .map((p) => math.Point<double>(p.x * invScale, p.y * invScale))
+          .toList();
+    } finally {
+      mat.dispose();
+    }
+  }
+
+  /// Perspective correction implementation.
+  static Uint8List _perspectiveCorrectImpl(
+      Uint8List imageBytes,
+      List<math.Point<double>> srcCorners, {
+        int? outputWidth,
+        int? outputHeight,
+      }) {
+    final mat = cv.imdecode(imageBytes, cv.IMREAD_COLOR);
+    if (mat.isEmpty) throw Exception('이미지를 디코딩할 수 없습니다');
+
+    try {
+      // Calculate output dimensions from card corners if not specified
+      final topEdge = _distance(srcCorners[0], srcCorners[1]);
+      final bottomEdge = _distance(srcCorners[3], srcCorners[2]);
+      final leftEdge = _distance(srcCorners[0], srcCorners[3]);
+      final rightEdge = _distance(srcCorners[1], srcCorners[2]);
+
+      final outW = outputWidth ?? math.max(topEdge, bottomEdge).round();
+      final outH = outputHeight ?? math.max(leftEdge, rightEdge).round();
+
+      // Source points (getPerspectiveTransform requires VecPoint)
+      final srcPts = srcCorners
+          .map((p) => cv.Point(p.x.round(), p.y.round()))
+          .toList();
+
+      // Destination points (flat rectangle)
+      final dstPts = [
+        cv.Point(0, 0),
+        cv.Point(outW, 0),
+        cv.Point(outW, outH),
+        cv.Point(0, outH),
+      ];
+
+      final srcMat = cv.VecPoint.fromList(srcPts);
+      final dstMat = cv.VecPoint.fromList(dstPts);
+
+      final M = cv.getPerspectiveTransform(srcMat, dstMat);
+      final warped = cv.warpPerspective(
+        mat,
+        M,
+        (outW, outH),
+        borderValue: cv.Scalar(255, 255, 255, 255),
+      );
+
+      final (success, encoded) = cv.imencode('.jpg', warped, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 85]));
+
+      srcMat.dispose();
+      dstMat.dispose();
+      M.dispose();
+      warped.dispose();
+
+      if (!success) throw Exception('이미지 인코딩 실패');
+      return encoded;
+    } finally {
+      mat.dispose();
+    }
+  }
+
+  /// Pro enhancement pipeline implementation (runs in isolate).
+  static Uint8List _enhanceCardImageProImpl(Uint8List imageBytes) {
+    var mat = cv.imdecode(imageBytes, cv.IMREAD_COLOR);
+    if (mat.isEmpty) throw Exception('이미지를 디코딩할 수 없습니다');
+
+    try {
+      // Downscale if too large
+      final maxDim = math.max(mat.cols, mat.rows);
+      if (maxDim > 2000) {
+        final scale = 2000.0 / maxDim;
+        final resized = cv.resize(mat, (
+        (mat.cols * scale).round(),
+        (mat.rows * scale).round(),
+        ), interpolation: cv.INTER_AREA);
+        mat.dispose();
+        mat = resized;
+      }
+
+      // Compute average luminance to detect dark cards
+      final avgLum = _computeAvgLuminance(mat);
+      final isDark = avgLum < 60;
+
+      // Stage 0: Shadow removal (skip for dark background cards)
+      if (!isDark) {
+        final shadowRemoved = _removeShadows(mat);
+        mat.dispose();
+        mat = shadowRemoved;
+      }
+
+      // Stage 1: White balance (gray world)
+      final balanced = _whiteBalance(mat, isDark);
+      mat.dispose();
+      mat = balanced;
+
+      // Stage 2: CLAHE adaptive contrast
+      final claheResult = _applyCLAHE(mat, isDark);
+      mat.dispose();
+      mat = claheResult;
+
+      // Stage 3: Sharpening (unsharp mask)
+      final sharpened = _sharpen(mat);
+      mat.dispose();
+      mat = sharpened;
+
+      // Stage 4: Background edge cleanup + scan margin
+      if (!isDark) {
+        final cleaned = _cleanEdgesAndAddMargin(mat);
+        mat.dispose();
+        mat = cleaned;
+      }
+
+      final (success, encoded) = cv.imencode('.jpg', mat, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 85]));
+      if (!success) throw Exception('이미지 인코딩 실패');
+      return encoded;
+    } finally {
+      mat.dispose();
+    }
+  }
+
+  /// Standard enhancement implementation (lighter than Pro).
+  static Uint8List _enhanceCardImageImpl(Uint8List imageBytes) {
+    var mat = cv.imdecode(imageBytes, cv.IMREAD_COLOR);
+    if (mat.isEmpty) throw Exception('이미지를 디코딩할 수 없습니다');
+
+    try {
+      // Downscale if too large
+      final maxDim = math.max(mat.cols, mat.rows);
+      if (maxDim > 2000) {
+        final scale = 2000.0 / maxDim;
+        final resized = cv.resize(mat, (
+        (mat.cols * scale).round(),
+        (mat.rows * scale).round(),
+        ), interpolation: cv.INTER_AREA);
+        mat.dispose();
+        mat = resized;
+      }
+
+      final isDark = _computeAvgLuminance(mat) < 60;
+
+      // Stage 1: White balance
+      final balanced = _whiteBalance(mat, isDark);
+      mat.dispose();
+      mat = balanced;
+
+      // Stage 2: CLAHE
+      final claheResult = _applyCLAHE(mat, isDark);
+      mat.dispose();
+      mat = claheResult;
+
+      // Stage 3: Light sharpening
+      final sharpened = _sharpen(mat);
+      mat.dispose();
+      mat = sharpened;
+
+      final (success, encoded) = cv.imencode('.jpg', mat, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 90]));
+      if (!success) throw Exception('이미지 인코딩 실패');
+      return encoded;
+    } finally {
+      mat.dispose();
+    }
+  }
+
+  /// OCR preprocessing implementation.
+  static Uint8List _preprocessForOcrImpl(Uint8List imageBytes) {
+    var mat = cv.imdecode(imageBytes, cv.IMREAD_COLOR);
+    if (mat.isEmpty) return imageBytes;
+
+    try {
+      // Downscale large images
+      final maxDim = math.max(mat.cols, mat.rows);
+      if (maxDim > 2000) {
+        final scale = 2000.0 / maxDim;
+        final resized = cv.resize(mat, (
+        (mat.cols * scale).round(),
+        (mat.rows * scale).round(),
+        ), interpolation: cv.INTER_AREA);
+        mat.dispose();
+        mat = resized;
+      }
+
+      // Ensure minimum resolution
+      final minDim = math.min(mat.cols, mat.rows);
+      if (minDim < 800) {
+        final scale = 800.0 / minDim;
+        final resized = cv.resize(mat, (
+        (mat.cols * scale).round(),
+        (mat.rows * scale).round(),
+        ), interpolation: cv.INTER_CUBIC);
+        mat.dispose();
+        mat = resized;
+      }
+
+      // CLAHE for contrast enhancement
+      final enhanced = _applyCLAHE(mat, false);
+      mat.dispose();
+      mat = enhanced;
+
+      final (success, encoded) = cv.imencode('.jpg', mat, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 90]));
+      if (!success) return imageBytes;
+      return encoded;
+    } finally {
+      mat.dispose();
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // Private: Enhancement stages
+  // ──────────────────────────────────────────────
+
+  /// Shadow removal using morphological divide technique.
+  /// Creates illumination estimate via dilate+medianBlur, then divides original.
+  static cv.Mat _removeShadows(cv.Mat mat) {
+    final gray = cv.cvtColor(mat, cv.COLOR_BGR2GRAY);
+
+    // Estimate illumination field: dilate → medianBlur
+    final kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (31, 31));
+    final dilated = cv.dilate(gray, kernel);
+    kernel.dispose();
+
+    final bg = cv.medianBlur(dilated, 21);
+    dilated.dispose();
+
+    // Divide: result = gray / bg * 255
+    // This normalizes illumination
+    final divided = cv.divide(gray, bg, scale: 255.0);
+    gray.dispose();
+    bg.dispose();
+
+    // Normalize to full range
+    final normDst = cv.Mat.empty();
+    final normalized = cv.normalize(divided, normDst, alpha: 0, beta: 255, normType: cv.NORM_MINMAX, dtype: cv.MatType.CV_8UC1.value);
+    divided.dispose();
+
+    // Convert back to BGR for downstream stages
+    final result = cv.cvtColor(normalized, cv.COLOR_GRAY2BGR);
+    normalized.dispose();
+
+    return result;
+  }
+
+  /// White balance using gray world assumption.
+  /// Splits into channels, scales each by avgGray/channelMean, merges back.
+  static cv.Mat _whiteBalance(cv.Mat mat, bool isDark) {
+    final avgLum = _computeAvgLuminance(mat);
+    if (isDark || avgLum < 80) return mat.clone();
+
+    // Split channels
+    final channels = cv.split(mat);
+    if (channels.length < 3) {
+      for (final c in channels) {
+        c.dispose();
+      }
+      return mat.clone();
+    }
+
+    // Compute mean of each channel
+    final meanB = cv.mean(channels[0]).val1;
+    final meanG = cv.mean(channels[1]).val1;
+    final meanR = cv.mean(channels[2]).val1;
+    final avgGray = (meanB + meanG + meanR) / 3.0;
+
+    if (avgGray < 1) {
+      for (final c in channels) {
+        c.dispose();
+      }
+      return mat.clone();
+    }
+
+    // Scale factors (clamped to prevent aggressive shifts)
+    final scaleB = (avgGray / (meanB < 1 ? 1 : meanB)).clamp(0.85, 1.2);
+    final scaleG = (avgGray / (meanG < 1 ? 1 : meanG)).clamp(0.85, 1.2);
+    final scaleR = (avgGray / (meanR < 1 ? 1 : meanR)).clamp(0.85, 1.2);
+
+    // Apply scaling using convertTo (alpha=scale, beta=0)
+    final scaledB = channels[0].convertTo(cv.MatType.CV_8UC1, alpha: scaleB);
+    final scaledG = channels[1].convertTo(cv.MatType.CV_8UC1, alpha: scaleG);
+    final scaledR = channels[2].convertTo(cv.MatType.CV_8UC1, alpha: scaleR);
+
+    for (final c in channels) {
+      c.dispose();
+    }
+
+    // Merge channels back
+    final merged = cv.merge(cv.VecMat.fromList([scaledB, scaledG, scaledR]));
+    scaledB.dispose();
+    scaledG.dispose();
+    scaledR.dispose();
+
+    return merged;
+  }
+
+  /// CLAHE adaptive contrast enhancement.
+  static cv.Mat _applyCLAHE(cv.Mat mat, bool isDark) {
+    // Convert to LAB color space for luminance-only enhancement
+    final lab = cv.cvtColor(mat, cv.COLOR_BGR2Lab);
+    final channels = cv.split(lab);
+    lab.dispose();
+
+    if (channels.length < 3) {
+      for (final c in channels) {
+        c.dispose();
+      }
+      return mat.clone();
+    }
+
+    // Apply CLAHE to L channel only
+    final clipLimit = isDark ? 1.5 : 2.5;
+    final clahe = cv.CLAHE.create(clipLimit, (8, 8));
+    final enhancedL = clahe.apply(channels[0]);
+    clahe.dispose();
+    channels[0].dispose();
+
+    // Merge back
+    final merged = cv.merge(cv.VecMat.fromList([enhancedL, channels[1], channels[2]]));
+    enhancedL.dispose();
+    channels[1].dispose();
+    channels[2].dispose();
+
+    // Convert back to BGR
+    final result = cv.cvtColor(merged, cv.COLOR_Lab2BGR);
+    merged.dispose();
+
+    return result;
+  }
+
+  /// Unsharp mask sharpening using GaussianBlur + addWeighted.
+  static cv.Mat _sharpen(cv.Mat mat) {
+    final blurred = cv.gaussianBlur(mat, (0, 0), 3.0);
+
+    // unsharp mask: result = original * (1 + amount) - blurred * amount
+    // Using addWeighted: alpha=1.5, beta=-0.5, gamma=0
+    final sharpened = cv.addWeighted(mat, 1.5, blurred, -0.5, 0);
+    blurred.dispose();
+
+    return sharpened;
+  }
+
+  /// Clean edges and add white scan margin for clean "scanned" look.
+  static cv.Mat _cleanEdgesAndAddMargin(cv.Mat mat) {
+    // Add 2% white margin on all sides
+    final marginH = (mat.cols * 0.02).round().clamp(4, 20);
+    final marginV = (mat.rows * 0.02).round().clamp(4, 20);
+
+    final result = cv.copyMakeBorder(
+      mat,
+      marginV,
+      marginV,
+      marginH,
+      marginH,
+      cv.BORDER_CONSTANT,
+      value: cv.Scalar(255, 255, 255, 255),
+    );
+
+    return result;
+  }
+
+  // ──────────────────────────────────────────────
+  // Private: Utility helpers
+  // ──────────────────────────────────────────────
+
+  /// Compute average luminance by sampling pixels.
+  static double _computeAvgLuminance(cv.Mat mat) {
+    final gray = cv.cvtColor(mat, cv.COLOR_BGR2GRAY);
+    final mean = cv.mean(gray);
+    gray.dispose();
+    return mean.val1;
+  }
+
+  /// Convert VecPoint to list of Point<double>.
+  static List<math.Point<double>> _vecPointToList(cv.VecPoint vec) {
+    final result = <math.Point<double>>[];
+    for (int i = 0; i < vec.length; i++) {
+      final p = vec[i];
+      result.add(math.Point<double>(p.x.toDouble(), p.y.toDouble()));
+    }
+    return result;
+  }
+
+  /// Order 4 corners as: topLeft, topRight, bottomRight, bottomLeft.
+  static List<math.Point<double>>? _orderCorners(
+      List<math.Point<double>> corners) {
+    if (corners.length != 4) return null;
+
+    // Sum and diff to identify corners
+    // topLeft has smallest sum (x+y)
+    // bottomRight has largest sum (x+y)
+    // topRight has smallest diff (y-x)
+    // bottomLeft has largest diff (y-x)
+    final sorted = List<math.Point<double>>.from(corners);
+
+    sorted.sort((a, b) => (a.x + a.y).compareTo(b.x + b.y));
+    final topLeft = sorted[0];
+    final bottomRight = sorted[3];
+
+    sorted.sort((a, b) => (a.y - a.x).compareTo(b.y - b.x));
+    final topRight = sorted[0];
+    final bottomLeft = sorted[3];
+
+    return [topLeft, topRight, bottomRight, bottomLeft];
+  }
+
+  /// Euclidean distance between two points.
+  static double _distance(math.Point<double> a, math.Point<double> b) {
     return math.sqrt(math.pow(a.x - b.x, 2) + math.pow(a.y - b.y, 2));
   }
 
-  /// Compute 3x3 homography matrix from src to dst using DLT algorithm.
-  /// Both [src] and [dst] must have exactly 4 points.
-  List<double> _computeHomography(
-      List<math.Point<double>> src,
-      List<math.Point<double>> dst,
-      ) {
-    // Set up the 8x9 matrix for DLT
-    final a = List<List<double>>.generate(8, (_) => List.filled(9, 0.0));
-
-    for (int i = 0; i < 4; i++) {
-      final sx = src[i].x, sy = src[i].y;
-      final dx = dst[i].x, dy = dst[i].y;
-
-      a[i * 2][0] = sx;
-      a[i * 2][1] = sy;
-      a[i * 2][2] = 1;
-      a[i * 2][3] = 0;
-      a[i * 2][4] = 0;
-      a[i * 2][5] = 0;
-      a[i * 2][6] = -dx * sx;
-      a[i * 2][7] = -dx * sy;
-      a[i * 2][8] = -dx;
-
-      a[i * 2 + 1][0] = 0;
-      a[i * 2 + 1][1] = 0;
-      a[i * 2 + 1][2] = 0;
-      a[i * 2 + 1][3] = sx;
-      a[i * 2 + 1][4] = sy;
-      a[i * 2 + 1][5] = 1;
-      a[i * 2 + 1][6] = -dy * sx;
-      a[i * 2 + 1][7] = -dy * sy;
-      a[i * 2 + 1][8] = -dy;
-    }
-
-    // Solve using Gaussian elimination to find the null space
-    final h = _solveHomography(a);
-    return h;
-  }
-
-  /// Solve 8x9 homogeneous system Ah=0 via Gaussian elimination.
-  List<double> _solveHomography(List<List<double>> a) {
-    const rows = 8;
-    const cols = 9;
-
-    // Forward elimination with partial pivoting
-    for (int col = 0; col < rows; col++) {
-      // Find pivot
-      int maxRow = col;
-      double maxVal = a[col][col].abs();
-      for (int row = col + 1; row < rows; row++) {
-        if (a[row][col].abs() > maxVal) {
-          maxVal = a[row][col].abs();
-          maxRow = row;
-        }
-      }
-      if (maxRow != col) {
-        final temp = a[col];
-        a[col] = a[maxRow];
-        a[maxRow] = temp;
-      }
-
-      final pivot = a[col][col];
-      if (pivot.abs() < 1e-10) continue;
-
-      for (int j = col; j < cols; j++) {
-        a[col][j] /= pivot;
-      }
-
-      for (int row = 0; row < rows; row++) {
-        if (row == col) continue;
-        final factor = a[row][col];
-        for (int j = col; j < cols; j++) {
-          a[row][j] -= factor * a[col][j];
-        }
-      }
-    }
-
-    // Back-substitute: set h[8] = 1
-    final h = List<double>.filled(9, 0.0);
-    h[8] = 1.0;
-    for (int i = rows - 1; i >= 0; i--) {
-      h[i] = -a[i][8]; // since a[i][i]*h[i] + a[i][8]*1 = 0
-    }
-
-    return h;
-  }
-
-  /// Apply homography transform to a point.
-  math.Point<double> _applyHomography(List<double> h, double x, double y) {
-    final w = h[6] * x + h[7] * y + h[8];
-    if (w.abs() < 1e-10) return math.Point(x, y);
-    final nx = (h[0] * x + h[1] * y + h[2]) / w;
-    final ny = (h[3] * x + h[4] * y + h[5]) / w;
-    return math.Point(nx, ny);
-  }
-
-  /// Bilinear sampling from an image at sub-pixel coordinates.
-  img.Color _bilinearSample(img.Image image, double x, double y) {
-    final x0 = x.floor();
-    final y0 = y.floor();
-    final x1 = x0 + 1;
-    final y1 = y0 + 1;
-    final fx = x - x0;
-    final fy = y - y0;
-
-    final clampX0 = x0.clamp(0, image.width - 1);
-    final clampY0 = y0.clamp(0, image.height - 1);
-    final clampX1 = x1.clamp(0, image.width - 1);
-    final clampY1 = y1.clamp(0, image.height - 1);
-
-    final p00 = image.getPixel(clampX0, clampY0);
-    final p10 = image.getPixel(clampX1, clampY0);
-    final p01 = image.getPixel(clampX0, clampY1);
-    final p11 = image.getPixel(clampX1, clampY1);
-
-    final r = _bilerp(p00.r.toDouble(), p10.r.toDouble(),
-        p01.r.toDouble(), p11.r.toDouble(), fx, fy);
-    final g = _bilerp(p00.g.toDouble(), p10.g.toDouble(),
-        p01.g.toDouble(), p11.g.toDouble(), fx, fy);
-    final b = _bilerp(p00.b.toDouble(), p10.b.toDouble(),
-        p01.b.toDouble(), p11.b.toDouble(), fx, fy);
-
-    return img.ColorRgba8(r.round().clamp(0, 255), g.round().clamp(0, 255),
-        b.round().clamp(0, 255), 255);
-  }
-
-  double _bilerp(
-      double v00, double v10, double v01, double v11, double fx, double fy) {
-    return v00 * (1 - fx) * (1 - fy) +
-        v10 * fx * (1 - fy) +
-        v01 * (1 - fx) * fy +
-        v11 * fx * fy;
-  }
-
-  // ──────────────────────────────────────────────
-  // Private: Edge detection
-  // ──────────────────────────────────────────────
-
-  /// Simple Sobel edge detection returning edge magnitude image.
-  img.Image _sobelEdgeDetection(img.Image gray) {
-    final w = gray.width;
-    final h = gray.height;
-    final result = img.Image(width: w, height: h);
-
-    for (int y = 1; y < h - 1; y++) {
-      for (int x = 1; x < w - 1; x++) {
-        // Sobel kernels
-        final gx = -_lum(gray, x - 1, y - 1) -
-            2 * _lum(gray, x - 1, y) -
-            _lum(gray, x - 1, y + 1) +
-            _lum(gray, x + 1, y - 1) +
-            2 * _lum(gray, x + 1, y) +
-            _lum(gray, x + 1, y + 1);
-
-        final gy = -_lum(gray, x - 1, y - 1) -
-            2 * _lum(gray, x, y - 1) -
-            _lum(gray, x + 1, y - 1) +
-            _lum(gray, x - 1, y + 1) +
-            2 * _lum(gray, x, y + 1) +
-            _lum(gray, x + 1, y + 1);
-
-        final mag = math.sqrt(gx * gx + gy * gy).round().clamp(0, 255);
-        result.setPixelRgba(x, y, mag, mag, mag, 255);
-      }
-    }
-    return result;
-  }
-
-  double _lum(img.Image image, int x, int y) {
-    final p = image.getPixel(x, y);
-    return p.r.toDouble();
-  }
-
-  /// Find the largest quadrilateral in edge image using line scanning.
-  /// Returns 4 corners or null if no good quad found.
-  List<math.Point<double>>? _findLargestQuad(
-      img.Image edges, int width, int height) {
-    // Apply threshold to get binary edge map
-    const threshold = 50;
-    final binary = List<List<bool>>.generate(
-        height, (y) => List.generate(width, (x) => false));
-
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        if (edges.getPixel(x, y).r > threshold) {
-          binary[y][x] = true;
-        }
-      }
-    }
-
-    // Use Hough-like line detection to find card boundary
-    // Scan from each edge to find the card boundary
-    final top = _scanFromEdge(binary, width, height, _ScanDirection.top);
-    final bottom =
-    _scanFromEdge(binary, width, height, _ScanDirection.bottom);
-    final left = _scanFromEdge(binary, width, height, _ScanDirection.left);
-    final right =
-    _scanFromEdge(binary, width, height, _ScanDirection.right);
-
-    if (top == null || bottom == null || left == null || right == null) {
-      return null;
-    }
-
-    // Validate the detected quad has reasonable proportions
-    final quadWidth = right - left;
-    final quadHeight = bottom - top;
-    if (quadWidth < width * 0.3 || quadHeight < height * 0.2) {
-      return null;
-    }
-
-    return [
-      math.Point<double>(left.toDouble(), top.toDouble()),
-      math.Point<double>(right.toDouble(), top.toDouble()),
-      math.Point<double>(right.toDouble(), bottom.toDouble()),
-      math.Point<double>(left.toDouble(), bottom.toDouble()),
-    ];
-  }
-
-  int? _scanFromEdge(List<List<bool>> binary, int width, int height,
-      _ScanDirection direction) {
-    switch (direction) {
-      case _ScanDirection.top:
-        for (int y = 0; y < height; y++) {
-          int edgeCount = 0;
-          for (int x = 0; x < width; x++) {
-            if (binary[y][x]) edgeCount++;
-          }
-          if (edgeCount > width * 0.15) return y;
-        }
-        return null;
-      case _ScanDirection.bottom:
-        for (int y = height - 1; y >= 0; y--) {
-          int edgeCount = 0;
-          for (int x = 0; x < width; x++) {
-            if (binary[y][x]) edgeCount++;
-          }
-          if (edgeCount > width * 0.15) return y;
-        }
-        return null;
-      case _ScanDirection.left:
-        for (int x = 0; x < width; x++) {
-          int edgeCount = 0;
-          for (int y = 0; y < height; y++) {
-            if (binary[y][x]) edgeCount++;
-          }
-          if (edgeCount > height * 0.15) return x;
-        }
-        return null;
-      case _ScanDirection.right:
-        for (int x = width - 1; x >= 0; x--) {
-          int edgeCount = 0;
-          for (int y = 0; y < height; y++) {
-            if (binary[y][x]) edgeCount++;
-          }
-          if (edgeCount > height * 0.15) return x;
-        }
-        return null;
-    }
-  }
-
-  // ──────────────────────────────────────────────
-  // Private: Color & Light correction
-  // ──────────────────────────────────────────────
-
-  /// White balance correction using gray-world assumption.
-  /// Skips correction for dark images to avoid color inversion.
-  img.Image _whiteBalance(img.Image image) {
-    double totalR = 0, totalG = 0, totalB = 0;
-    int count = 0;
-
-    // Sample pixels for average color
-    for (int y = 0; y < image.height; y += 4) {
-      for (int x = 0; x < image.width; x += 4) {
-        final p = image.getPixel(x, y);
-        totalR += p.r.toDouble();
-        totalG += p.g.toDouble();
-        totalB += p.b.toDouble();
-        count++;
-      }
-    }
-
-    if (count == 0) return image;
-
-    final avgR = totalR / count;
-    final avgG = totalG / count;
-    final avgB = totalB / count;
-    final avgGray = (avgR + avgG + avgB) / 3.0;
-
-    // Skip white balance for dark images (dark background cards)
-    // to avoid color inversion artifacts
-    if (avgGray < 80) return image;
-
-    if (avgGray < 1) return image;
-
-    final scaleR = avgGray / (avgR < 1 ? 1 : avgR);
-    final scaleG = avgGray / (avgG < 1 ? 1 : avgG);
-    final scaleB = avgGray / (avgB < 1 ? 1 : avgB);
-
-    // Tighter clamping to prevent aggressive color shifts
-    final clampedR = scaleR.clamp(0.85, 1.2);
-    final clampedG = scaleG.clamp(0.85, 1.2);
-    final clampedB = scaleB.clamp(0.85, 1.2);
-
-    final result = img.Image(width: image.width, height: image.height);
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final p = image.getPixel(x, y);
-        result.setPixelRgba(
-          x,
-          y,
-          (p.r * clampedR).round().clamp(0, 255),
-          (p.g * clampedG).round().clamp(0, 255),
-          (p.b * clampedB).round().clamp(0, 255),
-          p.a.toInt(),
-        );
-      }
-    }
-    return result;
-  }
-
-  /// Adaptive contrast enhancement (simplified CLAHE-like approach).
-  /// Uses conservative stretching to prevent color inversion on dark cards.
-  img.Image _adaptiveContrastEnhance(img.Image image) {
-    // Compute histogram
-    final histogram = List<int>.filled(256, 0);
-    int count = 0;
-
-    for (int y = 0; y < image.height; y += 2) {
-      for (int x = 0; x < image.width; x += 2) {
-        final p = image.getPixel(x, y);
-        final lum =
-        (0.299 * p.r.toDouble() + 0.587 * p.g.toDouble() + 0.114 * p.b.toDouble())
-            .round()
-            .clamp(0, 255);
-        histogram[lum]++;
-        count++;
-      }
-    }
-
-    if (count == 0) return image;
-
-    // Determine average luminance to decide stretching aggressiveness
-    double totalLum = 0;
-    for (int i = 0; i < 256; i++) {
-      totalLum += i * histogram[i];
-    }
-    final avgLum = totalLum / count;
-
-    // For dark images (avg lum < 80), use more conservative percentiles
-    // to preserve the original dark appearance and prevent color inversion
-    final lowPct = avgLum < 80 ? 0.01 : 0.05;
-    final highPct = avgLum < 80 ? 0.99 : 0.95;
-
-    final p5Target = (count * lowPct).round();
-    final p95Target = (count * highPct).round();
-    int p5 = 0, p95 = 255;
-    int cumulative = 0;
-
-    for (int i = 0; i < 256; i++) {
-      cumulative += histogram[i];
-      if (cumulative >= p5Target && p5 == 0) p5 = i;
-      if (cumulative >= p95Target) {
-        p95 = i;
-        break;
-      }
-    }
-
-    if (p95 <= p5) return image;
-
-    // If the range is already wide enough, skip stretching
-    if (p95 - p5 > 200) return image;
-
-    // Build lookup table for contrast stretching
-    final lut = Uint8List(256);
-    for (int i = 0; i < 256; i++) {
-      lut[i] = ((i - p5) * 255.0 / (p95 - p5)).round().clamp(0, 255);
-    }
-
-    final result = img.Image(width: image.width, height: image.height);
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final p = image.getPixel(x, y);
-        result.setPixelRgba(
-          x,
-          y,
-          lut[p.r.toInt().clamp(0, 255)],
-          lut[p.g.toInt().clamp(0, 255)],
-          lut[p.b.toInt().clamp(0, 255)],
-          p.a.toInt(),
-        );
-      }
-    }
-    return result;
-  }
-
-  /// Unsharp mask sharpening.
-  img.Image _sharpen(img.Image image) {
-    final blurred = img.gaussianBlur(image, radius: 1);
-    final result = img.Image(width: image.width, height: image.height);
-    const amount = 0.6; // sharpening strength
-
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final orig = image.getPixel(x, y);
-        final blur = blurred.getPixel(x, y);
-
-        final r = (orig.r + (orig.r - blur.r) * amount)
-            .round()
-            .clamp(0, 255);
-        final g = (orig.g + (orig.g - blur.g) * amount)
-            .round()
-            .clamp(0, 255);
-        final b = (orig.b + (orig.b - blur.b) * amount)
-            .round()
-            .clamp(0, 255);
-
-        result.setPixelRgba(x, y, r, g, b, orig.a.toInt());
-      }
-    }
-    return result;
-  }
-
-  // ──────────────────────────────────────────────
-  // Private: Pro enhancement helpers
-  // ──────────────────────────────────────────────
-
-  /// Compute average luminance by sampling every 4th pixel.
-  double _computeAvgLuminance(img.Image image) {
-    double total = 0;
-    int count = 0;
-    for (int y = 0; y < image.height; y += 4) {
-      for (int x = 0; x < image.width; x += 4) {
-        final p = image.getPixel(x, y);
-        total += 0.299 * p.r.toDouble() +
-            0.587 * p.g.toDouble() +
-            0.114 * p.b.toDouble();
-        count++;
-      }
-    }
-    return count > 0 ? total / count : 128.0;
-  }
-
-  /// White-point based white balance: uses top 5% bright pixels as reference.
-  img.Image _whiteBalancePro(img.Image image, double avgLum, bool isDark) {
-    // Build luminance histogram and collect bright pixel channel sums
-    final histogram = List<int>.filled(256, 0);
-    int count = 0;
-
-    for (int y = 0; y < image.height; y += 4) {
-      for (int x = 0; x < image.width; x += 4) {
-        final p = image.getPixel(x, y);
-        final lum = (0.299 * p.r.toDouble() +
-            0.587 * p.g.toDouble() +
-            0.114 * p.b.toDouble())
-            .round()
-            .clamp(0, 255);
-        histogram[lum]++;
-        count++;
-      }
-    }
-
-    if (count == 0) return image;
-
-    // Find 95th percentile luminance threshold
-    final p95Target = (count * 0.95).round();
-    int cumulative = 0;
-    int lumThreshold = 200;
-    for (int i = 0; i < 256; i++) {
-      cumulative += histogram[i];
-      if (cumulative >= p95Target) {
-        lumThreshold = i;
-        break;
-      }
-    }
-
-    // Collect average RGB of pixels above threshold
-    double brightR = 0, brightG = 0, brightB = 0;
-    int brightCount = 0;
-
-    for (int y = 0; y < image.height; y += 4) {
-      for (int x = 0; x < image.width; x += 4) {
-        final p = image.getPixel(x, y);
-        final lum = (0.299 * p.r.toDouble() +
-            0.587 * p.g.toDouble() +
-            0.114 * p.b.toDouble())
-            .round();
-        if (lum >= lumThreshold) {
-          brightR += p.r.toDouble();
-          brightG += p.g.toDouble();
-          brightB += p.b.toDouble();
-          brightCount++;
-        }
-      }
-    }
-
-    if (brightCount < 10) return image; // Not enough bright pixels
-
-    final avgBrightR = brightR / brightCount;
-    final avgBrightG = brightG / brightCount;
-    final avgBrightB = brightB / brightCount;
-
-    const targetWhite = 250.0;
-    var scaleR = avgBrightR > 1 ? targetWhite / avgBrightR : 1.0;
-    var scaleG = avgBrightG > 1 ? targetWhite / avgBrightG : 1.0;
-    var scaleB = avgBrightB > 1 ? targetWhite / avgBrightB : 1.0;
-
-    scaleR = scaleR.clamp(0.8, 1.5);
-    scaleG = scaleG.clamp(0.8, 1.5);
-    scaleB = scaleB.clamp(0.8, 1.5);
-
-    // For dark cards, blend toward 1.0 to reduce effect
-    if (isDark) {
-      scaleR = 1.0 + (scaleR - 1.0) * 0.5;
-      scaleG = 1.0 + (scaleG - 1.0) * 0.5;
-      scaleB = 1.0 + (scaleB - 1.0) * 0.5;
-    }
-
-    final result = img.Image(width: image.width, height: image.height);
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final p = image.getPixel(x, y);
-        result.setPixelRgba(
-          x,
-          y,
-          (p.r * scaleR).round().clamp(0, 255),
-          (p.g * scaleG).round().clamp(0, 255),
-          (p.b * scaleB).round().clamp(0, 255),
-          p.a.toInt(),
-        );
-      }
-    }
-    return result;
-  }
-
-  /// Gamma correction to lift dark midtones for a clean scan look.
-  img.Image _gammaCorrect(img.Image image, double avgLum, bool isDark) {
-    double gamma;
-    if (isDark) {
-      gamma = 0.92; // Gentle for dark-background cards
-    } else if (avgLum < 80) {
-      gamma = 0.75;
-    } else if (avgLum < 130) {
-      gamma = 0.85;
-    } else if (avgLum < 180) {
-      gamma = 0.95;
-    } else {
-      return image; // Already bright enough
-    }
-
-    // Build gamma LUT
-    final lut = Uint8List(256);
-    for (int i = 0; i < 256; i++) {
-      lut[i] =
-          (255.0 * math.pow(i / 255.0, gamma)).round().clamp(0, 255);
-    }
-
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final p = image.getPixel(x, y);
-        image.setPixelRgba(
-          x,
-          y,
-          lut[p.r.toInt().clamp(0, 255)],
-          lut[p.g.toInt().clamp(0, 255)],
-          lut[p.b.toInt().clamp(0, 255)],
-          p.a.toInt(),
-        );
-      }
-    }
-    return image;
-  }
-
-  /// Per-channel contrast stretching for stronger, more accurate correction.
-  img.Image _contrastStretchPro(img.Image image, bool isDark) {
-    final histR = List<int>.filled(256, 0);
-    final histG = List<int>.filled(256, 0);
-    final histB = List<int>.filled(256, 0);
-    int count = 0;
-
-    for (int y = 0; y < image.height; y += 2) {
-      for (int x = 0; x < image.width; x += 2) {
-        final p = image.getPixel(x, y);
-        histR[p.r.toInt().clamp(0, 255)]++;
-        histG[p.g.toInt().clamp(0, 255)]++;
-        histB[p.b.toInt().clamp(0, 255)]++;
-        count++;
-      }
-    }
-
-    if (count == 0) return image;
-
-    final lowPct = isDark ? 0.02 : 0.01;
-    final highPct = isDark ? 0.98 : 0.99;
-
-    Uint8List buildChannelLut(List<int> hist) {
-      final lowTarget = (count * lowPct).round();
-      final highTarget = (count * highPct).round();
-      int low = 0, high = 255;
-      int cum = 0;
-
-      for (int i = 0; i < 256; i++) {
-        cum += hist[i];
-        if (cum >= lowTarget && low == 0) low = i;
-        if (cum >= highTarget) {
-          high = i;
-          break;
-        }
-      }
-
-      final lut = Uint8List(256);
-      if (high <= low) {
-        for (int i = 0; i < 256; i++) lut[i] = i;
-        return lut;
-      }
-      for (int i = 0; i < 256; i++) {
-        lut[i] = ((i - low) * 255.0 / (high - low)).round().clamp(0, 255);
-      }
-      return lut;
-    }
-
-    final lutR = buildChannelLut(histR);
-    final lutG = buildChannelLut(histG);
-    final lutB = buildChannelLut(histB);
-
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final p = image.getPixel(x, y);
-        image.setPixelRgba(
-          x,
-          y,
-          lutR[p.r.toInt().clamp(0, 255)],
-          lutG[p.g.toInt().clamp(0, 255)],
-          lutB[p.b.toInt().clamp(0, 255)],
-          p.a.toInt(),
-        );
-      }
-    }
-    return image;
-  }
-
-  /// Saturation boost using BT.709 luminance-preserving formula.
-  img.Image _saturateBoost(img.Image image, bool isDark) {
-    const lr = 0.2126;
-    const lg = 0.7152;
-    const lb = 0.0722;
-    final s = isDark ? 1.10 : 1.20;
-
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final p = image.getPixel(x, y);
-        final r = p.r.toDouble();
-        final g = p.g.toDouble();
-        final b = p.b.toDouble();
-        final lum = lr * r + lg * g + lb * b;
-
-        image.setPixelRgba(
-          x,
-          y,
-          (lum + s * (r - lum)).round().clamp(0, 255),
-          (lum + s * (g - lum)).round().clamp(0, 255),
-          (lum + s * (b - lum)).round().clamp(0, 255),
-          p.a.toInt(),
-        );
-      }
-    }
-    return image;
-  }
-
-  /// Stronger unsharp mask sharpening (amount 1.0).
-  img.Image _sharpenPro(img.Image image) {
-    final blurred = img.gaussianBlur(image, radius: 1);
-    final result = img.Image(width: image.width, height: image.height);
-    const amount = 1.0;
-
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final orig = image.getPixel(x, y);
-        final blur = blurred.getPixel(x, y);
-
-        final r = (orig.r + (orig.r - blur.r) * amount)
-            .round()
-            .clamp(0, 255);
-        final g = (orig.g + (orig.g - blur.g) * amount)
-            .round()
-            .clamp(0, 255);
-        final b = (orig.b + (orig.b - blur.b) * amount)
-            .round()
-            .clamp(0, 255);
-
-        result.setPixelRgba(x, y, r, g, b, orig.a.toInt());
-      }
-    }
-    return result;
-  }
-
-  // ──────────────────────────────────────────────
-  // Private: Utility
-  // ──────────────────────────────────────────────
-
-  Future<File> _saveImageHQ(img.Image image, String prefix) async {
+  /// Write bytes to a temp file.
+  static Future<File> _writeTempFile(Uint8List bytes, String prefix) async {
     final tempDir = await getTemporaryDirectory();
     final outPath =
         '${tempDir.path}/${prefix}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    final encoded = img.encodeJpg(image, quality: 95);
     final outFile = File(outPath);
-    await outFile.writeAsBytes(encoded);
-    return outFile;
-  }
-
-  Future<File> _saveImage(img.Image image, String prefix) async {
-    final tempDir = await getTemporaryDirectory();
-    final outPath =
-        '${tempDir.path}/${prefix}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    final encoded = img.encodeJpg(image, quality: 90);
-    final outFile = File(outPath);
-    await outFile.writeAsBytes(encoded);
+    await outFile.writeAsBytes(bytes);
     return outFile;
   }
 }
-
-enum _ScanDirection { top, bottom, left, right }

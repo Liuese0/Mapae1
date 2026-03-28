@@ -1,6 +1,10 @@
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import '../../../core/services/image_processing_service.dart';
 
 class CardCameraScreen extends StatefulWidget {
   const CardCameraScreen({super.key});
@@ -13,6 +17,14 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
   CameraController? _controller;
   bool _isInitialized = false;
   bool _isCapturing = false;
+  bool _isProcessingFrame = false;
+
+  // Detected card corners in camera preview coordinates
+  List<Offset>? _detectedCorners;
+  // Last detected corners in image coordinates (for passing to crop screen)
+  List<math.Point<double>>? _lastDetectedImageCorners;
+
+  final ImageProcessingService _imageProcessor = ImageProcessingService();
 
   @override
   void initState() {
@@ -37,11 +49,16 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
       camera,
       ResolutionPreset.high,
       enableAudio: false,
+      imageFormatGroup: ImageFormatGroup.yuv420,
     );
 
     try {
       await _controller!.initialize();
-      if (mounted) setState(() => _isInitialized = true);
+      if (mounted) {
+        setState(() => _isInitialized = true);
+        // Start real-time edge detection
+        _startEdgeDetection();
+      }
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop();
@@ -52,8 +69,90 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
     }
   }
 
+  void _startEdgeDetection() {
+    _controller?.startImageStream((CameraImage image) {
+      if (_isProcessingFrame || _isCapturing) return;
+      _isProcessingFrame = true;
+      _processFrame(image);
+    });
+  }
+
+  Future<void> _processFrame(CameraImage image) async {
+    try {
+      if (image.planes.isEmpty) {
+        _isProcessingFrame = false;
+        return;
+      }
+
+      // Extract Y plane (luminance) from YUV420
+      final yPlane = image.planes[0].bytes;
+      final width = image.width;
+      final height = image.height;
+
+      // Run edge detection in isolate to avoid UI jank
+      final corners = await Isolate.run(() {
+        return ImageProcessingService().detectCardEdgesFromFrame(
+          yPlane,
+          width,
+          height,
+        );
+      });
+
+      if (mounted) {
+        setState(() {
+          if (corners != null) {
+            _lastDetectedImageCorners = corners;
+            // Convert image coordinates to preview coordinates
+            _detectedCorners = _convertToPreviewCoords(
+              corners,
+              width.toDouble(),
+              height.toDouble(),
+            );
+          } else {
+            _detectedCorners = null;
+          }
+        });
+      }
+    } catch (_) {
+      // Silently ignore frame processing errors
+    } finally {
+      _isProcessingFrame = false;
+    }
+  }
+
+  /// Convert detected corners from camera image coordinates to
+  /// screen preview coordinates.
+  List<Offset>? _convertToPreviewCoords(
+      List<math.Point<double>> corners,
+      double imageWidth,
+      double imageHeight,
+      ) {
+    if (_controller == null) return null;
+
+    final screenSize = MediaQuery.of(context).size;
+    final previewSize = _controller!.value.previewSize;
+    if (previewSize == null) return null;
+
+    // Camera preview is rotated 90° on most devices
+    // previewSize is in landscape (w > h), screen is portrait
+    final previewW = previewSize.height; // rotated
+    final previewH = previewSize.width; // rotated
+
+    // Scale from image coords to screen coords
+    final scaleX = screenSize.width / imageHeight; // rotated
+    final scaleY = screenSize.height / imageWidth; // rotated
+
+    return corners.map((p) {
+      // Rotate 90° clockwise: (x, y) → (imageHeight - y, x)
+      final rotatedX = imageHeight - p.y;
+      final rotatedY = p.x;
+      return Offset(rotatedX * scaleX, rotatedY * scaleY);
+    }).toList();
+  }
+
   @override
   void dispose() {
+    _controller?.stopImageStream().catchError((_) {});
     _controller?.dispose();
     super.dispose();
   }
@@ -63,6 +162,9 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
     setState(() => _isCapturing = true);
 
     try {
+      // Stop image stream before capturing
+      await _controller!.stopImageStream().catchError((_) {});
+
       final xFile = await _controller!.takePicture();
       if (mounted) {
         Navigator.of(context).pop(File(xFile.path));
@@ -70,15 +172,19 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('촬영 실패: $e')),
+          SnackBar(content: Text('��영 실패: $e')),
         );
         setState(() => _isCapturing = false);
+        // Restart edge detection on failure
+        _startEdgeDetection();
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool cardDetected = _detectedCorners != null;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -92,8 +198,15 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
               child: CircularProgressIndicator(color: Colors.white),
             ),
 
-          // Card guide overlay
-          if (_isInitialized) _CardGuideOverlay(),
+          // Card guide overlay (shown when no card detected)
+          if (_isInitialized && !cardDetected) _CardGuideOverlay(),
+
+          // Detected card overlay (shown when card detected)
+          if (_isInitialized && cardDetected && _detectedCorners != null)
+            CustomPaint(
+              size: MediaQuery.of(context).size,
+              painter: _DetectedCardPainter(corners: _detectedCorners!),
+            ),
 
           // Top bar
           Positioned(
@@ -132,12 +245,16 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
+                      color: cardDetected
+                          ? const Color(0xCC00C853)
+                          : Colors.black.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
-                      '명함을 가이드에 맞춰주세요',
-                      style: TextStyle(
+                    child: Text(
+                      cardDetected
+                          ? '명함이 인식되었습니다'
+                          : '명함을 가이드에 맞춰주세요',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -146,7 +263,9 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '기울어져도 자동으로 보정됩니다',
+                    cardDetected
+                        ? '촬영 버튼을 눌러주세요'
+                        : '기울어져도 자동으로 보정됩니다',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 12,
@@ -172,8 +291,12 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
                       height: 72,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border:
-                        Border.all(color: Colors.white, width: 4),
+                        border: Border.all(
+                          color: cardDetected
+                              ? const Color(0xFF00C853)
+                              : Colors.white,
+                          width: 4,
+                        ),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(4),
@@ -182,6 +305,8 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
                             shape: BoxShape.circle,
                             color: _isCapturing
                                 ? Colors.grey
+                                : cardDetected
+                                ? const Color(0xFF00C853)
                                 : Colors.white,
                           ),
                         ),
@@ -198,6 +323,59 @@ class _CardCameraScreenState extends State<CardCameraScreen> {
   }
 }
 
+/// Paints the detected card boundary as a green polygon overlay.
+class _DetectedCardPainter extends CustomPainter {
+  final List<Offset> corners;
+
+  _DetectedCardPainter({required this.corners});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (corners.length != 4) return;
+
+    // Semi-transparent dark overlay
+    final overlayPaint = Paint()..color = Colors.black.withValues(alpha: 0.4);
+    final fullRect = Rect.fromLTWH(0, 0, size.width, size.height);
+
+    // Draw overlay with hole for detected card
+    canvas.saveLayer(fullRect, Paint());
+    canvas.drawRect(fullRect, overlayPaint);
+
+    final clearPaint = Paint()..blendMode = BlendMode.clear;
+    final path = Path()
+      ..moveTo(corners[0].dx, corners[0].dy)
+      ..lineTo(corners[1].dx, corners[1].dy)
+      ..lineTo(corners[2].dx, corners[2].dy)
+      ..lineTo(corners[3].dx, corners[3].dy)
+      ..close();
+    canvas.drawPath(path, clearPaint);
+    canvas.restore();
+
+    // Draw green border around detected card
+    final borderPaint = Paint()
+      ..color = const Color(0xFF00C853)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, borderPaint);
+
+    // Draw corner dots
+    final dotPaint = Paint()
+      ..color = const Color(0xFF00C853)
+      ..style = PaintingStyle.fill;
+
+    for (final corner in corners) {
+      canvas.drawCircle(corner, 6, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DetectedCardPainter oldDelegate) {
+    return true; // Always repaint since corners change frequently
+  }
+}
+
+/// Static guide overlay shown when no card is detected yet.
 class _CardGuideOverlay extends StatelessWidget {
   // Standard business card ratio is roughly 9:5 (90mm x 50mm)
   static const double _cardAspectRatio = 9 / 5;

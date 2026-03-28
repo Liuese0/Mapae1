@@ -149,9 +149,9 @@ class CardListTile extends StatelessWidget {
                 child: card.imageUrl != null
                     ? CachedNetworkImage(
                   imageUrl: card.imageUrl!,
-                  width: 80,
-                  height: 48,
-                  fit: BoxFit.cover,
+                  width: 96,
+                  height: 64,
+                  fit: BoxFit.contain,
                   placeholder: (_, __) => _buildPlaceholder(theme),
                   errorWidget: (_, __, ___) =>
                       _buildPlaceholder(theme),
@@ -225,8 +225,8 @@ class CardListTile extends StatelessWidget {
 
   Widget _buildPlaceholder(ThemeData theme) {
     return Container(
-      width: 80,
-      height: 48,
+      width: 96,
+      height: 64,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),

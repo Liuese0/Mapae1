@@ -30,8 +30,8 @@ class _CardCropScreenState extends State<CardCropScreen> {
   double _contrastOffset = 0.0; // -50 to +50
   double _warmthOffset = 0.0; // -30 to +30
 
-  // Mode toggle
-  bool _perspectiveMode = false;
+  // Mode toggle - default to perspective mode for business cards
+  bool _perspectiveMode = true;
 
   // Perspective mode: 4 corner points in display coordinates
   List<Offset> _corners = [];

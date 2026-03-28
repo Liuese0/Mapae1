@@ -1,12 +1,16 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
+import '../screens/card_crop_screen.dart';
 
 class ScanCardSheet extends ConsumerStatefulWidget {
   final VoidCallback? onScanComplete;
@@ -25,7 +29,26 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
     final scannerService = ref.read(documentScannerServiceProvider);
     final scannedFile = await scannerService.scanDocument();
     if (scannedFile != null && mounted) {
-      await _processImage(scannedFile);
+      await _processImage(scannedFile, fromDocumentScanner: true);
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null || !mounted) return;
+
+    final imageFile = File(picked.path);
+
+    // Show CardCropScreen for manual perspective correction
+    final croppedFile = await Navigator.of(context).push<File>(
+      MaterialPageRoute(
+        builder: (_) => CardCropScreen(imageFile: imageFile),
+      ),
+    );
+
+    if (croppedFile != null && mounted) {
+      await _processImage(croppedFile, fromDocumentScanner: false);
     }
   }
 
@@ -33,7 +56,10 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
     if (mounted) setState(() => _processingStatus = status);
   }
 
-  Future<void> _processImage(File imageFile) async {
+  Future<void> _processImage(
+      File imageFile, {
+        bool fromDocumentScanner = false,
+      }) async {
     final l10n = AppLocalizations.of(context);
     setState(() {
       _isProcessing = true;
@@ -48,51 +74,61 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
         throw Exception(l10n.loginRequired);
       }
 
-      // users 테이블에 프로필이 없으면 자동 생성 (FK 제약조건 충족)
       await supabaseService.ensureUserProfile();
-
-      // Get locale for OCR language
       final locale = ref.read(localeProvider).languageCode;
+      final imageProcessor = ref.read(imageProcessingServiceProvider);
 
-      // Perform OCR (includes preprocessing: white balance, shadow removal, contrast, sharpening)
+      // Step 1: Perspective correction (only for non-document-scanner images
+      // that haven't been through CardCropScreen's perspective correction)
+      File processedFile = imageFile;
+      if (fromDocumentScanner) {
+        // ML Kit already does perspective correction, skip it
+      } else {
+        // If came from CardCropScreen, perspective is already handled there
+        // Just apply enhancement
+      }
+
+      // Step 2: Pro enhancement
+      _updateStatus(l10n.processingCard);
+      try {
+        processedFile =
+        await imageProcessor.enhanceCardImagePro(processedFile);
+      } catch (e) {
+        debugPrint('Enhancement failed, using original: $e');
+      }
+
+      // Step 3: Compress image for upload (max ~1MB)
+      _updateStatus(l10n.processingCard);
+      final rawBytes = await processedFile.readAsBytes();
+      debugPrint('Image size before compress: ${rawBytes.length} bytes');
+      final imageBytes = await compute(_compressForUpload, rawBytes);
+      debugPrint('Image size after compress: ${imageBytes.length} bytes');
+      final fileName = '${const Uuid().v4()}.jpg';
+
+      // Step 4: Upload with retry
+      late String imageUrl;
+      for (int attempt = 0; attempt < 3; attempt++) {
+        try {
+          imageUrl = await supabaseService.uploadCardImage(
+            fileName,
+            imageBytes,
+          );
+          break;
+        } catch (e) {
+          debugPrint('Upload attempt ${attempt + 1} failed: $e');
+          if (attempt == 2) rethrow;
+          await Future.delayed(Duration(seconds: attempt + 1));
+        }
+      }
+
+      // Step 4: OCR on enhanced image
       _updateStatus(l10n.recognizingText);
       final result = await ocrService.scanBusinessCard(
-        imageFile,
+        processedFile,
         language: locale,
       );
 
-      // Post-process image for quality (perspective + color enhancement)
-      _updateStatus(l10n.processingCard);
-      final imageProcessor = ref.read(imageProcessingServiceProvider);
-      File processedFile = imageFile;
-      try {
-        // Auto perspective correction
-        final rawBytes = await imageFile.readAsBytes();
-        final decoded = img.decodeImage(rawBytes);
-        if (decoded != null) {
-          final corners = imageProcessor.detectCardEdges(decoded);
-          if (corners != null) {
-            processedFile = await imageProcessor.perspectiveCorrect(
-              processedFile,
-              corners,
-            );
-          }
-        }
-        // Pro enhancement pipeline
-        processedFile = await imageProcessor.enhanceCardImagePro(processedFile);
-      } catch (_) {
-        processedFile = imageFile; // Fallback to original
-      }
-
       _updateStatus(l10n.savingInfo);
-
-      // Upload image
-      final imageBytes = await processedFile.readAsBytes();
-      final fileName = '${const Uuid().v4()}.jpg';
-      final imageUrl = await supabaseService.uploadCardImage(
-        fileName,
-        imageBytes,
-      );
 
       // Create collected card
       final card = CollectedCard(
@@ -114,7 +150,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
         updatedAt: DateTime.now(),
       );
 
-      // 중복 명함 검사
+      // Duplicate check
       final duplicates = await supabaseService.findDuplicates(
         user.id,
         email: result.email,
@@ -178,7 +214,9 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).recognitionFailed(e.toString()))),
+          SnackBar(
+              content: Text(
+                  AppLocalizations.of(context).recognitionFailed(e.toString()))),
         );
       }
     } finally {
@@ -240,6 +278,15 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
               subtitle: l10n.scanCardSubtitle,
               onTap: _scanWithDocumentScanner,
             ),
+            const SizedBox(height: 12),
+
+            // Gallery import option
+            _OptionTile(
+              icon: Icons.photo_library_outlined,
+              title: l10n.chooseFromGallery,
+              subtitle: l10n.scanCardSubtitle,
+              onTap: _pickFromGallery,
+            ),
             const SizedBox(height: 16),
           ],
         ],
@@ -289,7 +336,8 @@ class _OptionTile extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      color:
+                      theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
@@ -304,4 +352,23 @@ class _OptionTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Compress image to max 1200px and JPEG quality 80 for reliable upload.
+/// Runs in a separate isolate via compute().
+Uint8List _compressForUpload(Uint8List bytes) {
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) return bytes;
+
+  var image = decoded;
+  const maxDim = 1200;
+  if (image.width > maxDim || image.height > maxDim) {
+    if (image.width > image.height) {
+      image = img.copyResize(image, width: maxDim);
+    } else {
+      image = img.copyResize(image, height: maxDim);
+    }
+  }
+
+  return Uint8List.fromList(img.encodeJpg(image, quality: 80));
 }
