@@ -448,11 +448,11 @@ abstract class AppLocalizations {
   String cardLimitMessage(int max);
   String teamLimitMessage(int max);
 
-  // ── CSV Export ──
-  String get exportToCsv;
-  String get exportingCsv;
-  String get csvExportComplete;
-  String get csvExportFailed;
+  // ── Excel Export ──
+  String get exportToExcel;
+  String get exportingExcel;
+  String get excelExportComplete;
+  String get excelExportFailed;
   String get exportBusinessCards;
   String get exportCrmContacts;
   String get noDataToExport;
@@ -895,11 +895,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String cardLimitMessage(int max) => '무료 플랜은 최대 $max장까지 명함을 저장할 수 있습니다.';
   @override String teamLimitMessage(int max) => '무료 플랜은 최대 $max개 팀까지 참여할 수 있습니다.';
 
-  // ── CSV Export ──
-  @override String get exportToCsv => 'CSV로 내보내기';
-  @override String get exportingCsv => 'CSV 내보내는 중...';
-  @override String get csvExportComplete => 'CSV 내보내기 완료';
-  @override String get csvExportFailed => 'CSV 내보내기 실패';
+  // ── Excel Export ──
+  @override String get exportToExcel => 'Excel로 내보내기';
+  @override String get exportingExcel => 'Excel 내보내는 중...';
+  @override String get excelExportComplete => 'Excel 내보내기 완료';
+  @override String get excelExportFailed => 'Excel 내보내기 실패';
   @override String get exportBusinessCards => '명함 내보내기';
   @override String get exportCrmContacts => 'CRM 연락처 내보내기';
   @override String get noDataToExport => '내보낼 데이터가 없습니다';
@@ -1331,11 +1331,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String cardLimitMessage(int max) => 'Free plan allows up to $max cards.';
   @override String teamLimitMessage(int max) => 'Free plan allows up to $max team(s).';
 
-  // ── CSV Export ──
-  @override String get exportToCsv => 'Export to CSV';
-  @override String get exportingCsv => 'Exporting CSV...';
-  @override String get csvExportComplete => 'CSV export complete';
-  @override String get csvExportFailed => 'CSV export failed';
+  // ── Excel Export ──
+  @override String get exportToExcel => 'Export to Excel';
+  @override String get exportingExcel => 'Exporting Excel...';
+  @override String get excelExportComplete => 'Excel export complete';
+  @override String get excelExportFailed => 'Excel export failed';
   @override String get exportBusinessCards => 'Export business cards';
   @override String get exportCrmContacts => 'Export CRM contacts';
   @override String get noDataToExport => 'No data to export';

@@ -8,6 +8,7 @@ import '../services/gemini_ocr_service.dart';
 import '../services/smart_ocr_service.dart';
 import '../services/azure_ocr_service.dart';
 import '../services/premium_service.dart';
+import '../services/caller_id_service.dart';
 
 import '../services/auto_login_service.dart';
 import '../services/image_processing_service.dart';
@@ -30,6 +31,10 @@ final ocrServiceProvider = Provider<SmartOcrService>((ref) {
   );
 });
 
+
+final callerIdServiceProvider = Provider<CallerIdService>((ref) {
+  return CallerIdService();
+});
 
 final autoLoginServiceProvider = Provider<AutoLoginService>((ref) {
   return AutoLoginService();

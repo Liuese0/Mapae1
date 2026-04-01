@@ -9,7 +9,7 @@ import '../../shared/models/business_card.dart';
 import '../../shared/models/team.dart';
 import '../../shared/widgets/notification_bell.dart';
 import '../../../core/services/premium_service.dart';
-import '../../../core/services/csv_export_service.dart';
+import '../../../core/services/excel_export_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 final myCardsManageProvider =
@@ -73,11 +73,11 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
       return;
     }
     try {
-      await CsvExportService.exportBusinessCards(cards);
+      await ExcelExportService.exportBusinessCards(cards);
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.csvExportFailed)),
+          SnackBar(content: Text(l10n.excelExportFailed)),
         );
       }
     }
@@ -143,7 +143,7 @@ class _ManagementScreenState extends ConsumerState<ManagementScreen>
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.download_outlined, size: 20),
-                      tooltip: l10n.exportToCsv,
+                      tooltip: l10n.exportToExcel,
                       onPressed: () => _handleExportMyCards(context, ref),
                       visualDensity: VisualDensity.compact,
                     ),

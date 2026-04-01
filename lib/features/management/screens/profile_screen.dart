@@ -1,6 +1,8 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -16,12 +18,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _nameController = TextEditingController();
   bool _isLoading = false;
   bool _isEditing = false;
+  bool _callerIdEnabled = false;
+  bool _callerIdLoading = true;
 
   @override
   void initState() {
     super.initState();
     final profile = ref.read(userProfileProvider).valueOrNull;
     _nameController.text = profile?.name ?? '';
+    if (Platform.isAndroid) _loadCallerIdState();
+  }
+
+  Future<void> _loadCallerIdState() async {
+    final service = ref.read(callerIdServiceProvider);
+    final enabled = await service.isEnabled;
+    if (mounted) {
+      setState(() {
+        _callerIdEnabled = enabled;
+        _callerIdLoading = false;
+      });
+    }
+  }
+
+  Future<void> _toggleCallerId(bool value) async {
+    final service = ref.read(callerIdServiceProvider);
+
+    if (value) {
+      // 오버레이 권한 요청
+      final granted = await FlutterOverlayWindow.isPermissionGranted();
+      if (!granted) {
+        final result = await FlutterOverlayWindow.requestPermission();
+        if (result != true) return;
+      }
+    }
+
+    setState(() => _callerIdEnabled = value);
+    await service.setEnabled(value);
   }
 
   @override
@@ -237,6 +269,53 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                 ],
               ),
+
+              // Caller ID 설정 (Android only)
+              if (Platform.isAndroid) ...[
+                const SizedBox(height: 28),
+                Text(
+                  'Caller ID',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: theme.colorScheme.surfaceContainerHighest
+                        .withOpacity(0.3),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.phone_callback_outlined,
+                          size: 20,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          Localizations.localeOf(context).languageCode == 'ko'
+                              ? '수신 전화 시 명함 정보 표시'
+                              : 'Show card info on incoming calls',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                      if (_callerIdLoading)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        Switch(
+                          value: _callerIdEnabled,
+                          onChanged: _toggleCallerId,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 48),
               const Divider(),

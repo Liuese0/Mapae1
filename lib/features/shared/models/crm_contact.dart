@@ -59,6 +59,8 @@ class CrmContact {
   final String? mobile;
   final CrmStatus status;
   final String? memo;
+  final DateTime? followUpDate;
+  final String? followUpNote;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -76,6 +78,8 @@ class CrmContact {
     this.mobile,
     this.status = CrmStatus.lead,
     this.memo,
+    this.followUpDate,
+    this.followUpNote,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -98,6 +102,10 @@ class CrmContact {
         orElse: () => CrmStatus.lead,
       ),
       memo: json['memo'] as String?,
+      followUpDate: json['follow_up_date'] != null
+          ? DateTime.parse(json['follow_up_date'] as String)
+          : null,
+      followUpNote: json['follow_up_note'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -118,6 +126,8 @@ class CrmContact {
       'mobile': mobile,
       'status': status.name,
       'memo': memo,
+      'follow_up_date': followUpDate?.toIso8601String(),
+      'follow_up_note': followUpNote,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -137,6 +147,8 @@ class CrmContact {
     String? mobile,
     CrmStatus? status,
     String? memo,
+    DateTime? followUpDate,
+    String? followUpNote,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -154,9 +166,42 @@ class CrmContact {
       mobile: mobile ?? this.mobile,
       status: status ?? this.status,
       memo: memo ?? this.memo,
+      followUpDate: followUpDate ?? this.followUpDate,
+      followUpNote: followUpNote ?? this.followUpNote,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+}
+
+/// CRM 활동 노트 타입
+enum CrmNoteType {
+  note,         // 일반 메모
+  call,         // 통화 기록
+  meeting,      // 미팅 기록
+  statusChange, // 상태 변경
+  email,        // 이메일 기록
+}
+
+extension CrmNoteTypeX on CrmNoteType {
+  String get dbValue {
+    switch (this) {
+      case CrmNoteType.note: return 'note';
+      case CrmNoteType.call: return 'call';
+      case CrmNoteType.meeting: return 'meeting';
+      case CrmNoteType.statusChange: return 'status_change';
+      case CrmNoteType.email: return 'email';
+    }
+  }
+
+  static CrmNoteType fromDb(String? value) {
+    switch (value) {
+      case 'call': return CrmNoteType.call;
+      case 'meeting': return CrmNoteType.meeting;
+      case 'status_change': return CrmNoteType.statusChange;
+      case 'email': return CrmNoteType.email;
+      default: return CrmNoteType.note;
+    }
   }
 }
 
@@ -167,6 +212,7 @@ class CrmNote {
   final String authorId;
   final String? authorName;
   final String content;
+  final CrmNoteType noteType;
   final DateTime createdAt;
 
   const CrmNote({
@@ -175,6 +221,7 @@ class CrmNote {
     required this.authorId,
     this.authorName,
     required this.content,
+    this.noteType = CrmNoteType.note,
     required this.createdAt,
   });
 
@@ -185,6 +232,7 @@ class CrmNote {
       authorId: json['author_id'] as String,
       authorName: json['author_name'] as String?,
       content: json['content'] as String,
+      noteType: CrmNoteTypeX.fromDb(json['note_type'] as String?),
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -196,6 +244,7 @@ class CrmNote {
       'author_id': authorId,
       'author_name': authorName,
       'content': content,
+      'note_type': noteType.dbValue,
       'created_at': createdAt.toIso8601String(),
     };
   }

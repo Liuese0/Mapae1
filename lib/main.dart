@@ -7,13 +7,13 @@ import 'core/services/ad_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/providers/app_providers.dart';
 import 'core/utils/router.dart';
 import 'core/services/auto_login_service.dart';
+import 'features/caller_id/widgets/caller_id_overlay.dart';
 import 'l10n/generated/app_localizations.dart';
 
 // re-export helpers used in main()
@@ -137,4 +137,14 @@ class _NameCardAppState extends ConsumerState<NameCardApp> {
       backButtonDispatcher: goRouter.backButtonDispatcher,
     );
   }
+}
+
+/// flutter_overlay_window 오버레이 엔트리포인트
+@pragma('vm:entry-point')
+void overlayMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: CallerIdOverlay(),
+  ));
 }
