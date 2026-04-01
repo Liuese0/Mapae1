@@ -50,17 +50,26 @@ Card: "삼성전자" top, "김민수" large, "수석연구원 AI연구소", T.02
 → {"name":"김민수","company":"삼성전자","position":"수석연구원","department":"AI연구소","phone":"0212345678","mobile":"01098765432","email":"minsu.kim@samsung.com","address":"서울시 강남구 삼성로 123"}
 ''';
 
-  /// Build prompt with optional reference text from Azure DI.
-  String _buildPrompt(String? referenceText) {
-    if (referenceText == null || referenceText.trim().length < 10) {
-      return _basePrompt;
+  /// Build prompt with optional reference text from Azure DI
+  /// and optional template custom field names.
+  String _buildPrompt(String? referenceText, {List<String>? templateFieldNames}) {
+    final buf = StringBuffer(_basePrompt);
+
+    if (templateFieldNames != null && templateFieldNames.isNotEmpty) {
+      buf.writeln();
+      buf.writeln('ADDITIONAL CUSTOM FIELDS to extract (if visible on the card): ${templateFieldNames.join(', ')}');
+      buf.writeln('Include these in the JSON output using their original field names as keys. If a field is not found on the card, omit it.');
     }
-    return '''$_basePrompt
-REFERENCE OCR TEXT (from on-device recognition — use to cross-verify your readings):
-"""
-${referenceText.trim()}
-"""
-''';
+
+    if (referenceText != null && referenceText.trim().length >= 10) {
+      buf.writeln();
+      buf.writeln('REFERENCE OCR TEXT (from on-device recognition — use to cross-verify your readings):');
+      buf.writeln('"""');
+      buf.writeln(referenceText.trim());
+      buf.writeln('"""');
+    }
+
+    return buf.toString();
   }
 
   /// Compress image for Gemini upload (target ~4MB).
@@ -94,7 +103,7 @@ ${referenceText.trim()}
 
   /// Scan a business card image using Gemini Vision.
   /// [referenceText] is optional ML Kit OCR text for cross-verification.
-  Future<OcrResult> scanBusinessCard(File imageFile, {String? referenceText}) async {
+  Future<OcrResult> scanBusinessCard(File imageFile, {String? referenceText, List<String>? templateFieldNames}) async {
     if (AppConstants.geminiApiKey.isEmpty) {
       throw Exception('Gemini API key not configured');
     }
@@ -105,7 +114,7 @@ ${referenceText.trim()}
     final compressed = await _compressImage(imageFile);
     final imageBytes = await compressed.readAsBytes();
 
-    final prompt = _buildPrompt(referenceText);
+    final prompt = _buildPrompt(referenceText, templateFieldNames: templateFieldNames);
 
     final content = Content.multi([
       TextPart(prompt),
@@ -122,7 +131,7 @@ ${referenceText.trim()}
           throw Exception('Gemini returned empty response');
         }
 
-        return _parseResponse(text);
+        return _parseResponse(text, templateFieldNames: templateFieldNames);
       } catch (e) {
         final is429 = e.toString().contains('429') ||
             e.toString().contains('Too Many Requests') ||
@@ -137,7 +146,7 @@ ${referenceText.trim()}
   }
 
   /// Parse JSON response from Gemini into OcrResult.
-  OcrResult _parseResponse(String responseText) {
+  OcrResult _parseResponse(String responseText, {List<String>? templateFieldNames}) {
     // Strip markdown code fences if present
     var jsonStr = responseText.trim();
     if (jsonStr.startsWith('```')) {
@@ -181,6 +190,17 @@ ${referenceText.trim()}
       return digits.isEmpty ? null : '$prefix$digits';
     }
 
+    // Collect extra template fields
+    final extraFields = <String, String>{};
+    if (templateFieldNames != null) {
+      for (final fieldName in templateFieldNames) {
+        final value = getString(fieldName);
+        if (value != null) {
+          extraFields[fieldName] = value;
+        }
+      }
+    }
+
     return OcrResult(
       name: getString('name'),
       company: getString('company'),
@@ -194,7 +214,8 @@ ${referenceText.trim()}
       website: getString('website'),
       instagram: getString('instagram'),
       rawText: responseText,
-      confidence: 0.95, // Gemini Vision is generally high confidence
+      confidence: 0.95,
+      extraFields: extraFields,
     );
   }
 }

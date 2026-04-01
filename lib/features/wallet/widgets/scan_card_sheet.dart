@@ -10,7 +10,16 @@ import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
+import '../../shared/models/context_tag.dart';
 import '../screens/card_crop_screen.dart';
+
+/// 템플릿 필드 이름 → 표준 CollectedCard 필드 매핑 (커스텀 필드 판별용)
+const _standardFieldNames = <String>{
+  '이름', 'name', '회사명', '회사', 'company', '직급', '직함', 'position',
+  '부서', 'department', '이메일', 'email', '전화번호', '전화', 'phone',
+  '휴대폰', '핸드폰', 'mobile', '팩스', 'fax', '주소', 'address',
+  '웹사이트', '홈페이지', 'website', '메모', 'memo',
+};
 
 class ScanCardSheet extends ConsumerStatefulWidget {
   final VoidCallback? onScanComplete;
@@ -24,6 +33,37 @@ class ScanCardSheet extends ConsumerStatefulWidget {
 class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
   bool _isProcessing = false;
   String _processingStatus = '';
+  List<TagTemplate> _templates = [];
+  TagTemplate? _selectedTemplate;
+  bool _templatesLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTemplates();
+  }
+
+  Future<void> _loadTemplates() async {
+    final supabaseService = ref.read(supabaseServiceProvider);
+    final user = supabaseService.currentUser;
+    if (user == null) return;
+
+    final templates = await supabaseService.getTagTemplates(user.id);
+    final defaultId = ref.read(defaultTemplateIdProvider);
+
+    if (mounted) {
+      setState(() {
+        _templates = templates;
+        _templatesLoaded = true;
+        if (defaultId != null) {
+          _selectedTemplate = templates.cast<TagTemplate?>().firstWhere(
+                (t) => t?.id == defaultId,
+            orElse: () => null,
+          );
+        }
+      });
+    }
+  }
 
   Future<void> _scanWithDocumentScanner() async {
     final scannerService = ref.read(documentScannerServiceProvider);
@@ -121,11 +161,24 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
         }
       }
 
+      // Use selected template for custom field extraction
+      final defaultTemplate = _selectedTemplate;
+      List<String>? customFieldNames;
+      if (defaultTemplate != null) {
+        customFieldNames = defaultTemplate.fields
+            .where((f) => !_standardFieldNames.contains(f.name.toLowerCase()) &&
+            !_standardFieldNames.contains(f.name))
+            .map((f) => f.name)
+            .toList();
+        if (customFieldNames.isEmpty) customFieldNames = null;
+      }
+
       // Step 4: OCR on enhanced image
       _updateStatus(l10n.recognizingText);
       final result = await ocrService.scanBusinessCard(
         processedFile,
         language: locale,
+        templateFieldNames: customFieldNames,
       );
 
       _updateStatus(l10n.savingInfo);
@@ -199,6 +252,27 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
 
       await supabaseService.addCollectedCard(card);
 
+      // Auto-create ContextTag with extracted custom fields
+      if (defaultTemplate != null && result.extraFields.isNotEmpty) {
+        final tagValues = <String, dynamic>{};
+        for (final field in defaultTemplate.fields) {
+          final extracted = result.extraFields[field.name];
+          if (extracted != null) {
+            tagValues[field.name] = extracted;
+          }
+        }
+        if (tagValues.isNotEmpty) {
+          await supabaseService.addContextTag(ContextTag(
+            id: '',
+            cardId: card.id,
+            templateId: defaultTemplate.id,
+            values: tagValues,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ));
+        }
+      }
+
       if (mounted) {
         final l10nCurrent = AppLocalizations.of(context);
         Navigator.of(context).pop();
@@ -269,7 +343,45 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Template selector
+            if (_templatesLoaded && _templates.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: theme.colorScheme.outline),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String?>(
+                    value: _selectedTemplate?.id,
+                    isExpanded: true,
+                    icon: Icon(Icons.label_outlined, size: 18, color: theme.colorScheme.primary),
+                    hint: Text(l10n.tagTemplate, style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(l10n.defaultLabel, style: const TextStyle(fontSize: 13)),
+                      ),
+                      ..._templates.map((t) => DropdownMenuItem<String?>(
+                        value: t.id,
+                        child: Text(t.name, style: const TextStyle(fontSize: 13)),
+                      )),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedTemplate = value == null
+                            ? null
+                            : _templates.firstWhere((t) => t.id == value);
+                      });
+                      // Save as default
+                      ref.read(defaultTemplateIdProvider.notifier).setDefaultTemplateId(value);
+                    },
+                  ),
+                ),
+              ),
 
             // Document Scanner option
             _OptionTile(

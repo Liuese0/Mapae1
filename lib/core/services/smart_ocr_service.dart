@@ -16,7 +16,7 @@ class SmartOcrService {
   SmartOcrService(this._gemini, this._fallback, this._azure);
 
   /// Scan a business card image using the multi-stage pipeline.
-  Future<OcrResult> scanBusinessCard(File imageFile, {String language = 'kor'}) async {
+  Future<OcrResult> scanBusinessCard(File imageFile, {String language = 'kor', List<String>? templateFieldNames}) async {
     try {
       // Step 1: Extract text using Azure DI Read (Korean supported, ~2-5s)
       debugPrint('[SmartOCR] Step 1: Azure DI Read starting...');
@@ -39,7 +39,7 @@ class SmartOcrService {
       // Step 2: Send image + Azure text to Gemini for field structuring
       debugPrint('[SmartOCR] Step 2: Gemini Vision starting...');
       final result = await _gemini
-          .scanBusinessCard(imageFile, referenceText: referenceText)
+          .scanBusinessCard(imageFile, referenceText: referenceText, templateFieldNames: templateFieldNames)
           .timeout(const Duration(seconds: 20));
       debugPrint('[SmartOCR] Gemini result: name=${result.name}, company=${result.company}, phone=${result.phone}');
       return result;

@@ -75,15 +75,26 @@ class TagTemplateScreen extends ConsumerWidget {
             );
           }
 
+          final defaultId = ref.watch(defaultTemplateIdProvider);
           return ListView.separated(
             padding: const EdgeInsets.all(20),
             itemCount: list.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final template = list[index];
+              final isDefault = defaultId == template.id;
               return _TemplateTile(
                 template: template,
+                isDefault: isDefault,
+                onSetDefault: () {
+                  ref.read(defaultTemplateIdProvider.notifier)
+                      .setDefaultTemplateId(isDefault ? null : template.id);
+                },
                 onDelete: () async {
+                  if (isDefault) {
+                    ref.read(defaultTemplateIdProvider.notifier)
+                        .setDefaultTemplateId(null);
+                  }
                   await ref
                       .read(supabaseServiceProvider)
                       .deleteTagTemplate(template.id);
@@ -112,19 +123,30 @@ class TagTemplateScreen extends ConsumerWidget {
 
 class _TemplateTile extends StatelessWidget {
   final TagTemplate template;
+  final bool isDefault;
+  final VoidCallback onSetDefault;
   final VoidCallback onDelete;
 
-  const _TemplateTile({required this.template, required this.onDelete});
+  const _TemplateTile({
+    required this.template,
+    required this.isDefault,
+    required this.onSetDefault,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outline),
+        border: Border.all(
+          color: isDefault ? theme.colorScheme.primary : theme.colorScheme.outline,
+          width: isDefault ? 1.5 : 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,19 +154,55 @@ class _TemplateTile extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.label_outlined,
+                isDefault ? Icons.label : Icons.label_outlined,
                 size: 18,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                color: isDefault
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  template.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        template.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    if (isDefault) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          l10n.defaultLabel,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
+              ),
+              IconButton(
+                icon: Icon(
+                  isDefault ? Icons.star : Icons.star_border,
+                  size: 18,
+                  color: isDefault ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+                onPressed: onSetDefault,
+                visualDensity: VisualDensity.compact,
+                tooltip: l10n.setAsDefault,
               ),
               IconButton(
                 icon: Icon(Icons.delete_outline,

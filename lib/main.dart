@@ -17,7 +17,7 @@ import 'features/caller_id/widgets/caller_id_overlay.dart';
 import 'l10n/generated/app_localizations.dart';
 
 // re-export helpers used in main()
-export 'core/providers/app_providers.dart' show loadSavedLocale, LocaleNotifier, loadSavedThemeMode, ThemeModeNotifier;
+export 'core/providers/app_providers.dart' show loadSavedLocale, LocaleNotifier, loadSavedThemeMode, ThemeModeNotifier, loadDefaultTemplateId, DefaultTemplateIdNotifier;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +50,7 @@ Future<void> main() async {
   // 저장된 언어 + 테마 모드 로드
   final savedLocale = await loadSavedLocale();
   final savedThemeMode = await loadSavedThemeMode();
+  final savedTemplateId = await loadDefaultTemplateId();
   await AppRouter.preload();
 
   // Set preferred orientations
@@ -63,6 +64,7 @@ Future<void> main() async {
       overrides: [
         localeProvider.overrideWith((ref) => LocaleNotifier()..init(savedLocale)),
         themeModeProvider.overrideWith((ref) => ThemeModeNotifier()..init(savedThemeMode)),
+        defaultTemplateIdProvider.overrideWith((ref) => DefaultTemplateIdNotifier()..init(savedTemplateId)),
       ],
       child: const NameCardApp(),
     ),
@@ -85,6 +87,21 @@ class _NameCardAppState extends ConsumerState<NameCardApp> {
     super.initState();
     _appLinks = AppLinks();
     _initDeepLinks();
+    _initCallerIdIfNeeded();
+  }
+
+  Future<void> _initCallerIdIfNeeded() async {
+    final callerService = ref.read(callerIdServiceProvider);
+    final enabled = await callerService.isEnabled;
+    if (!enabled) return;
+
+    final supabaseService = ref.read(supabaseServiceProvider);
+    final user = supabaseService.currentUser;
+    if (user == null) return;
+
+    final cards = await supabaseService.getCollectedCards(user.id, limit: 10000);
+    callerService.buildIndex(collectedCards: cards);
+    await callerService.startListening();
   }
 
   Future<void> _initDeepLinks() async {

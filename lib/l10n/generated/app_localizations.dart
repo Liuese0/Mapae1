@@ -218,6 +218,8 @@ abstract class AppLocalizations {
   String get noTagTemplates;
   String get tagTemplateHint;
   String get createTemplate;
+  String get defaultLabel;
+  String get setAsDefault;
   String get contextTagTemplate;
   String get tagTemplateDescription;
 
@@ -665,6 +667,8 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get noTagTemplates => '태그 템플릿이 없습니다';
   @override String get tagTemplateHint => '명함에 만난 상황이나 특이사항을\n기록할 형식을 만들어보세요';
   @override String get createTemplate => '템플릿 만들기';
+  @override String get defaultLabel => '기본';
+  @override String get setAsDefault => '기본으로 설정';
   @override String get contextTagTemplate => '상황 태그 템플릿';
   @override String get tagTemplateDescription => '명함에 만난 상황, 특이사항 등을 기록할 태그 형식을 관리합니다';
 
@@ -1098,6 +1102,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get tagTemplateHint =>
       'Create formats to record\nmeeting situations and notes on cards';
   @override String get createTemplate => 'Create Template';
+  @override String get defaultLabel => 'Default';
+  @override String get setAsDefault => 'Set as Default';
   @override String get contextTagTemplate => 'Context Tag Templates';
   @override String get tagTemplateDescription =>
       'Manage tag formats to record meeting situations and notes on cards';

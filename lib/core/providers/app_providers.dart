@@ -270,6 +270,38 @@ class LocaleNotifier extends StateNotifier<Locale> {
   }
 }
 
+// ──────────────── Default Tag Template ────────────────
+
+const _kDefaultTemplateIdKey = 'default_tag_template_id';
+
+Future<String?> loadDefaultTemplateId() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString(_kDefaultTemplateIdKey);
+}
+
+final defaultTemplateIdProvider =
+StateNotifierProvider<DefaultTemplateIdNotifier, String?>((ref) {
+  return DefaultTemplateIdNotifier();
+});
+
+class DefaultTemplateIdNotifier extends StateNotifier<String?> {
+  DefaultTemplateIdNotifier() : super(null);
+
+  void init(String? id) {
+    state = id;
+  }
+
+  Future<void> setDefaultTemplateId(String? templateId) async {
+    state = templateId;
+    final prefs = await SharedPreferences.getInstance();
+    if (templateId == null) {
+      await prefs.remove(_kDefaultTemplateIdKey);
+    } else {
+      await prefs.setString(_kDefaultTemplateIdKey, templateId);
+    }
+  }
+}
+
 // ──────────────── Categories ────────────────
 
 final categoriesProvider =

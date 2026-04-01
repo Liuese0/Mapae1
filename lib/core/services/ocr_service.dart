@@ -19,6 +19,7 @@ class OcrResult {
   final String? instagram;
   final String rawText;
   final double confidence;
+  final Map<String, String> extraFields;
 
   const OcrResult({
     this.name,
@@ -34,6 +35,7 @@ class OcrResult {
     this.instagram,
     required this.rawText,
     this.confidence = 0.0,
+    this.extraFields = const {},
   });
 }
 

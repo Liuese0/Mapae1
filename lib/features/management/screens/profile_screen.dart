@@ -32,12 +32,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _loadCallerIdState() async {
     final service = ref.read(callerIdServiceProvider);
     final enabled = await service.isEnabled;
+    if (enabled) {
+      await _buildCallerIdIndex();
+    }
     if (mounted) {
       setState(() {
         _callerIdEnabled = enabled;
         _callerIdLoading = false;
       });
     }
+  }
+
+  Future<void> _buildCallerIdIndex() async {
+    final callerService = ref.read(callerIdServiceProvider);
+    final supabaseService = ref.read(supabaseServiceProvider);
+    final user = supabaseService.currentUser;
+    if (user == null) return;
+
+    final cards = await supabaseService.getCollectedCards(user.id, limit: 10000);
+    callerService.buildIndex(collectedCards: cards);
   }
 
   Future<void> _toggleCallerId(bool value) async {
@@ -52,6 +65,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     }
 
+    if (value) {
+      await _buildCallerIdIndex();
+    }
     setState(() => _callerIdEnabled = value);
     await service.setEnabled(value);
   }

@@ -722,7 +722,96 @@ class _CrmContactDetailScreenState
   }
 
   void _showFollowUpPicker() async {
+    if (_isObserver) {
+      _showNoPermission();
+      return;
+    }
+
     final l10n = AppLocalizations.of(context);
+
+    // 기존 팔로업이 있으면 옵션 바텀시트 먼저 표시
+    if (_contact.followUpDate != null) {
+      final action = await showModalBottomSheet<String>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) {
+          final date = _contact.followUpDate!;
+          final note = _contact.followUpNote;
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Follow-up', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.alarm, size: 18, color: Colors.red.shade400),
+                    const SizedBox(width: 8),
+                    Text('${date.year}.${date.month}.${date.day}', style: const TextStyle(fontWeight: FontWeight.w500)),
+                  ],
+                ),
+                if (note != null && note.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 26),
+                    child: Text(note, style: TextStyle(fontSize: 13, color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.6))),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: const Icon(Icons.edit_calendar_outlined),
+                  title: Text(l10n.editInfo),
+                  dense: true,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  onTap: () => Navigator.pop(ctx, 'edit'),
+                ),
+                ListTile(
+                  leading: Icon(Icons.delete_outline, color: Colors.red.shade400),
+                  title: Text(l10n.delete, style: TextStyle(color: Colors.red.shade400)),
+                  dense: true,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  onTap: () => Navigator.pop(ctx, 'delete'),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (action == null || !mounted) return;
+
+      if (action == 'delete') {
+        final service = ref.read(supabaseServiceProvider);
+        await service.clearCrmContactFollowUp(_contact.id);
+        setState(() => _contact = CrmContact(
+          id: _contact.id,
+          teamId: _contact.teamId,
+          createdBy: _contact.createdBy,
+          name: _contact.name,
+          company: _contact.company,
+          position: _contact.position,
+          department: _contact.department,
+          email: _contact.email,
+          phone: _contact.phone,
+          mobile: _contact.mobile,
+          status: _contact.status,
+          memo: _contact.memo,
+          followUpDate: null,
+          followUpNote: null,
+          createdAt: _contact.createdAt,
+          updatedAt: DateTime.now(),
+        ));
+        return;
+      }
+      // action == 'edit' → 아래로 계속 진행
+    }
+
+    // 날짜 선택
     final now = DateTime.now();
     final initialDate = _contact.followUpDate ?? now.add(const Duration(days: 1));
 
@@ -733,10 +822,9 @@ class _CrmContactDetailScreenState
       lastDate: now.add(const Duration(days: 365)),
     );
 
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
 
     // 팔로업 메모 입력
-    if (!mounted) return;
     final noteCtrl = TextEditingController(text: _contact.followUpNote ?? '');
     final followUpNote = await showDialog<String>(
       context: context,
@@ -751,15 +839,6 @@ class _CrmContactDetailScreenState
           maxLines: 2,
         ),
         actions: [
-          if (_contact.followUpDate != null)
-            TextButton(
-              onPressed: () {
-                // 팔로업 삭제
-                Navigator.pop(ctx, '__REMOVE__');
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: Text(l10n.delete),
-            ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(l10n.cancel),
@@ -775,20 +854,13 @@ class _CrmContactDetailScreenState
     if (followUpNote == null) return;
 
     final service = ref.read(supabaseServiceProvider);
-    if (followUpNote == '__REMOVE__') {
-      final updated = _contact.copyWith(updatedAt: DateTime.now());
-      // Null out follow_up fields via direct update
-      await service.updateCrmContact(updated);
-      setState(() => _contact = updated.copyWith());
-    } else {
-      final updated = _contact.copyWith(
-        followUpDate: picked,
-        followUpNote: followUpNote.isEmpty ? null : followUpNote,
-        updatedAt: DateTime.now(),
-      );
-      await service.updateCrmContact(updated);
-      setState(() => _contact = updated);
-    }
+    final updated = _contact.copyWith(
+      followUpDate: picked,
+      followUpNote: followUpNote.isEmpty ? null : followUpNote,
+      updatedAt: DateTime.now(),
+    );
+    await service.updateCrmContact(updated);
+    setState(() => _contact = updated);
   }
 
   Future<void> _updateStatus(CrmStatus status) async {

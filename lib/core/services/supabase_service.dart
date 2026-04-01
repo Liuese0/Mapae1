@@ -813,6 +813,18 @@ class SupabaseService {
         .eq('id', contactId);
   }
 
+  /// CRM 팔로업 제거
+  Future<void> clearCrmContactFollowUp(String contactId) async {
+    await _client
+        .from(SupabaseConstants.crmContactsTable)
+        .update({
+      'follow_up_date': null,
+      'follow_up_note': null,
+      'updated_at': DateTime.now().toIso8601String(),
+    })
+        .eq('id', contactId);
+  }
+
   /// CRM 연락처 삭제
   Future<void> deleteCrmContact(String contactId) async {
     await _client
@@ -907,7 +919,7 @@ class SupabaseService {
     await _client.from(SupabaseConstants.quickShareSessionsTable).upsert({
       'user_id': user.id,
       'card_id': card.id,
-      'name': profile?.name ?? card.name,
+      'name': card.name ?? profile?.name,
       'company': card.company,
       'position': card.position,
       'updated_at': DateTime.now().toIso8601String(),
