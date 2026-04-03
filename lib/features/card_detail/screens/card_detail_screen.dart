@@ -68,12 +68,21 @@ class CardDetailScreen extends ConsumerWidget {
               children: [
                 // Card image
                 if (card.imageUrl != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      card.imageUrl!,
-                      width: double.infinity,
-                      fit: BoxFit.contain,
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        card.imageUrl!,
+                        width: double.infinity,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 const SizedBox(height: 24),

@@ -86,6 +86,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       await ref.read(supabaseServiceProvider).updateUserName(newName);
       await ref.read(userProfileProvider.notifier).refresh();
+      _nameController.text = newName;
       if (mounted) {
         setState(() => _isEditing = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -240,9 +241,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: TextField(
+                    child: _isEditing
+                        ? TextField(
                       controller: _nameController,
-                      enabled: _isEditing,
+                      autofocus: true,
                       decoration: InputDecoration(
                         hintText: l10n.enterNameHint,
                         border: OutlineInputBorder(
@@ -251,6 +253,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 14,
+                        ),
+                      ),
+                    )
+                        : Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: theme.colorScheme.outline),
+                      ),
+                      child: Text(
+                        user?.name ?? l10n.enterNameHint,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: user?.name != null
+                              ? null
+                              : theme.colorScheme.onSurface.withOpacity(0.4),
                         ),
                       ),
                     ),
@@ -271,7 +288,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onPressed: () {
                         setState(() {
                           _isEditing = false;
-                          _nameController.text = user?.name ?? '';
                         });
                       },
                       icon: Icon(Icons.close,
@@ -279,7 +295,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ] else
                     IconButton(
-                      onPressed: () => setState(() => _isEditing = true),
+                      onPressed: () {
+                        _nameController.text = user?.name ?? '';
+                        setState(() => _isEditing = true);
+                      },
                       icon: Icon(Icons.edit_outlined,
                           color: theme.colorScheme.onSurface.withOpacity(0.5)),
                     ),

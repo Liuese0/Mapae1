@@ -102,7 +102,6 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<AppUser?>> {
   }
 
   Future<void> refresh() async {
-    state = const AsyncValue.loading();
     await _loadProfile();
   }
 

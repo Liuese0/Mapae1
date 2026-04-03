@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/services/ocr_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
 import '../../shared/models/context_tag.dart';
@@ -19,7 +20,43 @@ const _standardFieldNames = <String>{
   '부서', 'department', '이메일', 'email', '전화번호', '전화', 'phone',
   '휴대폰', '핸드폰', 'mobile', '팩스', 'fax', '주소', 'address',
   '웹사이트', '홈페이지', 'website', '메모', 'memo',
+  '인스타', '인스타그램', 'instagram', 'sns',
 };
+
+/// 템플릿 필드명 → OcrResult 표준 필드 키 매핑 (한/영 변형 포함)
+const _templateFieldToStandard = <String, String>{
+  '인스타': 'instagram', '인스타그램': 'instagram',
+  'instagram': 'instagram', 'sns': 'instagram',
+  '이름': 'name', 'name': 'name',
+  '회사': 'company', '회사명': 'company', 'company': 'company',
+  '직급': 'position', '직함': 'position', 'position': 'position',
+  '부서': 'department', 'department': 'department',
+  '이메일': 'email', 'email': 'email',
+  '전화번호': 'phone', '전화': 'phone', 'phone': 'phone',
+  '휴대폰': 'mobile', '핸드폰': 'mobile', 'mobile': 'mobile',
+  '팩스': 'fax', 'fax': 'fax',
+  '주소': 'address', 'address': 'address',
+  '웹사이트': 'website', '홈페이지': 'website', 'website': 'website',
+  '메모': 'memo', 'memo': 'memo',
+};
+
+/// OcrResult의 표준 필드에서 값을 조회
+String? _getStandardField(OcrResult result, String key) {
+  switch (key) {
+    case 'name': return result.name;
+    case 'company': return result.company;
+    case 'position': return result.position;
+    case 'department': return result.department;
+    case 'email': return result.email;
+    case 'phone': return result.phone;
+    case 'mobile': return result.mobile;
+    case 'fax': return result.fax;
+    case 'address': return result.address;
+    case 'website': return result.website;
+    case 'instagram': return result.instagram;
+    default: return null;
+  }
+}
 
 class ScanCardSheet extends ConsumerStatefulWidget {
   final VoidCallback? onScanComplete;
@@ -116,28 +153,11 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
 
       await supabaseService.ensureUserProfile();
       final locale = ref.read(localeProvider).languageCode;
+      // Deskew: correct tilt using Hough Line detection
       final imageProcessor = ref.read(imageProcessingServiceProvider);
+      File processedFile = await imageProcessor.deskew(imageFile);
 
-      // Step 1: Perspective correction (only for non-document-scanner images
-      // that haven't been through CardCropScreen's perspective correction)
-      File processedFile = imageFile;
-      if (fromDocumentScanner) {
-        // ML Kit already does perspective correction, skip it
-      } else {
-        // If came from CardCropScreen, perspective is already handled there
-        // Just apply enhancement
-      }
-
-      // Step 2: Pro enhancement
-      _updateStatus(l10n.processingCard);
-      try {
-        processedFile =
-        await imageProcessor.enhanceCardImagePro(processedFile);
-      } catch (e) {
-        debugPrint('Enhancement failed, using original: $e');
-      }
-
-      // Step 3: Compress image for upload (max ~1MB)
+      // Compress image for upload (max ~1MB)
       _updateStatus(l10n.processingCard);
       final rawBytes = await processedFile.readAsBytes();
       debugPrint('Image size before compress: ${rawBytes.length} bytes');
@@ -145,23 +165,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
       debugPrint('Image size after compress: ${imageBytes.length} bytes');
       final fileName = '${const Uuid().v4()}.jpg';
 
-      // Step 4: Upload with retry
-      late String imageUrl;
-      for (int attempt = 0; attempt < 3; attempt++) {
-        try {
-          imageUrl = await supabaseService.uploadCardImage(
-            fileName,
-            imageBytes,
-          );
-          break;
-        } catch (e) {
-          debugPrint('Upload attempt ${attempt + 1} failed: $e');
-          if (attempt == 2) rethrow;
-          await Future.delayed(Duration(seconds: attempt + 1));
-        }
-      }
-
-      // Use selected template for custom field extraction
+      // Prepare template custom field names
       final defaultTemplate = _selectedTemplate;
       List<String>? customFieldNames;
       if (defaultTemplate != null) {
@@ -173,13 +177,35 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
         if (customFieldNames.isEmpty) customFieldNames = null;
       }
 
-      // Step 4: OCR on enhanced image
+      // Run upload and OCR in parallel for speed
       _updateStatus(l10n.recognizingText);
-      final result = await ocrService.scanBusinessCard(
-        processedFile,
-        language: locale,
-        templateFieldNames: customFieldNames,
-      );
+
+      Future<String> uploadFuture() async {
+        late String url;
+        for (int attempt = 0; attempt < 3; attempt++) {
+          try {
+            url = await supabaseService.uploadCardImage(fileName, imageBytes);
+            return url;
+          } catch (e) {
+            debugPrint('Upload attempt ${attempt + 1} failed: $e');
+            if (attempt == 2) rethrow;
+            await Future.delayed(Duration(seconds: attempt + 1));
+          }
+        }
+        throw Exception('Upload failed');
+      }
+
+      final results = await Future.wait([
+        uploadFuture(),
+        ocrService.scanBusinessCard(
+          processedFile,
+          language: locale,
+          templateFieldNames: customFieldNames,
+        ),
+      ]);
+
+      final imageUrl = results[0] as String;
+      final result = results[1] as OcrResult;
 
       _updateStatus(l10n.savingInfo);
 
@@ -250,27 +276,33 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
         }
       }
 
-      await supabaseService.addCollectedCard(card);
+      final savedCard = await supabaseService.addCollectedCard(card);
 
-      // Auto-create ContextTag with extracted custom fields
-      if (defaultTemplate != null && result.extraFields.isNotEmpty) {
+      // Auto-create ContextTag when template is selected
+      if (defaultTemplate != null && defaultTemplate.id.isNotEmpty) {
         final tagValues = <String, dynamic>{};
         for (final field in defaultTemplate.fields) {
-          final extracted = result.extraFields[field.name];
+          // extraFields에서 먼저 조회, 없으면 표준 필드 매핑에서 조회
+          var extracted = result.extraFields[field.name];
+          if (extracted == null) {
+            final standardKey = _templateFieldToStandard[field.name] ??
+                _templateFieldToStandard[field.name.toLowerCase()];
+            if (standardKey != null) {
+              extracted = _getStandardField(result, standardKey);
+            }
+          }
           if (extracted != null) {
             tagValues[field.name] = extracted;
           }
         }
-        if (tagValues.isNotEmpty) {
-          await supabaseService.addContextTag(ContextTag(
-            id: '',
-            cardId: card.id,
-            templateId: defaultTemplate.id,
-            values: tagValues,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ));
-        }
+        await supabaseService.addContextTag(ContextTag(
+          id: const Uuid().v4(),
+          cardId: savedCard.id,
+          templateId: defaultTemplate.id,
+          values: tagValues,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ));
       }
 
       if (mounted) {
@@ -283,7 +315,7 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
         );
 
         // Navigate to edit to review OCR results
-        context.push('/card/${card.id}/edit');
+        context.push('/card/${savedCard.id}/edit');
       }
     } catch (e) {
       if (mounted) {

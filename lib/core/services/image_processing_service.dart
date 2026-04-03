@@ -74,6 +74,15 @@ class ImageProcessingService {
     return _writeTempFile(resultBytes, 'enhanced');
   }
 
+  /// Deskew: detect dominant line angle via Hough Transform and rotate to correct tilt.
+  /// Only corrects angles within ±15°. Returns original file if no correction needed.
+  Future<File> deskew(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    final resultBytes = _deskewImpl(bytes);
+    if (resultBytes == null) return imageFile;
+    return _writeTempFile(resultBytes, 'deskewed');
+  }
+
   /// Lightweight preprocessing for OCR: contrast stretching + resize.
   Future<File> preprocessForOcr(File imageFile) async {
     final bytes = await imageFile.readAsBytes();
@@ -424,6 +433,120 @@ class ImageProcessingService {
 
       final (success, encoded) = cv.imencode('.jpg', mat, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 90]));
       if (!success) throw Exception('이미지 인코딩 실패');
+      return encoded;
+    } finally {
+      mat.dispose();
+    }
+  }
+
+  /// Deskew implementation: Hough Line Transform → median angle → rotate.
+  static Uint8List? _deskewImpl(Uint8List imageBytes) {
+    final mat = cv.imdecode(imageBytes, cv.IMREAD_COLOR);
+    if (mat.isEmpty) return null;
+
+    try {
+      // Downscale for faster line detection
+      final scale = math.min(1.0, 800.0 / math.max(mat.cols, mat.rows));
+      cv.Mat working;
+      if (scale < 1.0) {
+        working = cv.resize(mat, (
+        (mat.cols * scale).round(),
+        (mat.rows * scale).round(),
+        ));
+      } else {
+        working = mat.clone();
+      }
+
+      // Grayscale → Blur → Canny
+      final gray = cv.cvtColor(working, cv.COLOR_BGR2GRAY);
+      final blurred = cv.gaussianBlur(gray, (5, 5), 1.0);
+      final edges = cv.canny(blurred, 50, 150);
+      working.dispose();
+      gray.dispose();
+      blurred.dispose();
+
+      // Hough Line Transform (probabilistic)
+      final lines = cv.HoughLinesP(
+        edges,
+        1,            // rho resolution (pixels)
+        math.pi / 180, // theta resolution (1 degree)
+        50,           // threshold
+        minLineLength: (edges.cols * 0.1).roundToDouble(), // min 10% of width
+        maxLineGap: 10.0,
+      );
+      edges.dispose();
+
+      if (lines.rows == 0) {
+        lines.dispose();
+        return null;
+      }
+
+      // Collect angles of near-horizontal and near-vertical lines
+      final angles = <double>[];
+      for (int i = 0; i < lines.rows; i++) {
+        final x1 = lines.at<int>(i, 0);
+        final y1 = lines.at<int>(i, 1);
+        final x2 = lines.at<int>(i, 2);
+        final y2 = lines.at<int>(i, 3);
+
+        final dx = (x2 - x1).toDouble();
+        final dy = (y2 - y1).toDouble();
+        var angle = math.atan2(dy, dx) * 180 / math.pi; // -180 ~ 180
+
+        // Normalize: near-horizontal lines → small angle from 0°
+        // near-vertical lines → small angle from 90°
+        if (angle > 45) {
+          angle -= 90;
+        } else if (angle < -45) {
+          angle += 90;
+        }
+
+        // Only consider small tilt angles (within ±15°)
+        if (angle.abs() <= 15) {
+          angles.add(angle);
+        }
+      }
+      lines.dispose();
+
+      if (angles.length < 3) return null; // not enough lines to be confident
+
+      // Use median angle for robustness against outliers
+      angles.sort();
+      final medianAngle = angles[angles.length ~/ 2];
+
+      // Skip if tilt is negligible (< 0.3°)
+      if (medianAngle.abs() < 0.3) return null;
+
+      // Rotate the original (full resolution) image
+      final center = cv.Point2f(mat.cols / 2.0, mat.rows / 2.0);
+      final rotMat = cv.getRotationMatrix2D(center, medianAngle, 1.0);
+
+      // Calculate new bounding size to avoid cropping corners
+      final cos = medianAngle.abs() * math.pi / 180;
+      final sin = medianAngle.abs() * math.pi / 180;
+      final newW = (mat.cols * math.cos(cos) + mat.rows * math.sin(sin)).round();
+      final newH = (mat.cols * math.sin(sin) + mat.rows * math.cos(cos)).round();
+
+      // Adjust rotation matrix for the new center
+      rotMat.set<double>(0, 2, rotMat.at<double>(0, 2) + (newW - mat.cols) / 2.0);
+      rotMat.set<double>(1, 2, rotMat.at<double>(1, 2) + (newH - mat.rows) / 2.0);
+
+      final rotated = cv.warpAffine(
+        mat,
+        rotMat,
+        (newW, newH),
+        borderValue: cv.Scalar(255, 255, 255, 255),
+      );
+      rotMat.dispose();
+
+      final (success, encoded) = cv.imencode(
+        '.jpg',
+        rotated,
+        params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 90]),
+      );
+      rotated.dispose();
+
+      if (!success) return null;
       return encoded;
     } finally {
       mat.dispose();
