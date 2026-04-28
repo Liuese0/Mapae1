@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:phone_state/phone_state.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/phone_utils.dart';
 import '../../features/shared/models/caller_info.dart';
@@ -75,7 +76,12 @@ class CallerIdService {
       }
     }
 
-    debugPrint('[CallerIdService] Index built: ${_lookupIndex.length} numbers');
+    final collectedCount = collectedCards?.length ?? 0;
+    final crmCount = crmContacts?.length ?? 0;
+    debugPrint(
+      '[CallerIdService] Index built: ${_lookupIndex.length} numbers '
+      '(collected=$collectedCount, crm=$crmCount)',
+    );
   }
 
   void _addToIndex({required List<String?> phones, required CallerInfo info}) {
@@ -91,9 +97,14 @@ class CallerIdService {
   /// 전화번호로 명함 정보를 조회합니다.
   CallerInfo? lookupNumber(String incomingNumber) {
     final normalized = normalizePhone(incomingNumber);
+    debugPrint(
+      '[CallerIdService] lookup raw="$incomingNumber" normalized="$normalized" '
+      'indexSize=${_lookupIndex.length}',
+    );
 
     // 정확한 매칭
     if (_lookupIndex.containsKey(normalized)) {
+      debugPrint('[CallerIdService] lookup HIT (exact)');
       return _lookupIndex[normalized];
     }
 
@@ -103,11 +114,13 @@ class CallerIdService {
       for (final entry in _lookupIndex.entries) {
         if (entry.key.length >= 8 &&
             entry.key.substring(entry.key.length - 8) == suffix) {
+          debugPrint('[CallerIdService] lookup HIT (suffix)');
           return entry.value;
         }
       }
     }
 
+    debugPrint('[CallerIdService] lookup MISS');
     return null;
   }
 
@@ -119,13 +132,25 @@ class CallerIdService {
     if (!enabled) return;
 
     // 오버레이 권한 확인
-    final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
-    if (!hasPermission) {
+    final hasOverlay = await FlutterOverlayWindow.isPermissionGranted();
+    if (!hasOverlay) {
       debugPrint('[CallerIdService] Overlay permission not granted');
       return;
     }
 
+    // 전화 상태 권한 확인 (Android 6+ 런타임 요청 필요)
+    final phoneStatus = await Permission.phone.request();
+    if (!phoneStatus.isGranted) {
+      debugPrint('[CallerIdService] Phone permission not granted: $phoneStatus');
+      return;
+    }
+
     _phoneStateSubscription = PhoneState.stream.listen((event) {
+      final tail = (event.number != null && event.number!.length >= 4)
+          ? event.number!.substring(event.number!.length - 4)
+          : (event.number ?? '');
+      debugPrint('[CallerIdService] PhoneState ${event.status} ...$tail');
+
       if (event.status == PhoneStateStatus.CALL_INCOMING) {
         final number = event.number;
         if (number != null && number.isNotEmpty) {
