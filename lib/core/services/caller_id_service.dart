@@ -80,7 +80,7 @@ class CallerIdService {
     final crmCount = crmContacts?.length ?? 0;
     debugPrint(
       '[CallerIdService] Index built: ${_lookupIndex.length} numbers '
-      '(collected=$collectedCount, crm=$crmCount)',
+          '(collected=$collectedCount, crm=$crmCount)',
     );
   }
 
@@ -99,7 +99,7 @@ class CallerIdService {
     final normalized = normalizePhone(incomingNumber);
     debugPrint(
       '[CallerIdService] lookup raw="$incomingNumber" normalized="$normalized" '
-      'indexSize=${_lookupIndex.length}',
+          'indexSize=${_lookupIndex.length}',
     );
 
     // 정확한 매칭
