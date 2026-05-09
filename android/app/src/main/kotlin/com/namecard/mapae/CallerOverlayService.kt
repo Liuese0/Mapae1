@@ -25,10 +25,13 @@ import org.json.JSONObject
 /**
  * 수신/통화 중 명함 정보를 화면 위에 띄우는 네이티브 오버레이 서비스.
  *
- * Android 8+ 의 백그라운드 서비스 제약에 대응하기 위해 startForegroundService 로
- * 시작되며 onStartCommand 진입 즉시 startForeground 를 호출해 무음 알림을 띄웁니다.
+ * 디자인:
+ *   • 흰색 배경 + 검정 굵은 아웃라인(3dp) + 그림자
+ *   • 텍스트는 검정, 강조(라벨/아바타/닫기)는 검정 배경 + 흰색 텍스트
  *
- * View 는 SYSTEM_ALERT_WINDOW 권한을 사용해 WindowManager 에 직접 추가됩니다.
+ * 위치:
+ *   • banner (수신 중)  — 화면 최상단 (기존 통화 수신 화면의 발신자 정보 위)
+ *   • detail (통화 중)  — 화면 상단 1/3 지점 (통화 화면 이름 영역 바로 아래)
  */
 class CallerOverlayService : Service() {
 
@@ -41,6 +44,13 @@ class CallerOverlayService : Service() {
 
         private const val NOTI_ID = 7821
         private const val CHANNEL_ID = "caller_id_overlay"
+
+        // 색상 팔레트 (흑백)
+        private const val COLOR_BG = 0xFFFFFFFF.toInt()      // 카드 배경 (흰색)
+        private const val COLOR_FG = 0xFF000000.toInt()      // 텍스트 / 아웃라인 (검정)
+        private const val COLOR_FG_DIM = 0xFF555555.toInt()  // 부가 텍스트 (회색)
+        private const val COLOR_FG_FAINT = 0xFF888888.toInt()// 라벨/키 (옅은 회색)
+        private const val COLOR_INVERT = 0xFFFFFFFF.toInt()  // 반전 텍스트 (흰색)
     }
 
     private var windowManager: WindowManager? = null
@@ -69,7 +79,6 @@ class CallerOverlayService : Service() {
                 stopSelf()
             }
             else -> {
-                // 기본 동작: 그냥 종료
                 stopSelf()
             }
         }
@@ -129,7 +138,6 @@ class CallerOverlayService : Service() {
             return
         }
 
-        // 기존 오버레이 제거 (모드 전환 시)
         removeOverlay()
 
         val view = if (mode == "detail") buildDetailView(info) else buildBannerView(info)
@@ -141,7 +149,11 @@ class CallerOverlayService : Service() {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
-        val height = if (mode == "detail") dp(360) else dp(110)
+        // 모드별 위치/크기
+        //   banner: 화면 최상단 (status bar 아래) — 통화 수신 화면 발신자 정보보다 위
+        //   detail: 화면 상단 220dp 부근 — 통화 중 화면 이름 영역 바로 아래
+        val height = if (mode == "detail") dp(320) else dp(96)
+        val yOffset = if (mode == "detail") dp(220) else dp(8)
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -153,13 +165,13 @@ class CallerOverlayService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = dp(48)
+            y = yOffset
         }
 
         try {
             windowManager?.addView(view, params)
             overlay = view
-            Log.d(TAG, "overlay added mode=$mode name=${info.optString("name")}")
+            Log.d(TAG, "overlay added mode=$mode y=$yOffset name=${info.optString("name")}")
         } catch (e: Exception) {
             Log.e(TAG, "addView failed: $e")
         }
@@ -180,18 +192,17 @@ class CallerOverlayService : Service() {
         val name = info.optString("name", "")
         val company = info.optString("company", "")
         val position = info.optString("position", "")
-        val source = info.optString("source", "collected")
-        val isCrm = source == "crm"
 
         val card = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
-            background = roundedBg(0xFF1E1E2E.toInt(), 16f)
-            setPadding(dp(16), dp(14), dp(12), dp(14))
+            background = roundedBg(COLOR_BG, 14f, COLOR_FG, 3)
+            elevation = dp(6).toFloat()
+            setPadding(dp(14), dp(12), dp(8), dp(12))
             gravity = Gravity.CENTER_VERTICAL
         }
 
-        val avatar = makeAvatar(name, isCrm, sizeDp = 40, fontDp = 16)
-        card.addView(avatar)
+        // 검정 원형 아바타 (흰색 이니셜)
+        card.addView(makeAvatar(name, sizeDp = 38, fontDp = 16, invert = true))
 
         val texts = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
@@ -200,18 +211,17 @@ class CallerOverlayService : Service() {
             layoutParams = lp
         }
 
+        // Mapae 라벨 (검정 배경)
         val labelRow = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
-        labelRow.addView(makeBadge("Mapae", 0xFF6366F1.toInt()))
-        labelRow.addView(makeBadge(if (isCrm) "CRM" else "Contact",
-            if (isCrm) 0xFF6366F1.toInt() else 0xFF10B981.toInt()).apply {
-            (layoutParams as LinearLayout.LayoutParams).leftMargin = dp(6)
-        })
+        labelRow.addView(makeBadge("Mapae", invert = true))
         texts.addView(labelRow)
+
+        texts.addView(spacer(2))
 
         texts.addView(TextView(ctx).apply {
             text = name
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTextColor(COLOR_FG)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             maxLines = 1
             layoutParams = LinearLayout.LayoutParams(
@@ -224,7 +234,7 @@ class CallerOverlayService : Service() {
         if (sub.isNotEmpty()) {
             texts.addView(TextView(ctx).apply {
                 text = sub
-                setTextColor(0x99FFFFFF.toInt())
+                setTextColor(COLOR_FG_DIM)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                 maxLines = 1
             })
@@ -235,21 +245,13 @@ class CallerOverlayService : Service() {
         card.addView(ImageButton(ctx).apply {
             setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
             setBackgroundColor(Color.TRANSPARENT)
-            setColorFilter(0x80FFFFFF.toInt())
+            setColorFilter(COLOR_FG)
             val lp = LinearLayout.LayoutParams(dp(36), dp(36))
             layoutParams = lp
             setOnClickListener { removeOverlay() }
         })
 
-        // 외곽 wrapper (좌우 여백)
-        val wrapper = FrameLayout(ctx).apply {
-            setPadding(dp(16), 0, dp(16), 0)
-            addView(card, FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            ))
-        }
-        return wrapper
+        return wrapWithMargin(card)
     }
 
     // ─────────── 자세한 카드 (통화 중) ───────────
@@ -262,39 +264,34 @@ class CallerOverlayService : Service() {
         val department = info.optString("department", "")
         val email = info.optString("email", "")
         val memo = info.optString("memo", "")
-        val source = info.optString("source", "collected")
-        val isCrm = source == "crm"
 
         val card = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            background = roundedBg(0xFF1E1E2E.toInt(), 20f)
+            background = roundedBg(COLOR_BG, 18f, COLOR_FG, 3)
+            elevation = dp(8).toFloat()
             setPadding(dp(20), dp(20), dp(20), dp(20))
             gravity = Gravity.CENTER_HORIZONTAL
         }
 
-        // 상단 라벨
+        // 상단 Mapae 라벨
         val labelRow = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_HORIZONTAL
         }
-        labelRow.addView(makeBadge("Mapae", 0xFF6366F1.toInt()))
-        labelRow.addView(makeBadge(if (isCrm) "CRM" else "Contact",
-            if (isCrm) 0xFF6366F1.toInt() else 0xFF10B981.toInt()).apply {
-            (layoutParams as LinearLayout.LayoutParams).leftMargin = dp(6)
-        })
+        labelRow.addView(makeBadge("Mapae", invert = true))
         card.addView(labelRow)
 
         card.addView(spacer(12))
 
-        // 아바타
-        card.addView(makeAvatar(name, isCrm, sizeDp = 64, fontDp = 26))
+        // 검정 원형 아바타 (흰색 이니셜)
+        card.addView(makeAvatar(name, sizeDp = 60, fontDp = 24, invert = true))
 
         card.addView(spacer(10))
 
         // 이름
         card.addView(TextView(ctx).apply {
             text = name
-            setTextColor(Color.WHITE)
+            setTextColor(COLOR_FG)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             gravity = Gravity.CENTER_HORIZONTAL
@@ -304,14 +301,13 @@ class CallerOverlayService : Service() {
             )
         })
 
-        // Company · Position · Department
         val sub = listOf(company, position, department).filter { it.isNotEmpty() }
             .joinToString(" · ")
         if (sub.isNotEmpty()) {
             card.addView(spacer(4))
             card.addView(TextView(ctx).apply {
                 text = sub
-                setTextColor(0xCCFFFFFF.toInt())
+                setTextColor(COLOR_FG_DIM)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                 gravity = Gravity.CENTER_HORIZONTAL
                 layoutParams = LinearLayout.LayoutParams(
@@ -322,7 +318,7 @@ class CallerOverlayService : Service() {
         }
 
         if (email.isNotEmpty()) {
-            card.addView(spacer(10))
+            card.addView(spacer(12))
             card.addView(makeKeyValue("이메일", email))
         }
         if (memo.isNotEmpty()) {
@@ -332,13 +328,14 @@ class CallerOverlayService : Service() {
 
         card.addView(spacer(14))
 
-        // 닫기 버튼
+        // 닫기 버튼 (검정 배경 + 흰색 텍스트)
         card.addView(TextView(ctx).apply {
             text = "닫기"
-            setTextColor(Color.WHITE)
+            setTextColor(COLOR_INVERT)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(dp(20), dp(8), dp(20), dp(8))
-            background = roundedBg(0x33FFFFFF, 20f)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            background = roundedBg(COLOR_FG, 22f)
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -347,47 +344,59 @@ class CallerOverlayService : Service() {
             setOnClickListener { removeOverlay() }
         })
 
-        val wrapper = FrameLayout(ctx).apply {
+        return wrapWithMargin(card)
+    }
+
+    // ─────────── helpers ───────────
+
+    /** 좌우 여백 wrapper */
+    private fun wrapWithMargin(card: View): View {
+        return FrameLayout(this).apply {
             setPadding(dp(16), 0, dp(16), 0)
             addView(card, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
             ))
         }
-        return wrapper
     }
 
-    // ─────────── helpers ───────────
-
-    private fun makeAvatar(name: String, isCrm: Boolean, sizeDp: Int, fontDp: Int): View {
+    /**
+     * 원형 아바타 — invert=true 면 검정 배경+흰색 이니셜(강조), false 면 반대.
+     */
+    private fun makeAvatar(name: String, sizeDp: Int, fontDp: Int, invert: Boolean): View {
         val initial = if (name.isNotEmpty()) name.substring(0, 1) else "?"
-        val color = if (isCrm) 0xFF6366F1.toInt() else 0xFF10B981.toInt()
-        val bgColor = (color and 0x00FFFFFF) or 0x33000000
-        val tv = TextView(this).apply {
+        val bg = if (invert) COLOR_FG else COLOR_BG
+        val fg = if (invert) COLOR_INVERT else COLOR_FG
+        return TextView(this).apply {
             text = initial
-            setTextColor(color)
+            setTextColor(fg)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, fontDp.toFloat())
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             gravity = Gravity.CENTER
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(bgColor)
+                setColor(bg)
+                if (!invert) setStroke(dp(2), COLOR_FG)
             }
             val lp = LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp))
             lp.gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = lp
         }
-        return tv
     }
 
-    private fun makeBadge(text: String, color: Int): TextView {
+    /**
+     * 작은 라벨. invert=true 면 검정 배경+흰색 텍스트, false 면 흰색 배경+검정 텍스트+얇은 테두리.
+     */
+    private fun makeBadge(text: String, invert: Boolean): TextView {
+        val bg = if (invert) COLOR_FG else COLOR_BG
+        val fg = if (invert) COLOR_INVERT else COLOR_FG
         return TextView(this).apply {
             this.text = text
-            setTextColor(color)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
+            setTextColor(fg)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setPadding(dp(6), dp(2), dp(6), dp(2))
-            background = roundedBg((color and 0x00FFFFFF) or 0x33000000, 4f)
+            setPadding(dp(8), dp(3), dp(8), dp(3))
+            background = roundedBg(bg, 6f, COLOR_FG, if (invert) 0 else 1)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -405,14 +414,15 @@ class CallerOverlayService : Service() {
         }
         row.addView(TextView(this).apply {
             text = key
-            setTextColor(0x88FFFFFF.toInt())
+            setTextColor(COLOR_FG_FAINT)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
             val lp = LinearLayout.LayoutParams(dp(60), LinearLayout.LayoutParams.WRAP_CONTENT)
             layoutParams = lp
         })
         row.addView(TextView(this).apply {
             text = value
-            setTextColor(Color.WHITE)
+            setTextColor(COLOR_FG)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             maxLines = 2
             layoutParams = LinearLayout.LayoutParams(
@@ -427,11 +437,22 @@ class CallerOverlayService : Service() {
         layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(dpHeight))
     }
 
-    private fun roundedBg(color: Int, radiusDp: Float): GradientDrawable {
+    /**
+     * 둥근 사각형 배경 + 옵션 stroke.
+     */
+    private fun roundedBg(
+        color: Int,
+        radiusDp: Float,
+        strokeColor: Int? = null,
+        strokeDp: Int = 0,
+    ): GradientDrawable {
         return GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             setColor(color)
             cornerRadius = dp(radiusDp.toInt()).toFloat()
+            if (strokeColor != null && strokeDp > 0) {
+                setStroke(dp(strokeDp), strokeColor)
+            }
         }
     }
 
