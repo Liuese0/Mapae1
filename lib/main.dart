@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -91,16 +92,28 @@ class _NameCardAppState extends ConsumerState<NameCardApp> {
   }
 
   Future<void> _initCallerIdIfNeeded() async {
+    // Caller ID는 Android 전용 (phone_state + flutter_overlay_window)
+    if (!Platform.isAndroid) return;
+
     final callerService = ref.read(callerIdServiceProvider);
     final enabled = await callerService.isEnabled;
     if (!enabled) return;
+
+    // 사용자가 '설정' 앱에서 권한을 회수했을 수 있다.
+    // 권한이 없으면 phone_state 스트림이 이벤트를 발생시키지 않으므로
+    // 조용히 종료하고 토글 상태도 false 로 동기화한다.
+    final hasPerms = await callerService.hasRequiredPermissions();
+    if (!hasPerms) {
+      await callerService.setEnabled(false);
+      return;
+    }
 
     final supabaseService = ref.read(supabaseServiceProvider);
     final user = supabaseService.currentUser;
     if (user == null) return;
 
     final cards = await supabaseService.getCollectedCards(user.id, limit: 10000);
-    callerService.buildIndex(collectedCards: cards);
+    await callerService.buildIndex(collectedCards: cards);
     await callerService.startListening();
   }
 

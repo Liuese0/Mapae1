@@ -12,6 +12,7 @@ import '../../features/shared/models/context_tag.dart';
 import '../../features/shared/models/team_invitation.dart';
 import '../../features/shared/models/crm_contact.dart';
 import 'app_exception.dart' as app;
+import 'caller_id_service.dart';
 
 class SupabaseService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -242,7 +243,9 @@ class SupabaseService {
         .insert(card.toJson())
         .select()
         .single();
-    return CollectedCard.fromJson(data);
+    final result = CollectedCard.fromJson(data);
+    _refreshCallerIdCache();
+    return result;
   }
 
   Future<CollectedCard> updateCollectedCard(CollectedCard card) async {
@@ -252,7 +255,9 @@ class SupabaseService {
         .eq('id', card.id)
         .select()
         .single();
-    return CollectedCard.fromJson(data);
+    final result = CollectedCard.fromJson(data);
+    _refreshCallerIdCache();
+    return result;
   }
 
   Future<void> deleteCollectedCard(String cardId) async {
@@ -260,6 +265,7 @@ class SupabaseService {
         .from(SupabaseConstants.collectedCardsTable)
         .delete()
         .eq('id', cardId);
+    _refreshCallerIdCache();
   }
 
   Future<void> toggleFavorite(String cardId, bool isFavorite) async {
@@ -267,6 +273,26 @@ class SupabaseService {
         .from(SupabaseConstants.collectedCardsTable)
         .update({'is_favorite': isFavorite})
         .eq('id', cardId);
+    // 즐겨찾기 토글은 인덱스에 영향이 없지만 imageUrl/이름이 동기화되도록 한 번 더.
+    _refreshCallerIdCache();
+  }
+
+  /// 명함 변경 후 Caller ID 인덱스/캐시를 백그라운드로 새로고침합니다.
+  /// 호출자의 응답 시간을 늘리지 않도록 await 하지 않습니다.
+  void _refreshCallerIdCache() {
+    final user = currentUser;
+    if (user == null) return;
+    Future(() async {
+      try {
+        final caller = CallerIdService();
+        final enabled = await caller.isEnabled;
+        if (!enabled) return;
+        final cards = await getCollectedCards(user.id, limit: 10000);
+        await caller.syncCardsFromList(cards);
+      } catch (_) {
+        // 동기화 실패는 사용자 흐름을 막지 않습니다.
+      }
+    });
   }
 
   Future<int> getCollectedCardCount(String userId) async {

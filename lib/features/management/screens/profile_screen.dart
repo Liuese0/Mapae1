@@ -2,8 +2,9 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -32,9 +33,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _loadCallerIdState() async {
     final service = ref.read(callerIdServiceProvider);
-    final enabled = await service.isEnabled;
+    var enabled = await service.isEnabled;
+
+    // 사용자가 '설정' 앱에서 권한을 회수했을 수 있으므로 실제 상태와 동기화한다.
     if (enabled) {
-      await _buildCallerIdIndex();
+      final hasPerms = await service.hasRequiredPermissions();
+      if (!hasPerms) {
+        await service.setEnabled(false);
+        enabled = false;
+      } else {
+        await _buildCallerIdIndex();
+      }
     }
     if (mounted) {
       setState(() {
@@ -51,23 +60,81 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (user == null) return;
 
     final cards = await supabaseService.getCollectedCards(user.id, limit: 10000);
-    callerService.buildIndex(collectedCards: cards);
+    await callerService.buildIndex(collectedCards: cards);
+  }
+
+  Future<void> _testOverlay(String mode) async {
+    final service = ref.read(callerIdServiceProvider);
+    final prefs = await SharedPreferences.getInstance();
+    final cacheJson = prefs.getString('caller_id_cache_v1');
+    if (cacheJson == null || cacheJson.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('캐시가 비어있습니다 — 명함을 먼저 추가하거나 토글을 다시 켜세요')),
+      );
+      return;
+    }
+    final map = jsonDecode(cacheJson) as Map<String, dynamic>;
+    if (map.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('저장된 명함의 전화번호가 없습니다')),
+      );
+      return;
+    }
+    final firstNumber = map.keys.first;
+    final ok = await service.testOverlay(number: firstNumber, mode: mode);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('표시 실패 — logcat 확인 (number=$firstNumber)')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('미리보기 표시됨 ($firstNumber, $mode)')),
+      );
+      // 5초 후 자동 닫기
+      Future.delayed(const Duration(seconds: 5), () {
+        service.stopOverlay();
+      });
+    }
   }
 
   Future<void> _toggleCallerId(bool value) async {
     final service = ref.read(callerIdServiceProvider);
+    final isKo = Localizations.localeOf(context).languageCode == 'ko';
 
     if (value) {
-      // 오버레이 권한 요청
-      final granted = await FlutterOverlayWindow.isPermissionGranted();
+      // 1) 전화 상태(READ_PHONE_STATE) + 오버레이 권한을 모두 요청한다.
+      //    이 권한이 없으면 phone_state 패키지가 수신 이벤트를 받지 못해
+      //    명함 정보가 절대 표시되지 않는다.
+      final granted = await service.requestRequiredPermissions();
       if (!granted) {
-        final result = await FlutterOverlayWindow.requestPermission();
-        if (result != true) return;
+        if (!mounted) return;
+        // 영구 거부된 경우 설정 화면으로 이동을 제안한다.
+        final phoneStatus = await Permission.phone.status;
+        final permanentlyDenied = phoneStatus.isPermanentlyDenied;
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isKo
+                  ? '전화 상태 / 다른 앱 위에 표시 권한이 필요합니다.'
+                  : 'Phone state and overlay permissions are required.',
+            ),
+            action: permanentlyDenied
+                ? SnackBarAction(
+              label: isKo ? '설정 열기' : 'Settings',
+              onPressed: openAppSettings,
+            )
+                : null,
+          ),
+        );
+        return;
       }
-      // 전화 상태 권한 요청
-      final phoneStatus = await Permission.phone.request();
-      if (!phoneStatus.isGranted) return;
+    }
 
+    if (value) {
       await _buildCallerIdIndex();
     }
     setState(() => _callerIdEnabled = value);
@@ -352,6 +419,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ],
                   ),
                 ),
+                if (_callerIdEnabled) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.preview_outlined, size: 18),
+                          label: const Text('띠 미리보기'),
+                          onPressed: () => _testOverlay('banner'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.contact_phone_outlined, size: 18),
+                          label: const Text('카드 미리보기'),
+                          onPressed: () => _testOverlay('detail'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
 
               const SizedBox(height: 48),
