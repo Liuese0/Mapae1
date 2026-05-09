@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -59,6 +61,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final cards = await supabaseService.getCollectedCards(user.id, limit: 10000);
     await callerService.buildIndex(collectedCards: cards);
+  }
+
+  Future<void> _testOverlay(String mode) async {
+    final service = ref.read(callerIdServiceProvider);
+    final prefs = await SharedPreferences.getInstance();
+    final cacheJson = prefs.getString('caller_id_cache_v1');
+    if (cacheJson == null || cacheJson.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('캐시가 비어있습니다 — 명함을 먼저 추가하거나 토글을 다시 켜세요')),
+      );
+      return;
+    }
+    final map = jsonDecode(cacheJson) as Map<String, dynamic>;
+    if (map.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('저장된 명함의 전화번호가 없습니다')),
+      );
+      return;
+    }
+    final firstNumber = map.keys.first;
+    final ok = await service.testOverlay(number: firstNumber, mode: mode);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('표시 실패 — logcat 확인 (number=$firstNumber)')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('미리보기 표시됨 ($firstNumber, $mode)')),
+      );
+      // 5초 후 자동 닫기
+      Future.delayed(const Duration(seconds: 5), () {
+        service.stopOverlay();
+      });
+    }
   }
 
   Future<void> _toggleCallerId(bool value) async {
@@ -380,6 +419,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ],
                   ),
                 ),
+                if (_callerIdEnabled) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.preview_outlined, size: 18),
+                          label: const Text('띠 미리보기'),
+                          onPressed: () => _testOverlay('banner'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.contact_phone_outlined, size: 18),
+                          label: const Text('카드 미리보기'),
+                          onPressed: () => _testOverlay('detail'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
 
               const SizedBox(height: 48),

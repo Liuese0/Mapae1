@@ -1,7 +1,9 @@
 package com.namecard.mapae
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
@@ -51,6 +53,41 @@ class MainActivity : FlutterActivity() {
                             Manifest.permission.READ_CALL_LOG
                         )
                         result.success(show)
+                    }
+                    "testOverlay" -> {
+                        val mode = call.argument<String>("mode") ?: "banner"
+                        val number = call.argument<String>("number") ?: ""
+                        val info = CallerCache.lookup(this, number)
+                        if (info == null) {
+                            result.error(
+                                "NOT_FOUND",
+                                "No card matched for $number — 캐시 확인 필요",
+                                null
+                            )
+                            return@setMethodCallHandler
+                        }
+                        val svc = Intent(this, CallerOverlayService::class.java).apply {
+                            action = CallerOverlayService.ACTION_SHOW
+                            putExtra(CallerOverlayService.EXTRA_MODE, mode)
+                            putExtra(CallerOverlayService.EXTRA_INFO, info.toString())
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(svc)
+                        } else {
+                            startService(svc)
+                        }
+                        result.success(true)
+                    }
+                    "stopOverlay" -> {
+                        val svc = Intent(this, CallerOverlayService::class.java).apply {
+                            action = CallerOverlayService.ACTION_STOP
+                        }
+                        try {
+                            startService(svc)
+                        } catch (_: Exception) {
+                            stopService(Intent(this, CallerOverlayService::class.java))
+                        }
+                        result.success(true)
                     }
                     else -> result.notImplemented()
                 }

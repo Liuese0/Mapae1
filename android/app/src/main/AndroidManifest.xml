@@ -63,8 +63,7 @@
         <receiver
             android:name=".CallReceiver"
             android:enabled="true"
-            android:exported="true"
-            android:permission="android.permission.BROADCAST_PHONE_STATE">
+            android:exported="true">
             <intent-filter android:priority="999">
                 <action android:name="android.intent.action.PHONE_STATE"/>
             </intent-filter>

@@ -60,6 +60,31 @@ class CallerIdService {
     }
   }
 
+  /// 진단용: 임의의 번호로 오버레이 표시를 시뮬레이션합니다.
+  /// 실제 전화 없이 표시 동작을 확인하기 위함.
+  /// 반환: 정상적으로 시작되면 true, 캐시에 매칭되는 번호가 없으면 false.
+  Future<bool> testOverlay({
+    required String number,
+    String mode = 'banner',
+  }) async {
+    try {
+      final ok = await _nativeChannel.invokeMethod<bool>(
+        'testOverlay',
+        {'number': number, 'mode': mode},
+      );
+      return ok ?? false;
+    } catch (e) {
+      debugPrint('[CallerId] testOverlay error: $e');
+      return false;
+    }
+  }
+
+  Future<void> stopOverlay() async {
+    try {
+      await _nativeChannel.invokeMethod('stopOverlay');
+    } catch (_) {}
+  }
+
   // -------------------- 활성화 토글 --------------------
 
   Future<bool> get isEnabled async {
