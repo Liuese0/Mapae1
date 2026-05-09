@@ -2,7 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -31,9 +31,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _loadCallerIdState() async {
     final service = ref.read(callerIdServiceProvider);
-    final enabled = await service.isEnabled;
+    var enabled = await service.isEnabled;
+
+    // 사용자가 '설정' 앱에서 권한을 회수했을 수 있으므로 실제 상태와 동기화한다.
     if (enabled) {
-      await _buildCallerIdIndex();
+      final hasPerms = await service.hasRequiredPermissions();
+      if (!hasPerms) {
+        await service.setEnabled(false);
+        enabled = false;
+      } else {
+        await _buildCallerIdIndex();
+      }
     }
     if (mounted) {
       setState(() {
@@ -55,13 +63,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _toggleCallerId(bool value) async {
     final service = ref.read(callerIdServiceProvider);
+    final isKo = Localizations.localeOf(context).languageCode == 'ko';
 
     if (value) {
-      // 오버레이 권한 요청
-      final granted = await FlutterOverlayWindow.isPermissionGranted();
+      // 1) 전화 상태(READ_PHONE_STATE) + 오버레이 권한을 모두 요청한다.
+      //    이 권한이 없으면 phone_state 패키지가 수신 이벤트를 받지 못해
+      //    명함 정보가 절대 표시되지 않는다.
+      final granted = await service.requestRequiredPermissions();
       if (!granted) {
-        final result = await FlutterOverlayWindow.requestPermission();
-        if (result != true) return;
+        if (!mounted) return;
+        // 영구 거부된 경우 설정 화면으로 이동을 제안한다.
+        final phoneStatus = await Permission.phone.status;
+        final permanentlyDenied = phoneStatus.isPermanentlyDenied;
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isKo
+                  ? '전화 상태 / 다른 앱 위에 표시 권한이 필요합니다.'
+                  : 'Phone state and overlay permissions are required.',
+            ),
+            action: permanentlyDenied
+                ? SnackBarAction(
+                    label: isKo ? '설정 열기' : 'Settings',
+                    onPressed: openAppSettings,
+                  )
+                : null,
+          ),
+        );
+        return;
       }
     }
 
