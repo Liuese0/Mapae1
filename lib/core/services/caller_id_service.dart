@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:phone_state/phone_state.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -20,6 +21,30 @@ class CallerIdService {
   bool _isListening = false;
 
   static const _prefKey = 'caller_id_enabled';
+  // permission_handler 의 Permission.phone 은 Android 8+ 에서 READ_CALL_LOG 를
+  // 함께 요청하지 않습니다. 네이티브 채널을 통해 직접 처리합니다.
+  static const _nativeChannel =
+      MethodChannel('com.namecard.mapae/permissions');
+
+  Future<bool> _isCallLogGranted() async {
+    try {
+      final result = await _nativeChannel.invokeMethod<bool>('isCallLogGranted');
+      return result ?? false;
+    } catch (e) {
+      debugPrint('[CallerIdService] isCallLogGranted error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _requestCallLog() async {
+    try {
+      final result = await _nativeChannel.invokeMethod<bool>('requestCallLog');
+      return result ?? false;
+    } catch (e) {
+      debugPrint('[CallerIdService] requestCallLog error: $e');
+      return false;
+    }
+  }
 
   /// Caller ID 기능 활성화 여부
   Future<bool> get isEnabled async {
@@ -117,7 +142,7 @@ class CallerIdService {
   /// 런타임에 grant 되어야 BroadcastReceiver 를 등록하고 이벤트를 흘립니다.
   Future<bool> hasRequiredPermissions() async {
     final phoneGranted = await Permission.phone.isGranted;
-    final callLogGranted = await Permission.callLog.isGranted;
+    final callLogGranted = await _isCallLogGranted();
     final overlayGranted = await FlutterOverlayWindow.isPermissionGranted();
     return phoneGranted && callLogGranted && overlayGranted;
   }
@@ -136,13 +161,14 @@ class CallerIdService {
     }
 
     // 2. READ_CALL_LOG — phone_state 플러그인이 발신자 번호를 받기 위해 필수.
-    //    READ_PHONE_STATE 와 별도의 권한 그룹이므로 별도 요청해야 합니다.
-    var callLogStatus = await Permission.callLog.status;
-    if (!callLogStatus.isGranted) {
-      callLogStatus = await Permission.callLog.request();
+    //    Android 8+ 에서는 permission_handler 의 Permission.phone 이 자동으로
+    //    포함하지 않으므로 네이티브 MethodChannel 로 직접 요청합니다.
+    var callLogGranted = await _isCallLogGranted();
+    if (!callLogGranted) {
+      callLogGranted = await _requestCallLog();
     }
-    if (!callLogStatus.isGranted) {
-      debugPrint('[CallerIdService] READ_CALL_LOG denied: $callLogStatus');
+    if (!callLogGranted) {
+      debugPrint('[CallerIdService] READ_CALL_LOG denied');
       return false;
     }
 
@@ -171,7 +197,7 @@ class CallerIdService {
     // BroadcastReceiver 를 등록합니다. 둘 중 하나라도 없으면 스트림이
     // 어떤 이벤트도 발생시키지 않습니다.
     final phoneGranted = await Permission.phone.isGranted;
-    final callLogGranted = await Permission.callLog.isGranted;
+    final callLogGranted = await _isCallLogGranted();
     if (!phoneGranted || !callLogGranted) {
       debugPrint(
         '[CallerIdService] permissions missing — phone:$phoneGranted callLog:$callLogGranted',
