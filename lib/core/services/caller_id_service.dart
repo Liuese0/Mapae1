@@ -113,14 +113,16 @@ class CallerIdService {
   }
 
   /// 필요한 모든 권한이 부여되었는지 확인합니다.
-  /// (READ_PHONE_STATE + SYSTEM_ALERT_WINDOW)
+  /// phone_state 플러그인은 READ_PHONE_STATE + READ_CALL_LOG 가 모두
+  /// 런타임에 grant 되어야 BroadcastReceiver 를 등록하고 이벤트를 흘립니다.
   Future<bool> hasRequiredPermissions() async {
     final phoneGranted = await Permission.phone.isGranted;
+    final callLogGranted = await Permission.callLog.isGranted;
     final overlayGranted = await FlutterOverlayWindow.isPermissionGranted();
-    return phoneGranted && overlayGranted;
+    return phoneGranted && callLogGranted && overlayGranted;
   }
 
-  /// 전화 상태 / 오버레이 권한을 요청합니다.
+  /// 전화 상태 / 통화 기록 / 오버레이 권한을 요청합니다.
   /// 반환: 모든 권한이 허용되면 true.
   Future<bool> requestRequiredPermissions() async {
     // 1. READ_PHONE_STATE (Android 6.0+ 런타임 권한)
@@ -133,7 +135,18 @@ class CallerIdService {
       return false;
     }
 
-    // 2. SYSTEM_ALERT_WINDOW (수신 화면 위에 오버레이를 그리기 위함)
+    // 2. READ_CALL_LOG — phone_state 플러그인이 발신자 번호를 받기 위해 필수.
+    //    READ_PHONE_STATE 와 별도의 권한 그룹이므로 별도 요청해야 합니다.
+    var callLogStatus = await Permission.callLog.status;
+    if (!callLogStatus.isGranted) {
+      callLogStatus = await Permission.callLog.request();
+    }
+    if (!callLogStatus.isGranted) {
+      debugPrint('[CallerIdService] READ_CALL_LOG denied: $callLogStatus');
+      return false;
+    }
+
+    // 3. SYSTEM_ALERT_WINDOW (수신 화면 위에 오버레이를 그리기 위함)
     final overlayGranted = await FlutterOverlayWindow.isPermissionGranted();
     if (!overlayGranted) {
       final requested = await FlutterOverlayWindow.requestPermission();
@@ -153,12 +166,16 @@ class CallerIdService {
     final enabled = await isEnabled;
     if (!enabled) return;
 
-    // READ_PHONE_STATE 런타임 권한 확인 (Android 6.0+)
-    // 매니페스트 선언만으로는 부족하며, 권한이 없으면 phone_state 스트림이
-    // 이벤트를 발생시키지 않습니다.
+    // READ_PHONE_STATE + READ_CALL_LOG 런타임 권한 확인 (Android 6.0+).
+    // phone_state 플러그인의 Android 측 코드는 두 권한이 모두 허용되어야
+    // BroadcastReceiver 를 등록합니다. 둘 중 하나라도 없으면 스트림이
+    // 어떤 이벤트도 발생시키지 않습니다.
     final phoneGranted = await Permission.phone.isGranted;
-    if (!phoneGranted) {
-      debugPrint('[CallerIdService] READ_PHONE_STATE not granted, skip listen');
+    final callLogGranted = await Permission.callLog.isGranted;
+    if (!phoneGranted || !callLogGranted) {
+      debugPrint(
+        '[CallerIdService] permissions missing — phone:$phoneGranted callLog:$callLogGranted',
+      );
       return;
     }
 
