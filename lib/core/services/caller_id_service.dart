@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:phone_state/phone_state.dart';
@@ -10,7 +11,15 @@ import '../../features/shared/models/caller_info.dart';
 import '../../features/shared/models/collected_card.dart';
 import '../../features/shared/models/crm_contact.dart';
 
-/// Caller ID 서비스 - 수신 전화 시 명함 정보를 오버레이로 표시합니다. (Android)
+/// Caller ID 서비스 — 수신 전화 시 명함 정보를 오버레이로 표시합니다. (Android)
+///
+/// 동작:
+///   • 사용자가 명함을 추가/수정/삭제하면 자동으로 인덱스 + 로컬 캐시(SharedPreferences)
+///     를 갱신합니다.
+///   • 앱이 살아있는 동안에는 phone_state 스트림을 통해 수신을 감지하고 오버레이를
+///     띄웁니다.
+///   • 앱이 종료된 상태에서는 native BroadcastReceiver(CallReceiver) 가 동일한
+///     SharedPreferences 캐시를 읽고 오버레이 서비스를 직접 시작합니다.
 class CallerIdService {
   static final CallerIdService _instance = CallerIdService._();
   factory CallerIdService() => _instance;
@@ -19,19 +28,24 @@ class CallerIdService {
   final Map<String, CallerInfo> _lookupIndex = {};
   StreamSubscription? _phoneStateSubscription;
   bool _isListening = false;
+  bool _overlayVisible = false;
+  CallerInfo? _currentCaller;
 
-  static const _prefKey = 'caller_id_enabled';
-  // permission_handler 의 Permission.phone 은 Android 8+ 에서 READ_CALL_LOG 를
-  // 함께 요청하지 않습니다. 네이티브 채널을 통해 직접 처리합니다.
+  // SharedPreferences 키 (네이티브에서도 동일한 이름으로 읽음)
+  static const _prefEnabledKey = 'caller_id_enabled';
+  static const _prefCacheKey = 'caller_id_cache_v1';
+
   static const _nativeChannel =
       MethodChannel('com.namecard.mapae/permissions');
+
+  // -------------------- 권한 헬퍼 (네이티브) --------------------
 
   Future<bool> _isCallLogGranted() async {
     try {
       final result = await _nativeChannel.invokeMethod<bool>('isCallLogGranted');
       return result ?? false;
     } catch (e) {
-      debugPrint('[CallerIdService] isCallLogGranted error: $e');
+      debugPrint('[CallerId] isCallLogGranted error: $e');
       return false;
     }
   }
@@ -41,21 +55,21 @@ class CallerIdService {
       final result = await _nativeChannel.invokeMethod<bool>('requestCallLog');
       return result ?? false;
     } catch (e) {
-      debugPrint('[CallerIdService] requestCallLog error: $e');
+      debugPrint('[CallerId] requestCallLog error: $e');
       return false;
     }
   }
 
-  /// Caller ID 기능 활성화 여부
+  // -------------------- 활성화 토글 --------------------
+
   Future<bool> get isEnabled async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_prefKey) ?? false;
+    return prefs.getBool(_prefEnabledKey) ?? false;
   }
 
-  /// 활성화/비활성화 토글
   Future<void> setEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefKey, enabled);
+    await prefs.setBool(_prefEnabledKey, enabled);
     if (enabled) {
       await startListening();
     } else {
@@ -63,14 +77,16 @@ class CallerIdService {
     }
   }
 
-  /// 수집한 명함 + CRM 연락처로 전화번호 인덱스를 구축합니다.
-  void buildIndex({
+  // -------------------- 인덱스 + 로컬 캐시 --------------------
+
+  /// 수집한 명함 + CRM 연락처로 전화번호 인덱스와 SharedPreferences 캐시를
+  /// 동시에 구축합니다. 캐시는 네이티브 BroadcastReceiver 가 그대로 읽습니다.
+  Future<void> buildIndex({
     List<CollectedCard>? collectedCards,
     List<CrmContact>? crmContacts,
-  }) {
+  }) async {
     _lookupIndex.clear();
 
-    // 수집한 명함
     if (collectedCards != null) {
       for (final card in collectedCards) {
         _addToIndex(
@@ -79,14 +95,16 @@ class CallerIdService {
             name: card.name ?? '',
             company: card.company,
             position: card.position,
+            department: card.department,
+            email: card.email,
             imageUrl: card.imageUrl,
+            memo: card.memo,
             source: 'collected',
           ),
         );
       }
     }
 
-    // CRM 연락처
     if (crmContacts != null) {
       for (final contact in crmContacts) {
         _addToIndex(
@@ -101,7 +119,8 @@ class CallerIdService {
       }
     }
 
-    debugPrint('[CallerIdService] Index built: ${_lookupIndex.length} numbers');
+    await _persistCache();
+    debugPrint('[CallerId] Index built: ${_lookupIndex.length} numbers');
   }
 
   void _addToIndex({required List<String?> phones, required CallerInfo info}) {
@@ -114,16 +133,32 @@ class CallerIdService {
     }
   }
 
-  /// 전화번호로 명함 정보를 조회합니다.
+  Future<void> _persistCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final map = <String, dynamic>{};
+      _lookupIndex.forEach((number, info) {
+        map[number] = info.toJson();
+      });
+      await prefs.setString(_prefCacheKey, jsonEncode(map));
+    } catch (e) {
+      debugPrint('[CallerId] persistCache error: $e');
+    }
+  }
+
+  /// 외부에서 호출하는 동기화 헬퍼.
+  /// 명함이 추가/수정/삭제된 직후 호출하여 인덱스 + 캐시를 최신화합니다.
+  Future<void> syncCardsFromList(List<CollectedCard> cards,
+      {List<CrmContact>? crmContacts}) async {
+    await buildIndex(collectedCards: cards, crmContacts: crmContacts);
+  }
+
+  /// 전화번호로 명함 정보를 조회합니다. (앱이 살아있을 때 사용)
   CallerInfo? lookupNumber(String incomingNumber) {
     final normalized = normalizePhone(incomingNumber);
-
-    // 정확한 매칭
     if (_lookupIndex.containsKey(normalized)) {
       return _lookupIndex[normalized];
     }
-
-    // 뒤 8자리 매칭 (국가코드 차이 대응)
     if (normalized.length >= 8) {
       final suffix = normalized.substring(normalized.length - 8);
       for (final entry in _lookupIndex.entries) {
@@ -133,13 +168,13 @@ class CallerIdService {
         }
       }
     }
-
     return null;
   }
 
+  // -------------------- 권한 요청 --------------------
+
   /// 필요한 모든 권한이 부여되었는지 확인합니다.
-  /// phone_state 플러그인은 READ_PHONE_STATE + READ_CALL_LOG 가 모두
-  /// 런타임에 grant 되어야 BroadcastReceiver 를 등록하고 이벤트를 흘립니다.
+  /// (READ_PHONE_STATE + READ_CALL_LOG + SYSTEM_ALERT_WINDOW)
   Future<bool> hasRequiredPermissions() async {
     final phoneGranted = await Permission.phone.isGranted;
     final callLogGranted = await _isCallLogGranted();
@@ -148,124 +183,149 @@ class CallerIdService {
   }
 
   /// 전화 상태 / 통화 기록 / 오버레이 권한을 요청합니다.
-  /// 반환: 모든 권한이 허용되면 true.
   Future<bool> requestRequiredPermissions() async {
-    // 1. READ_PHONE_STATE (Android 6.0+ 런타임 권한)
     var phoneStatus = await Permission.phone.status;
     if (!phoneStatus.isGranted) {
       phoneStatus = await Permission.phone.request();
     }
     if (!phoneStatus.isGranted) {
-      debugPrint('[CallerIdService] READ_PHONE_STATE denied: $phoneStatus');
+      debugPrint('[CallerId] READ_PHONE_STATE denied: $phoneStatus');
       return false;
     }
 
-    // 2. READ_CALL_LOG — phone_state 플러그인이 발신자 번호를 받기 위해 필수.
-    //    Android 8+ 에서는 permission_handler 의 Permission.phone 이 자동으로
-    //    포함하지 않으므로 네이티브 MethodChannel 로 직접 요청합니다.
     var callLogGranted = await _isCallLogGranted();
     if (!callLogGranted) {
       callLogGranted = await _requestCallLog();
     }
     if (!callLogGranted) {
-      debugPrint('[CallerIdService] READ_CALL_LOG denied');
+      debugPrint('[CallerId] READ_CALL_LOG denied');
       return false;
     }
 
-    // 3. SYSTEM_ALERT_WINDOW (수신 화면 위에 오버레이를 그리기 위함)
     final overlayGranted = await FlutterOverlayWindow.isPermissionGranted();
     if (!overlayGranted) {
       final requested = await FlutterOverlayWindow.requestPermission();
       if (requested != true) {
-        debugPrint('[CallerIdService] Overlay permission denied');
+        debugPrint('[CallerId] Overlay permission denied');
         return false;
       }
     }
-
     return true;
   }
 
-  /// 전화 상태 모니터링을 시작합니다.
+  // -------------------- 전화 상태 리스너 --------------------
+  //
+  // 네이티브 BroadcastReceiver(CallReceiver) 가 앱 종료 상태를 포함한 모든
+  // 시나리오에서 PHONE_STATE 를 처리하므로, Flutter 측 phone_state 스트림은
+  // 더 이상 사용하지 않습니다. 단, 권한 체크/로그 일관성을 위해 startListening
+  // 진입점은 그대로 유지합니다 (실제 native 측에서 동작 검증).
+
   Future<void> startListening() async {
     if (_isListening) return;
 
     final enabled = await isEnabled;
     if (!enabled) return;
 
-    // READ_PHONE_STATE + READ_CALL_LOG 런타임 권한 확인 (Android 6.0+).
-    // phone_state 플러그인의 Android 측 코드는 두 권한이 모두 허용되어야
-    // BroadcastReceiver 를 등록합니다. 둘 중 하나라도 없으면 스트림이
-    // 어떤 이벤트도 발생시키지 않습니다.
     final phoneGranted = await Permission.phone.isGranted;
     final callLogGranted = await _isCallLogGranted();
     if (!phoneGranted || !callLogGranted) {
       debugPrint(
-        '[CallerIdService] permissions missing — phone:$phoneGranted callLog:$callLogGranted',
+        '[CallerId] permissions missing — phone:$phoneGranted callLog:$callLogGranted',
       );
       return;
     }
 
-    // 오버레이 권한 확인
     final hasOverlayPermission =
         await FlutterOverlayWindow.isPermissionGranted();
     if (!hasOverlayPermission) {
-      debugPrint('[CallerIdService] Overlay permission not granted');
+      debugPrint('[CallerId] Overlay permission not granted');
       return;
     }
 
-    _phoneStateSubscription = PhoneState.stream.listen((event) {
-      if (event.status == PhoneStateStatus.CALL_INCOMING) {
-        final number = event.number;
-        if (number != null && number.isNotEmpty) {
-          final info = lookupNumber(number);
-          if (info != null) {
-            _showOverlay(info);
-          }
-        }
-      } else if (event.status == PhoneStateStatus.CALL_ENDED) {
-        _hideOverlay();
-      }
-    }, onError: (e) {
-      debugPrint('[CallerIdService] PhoneState stream error: $e');
-    });
-
     _isListening = true;
-    debugPrint('[CallerIdService] Listening started');
+    debugPrint('[CallerId] Active (native receiver handles incoming calls)');
   }
 
-  /// 전화 상태 모니터링을 중지합니다.
+  // ignore: unused_element
+  void _onPhoneEvent(PhoneState event) {
+    debugPrint('[CallerId] (legacy) event status=${event.status}');
+    if (event.status == PhoneStateStatus.CALL_INCOMING) {
+      final number = event.number;
+      if (number == null || number.isEmpty) return;
+      final info = lookupNumber(number);
+      if (info != null) {
+        _currentCaller = info;
+        _showOverlay(info, OverlayMode.banner);
+      }
+    } else if (event.status == PhoneStateStatus.CALL_STARTED) {
+      if (_currentCaller != null) {
+        _showOverlay(_currentCaller!, OverlayMode.detail);
+      }
+    } else if (event.status == PhoneStateStatus.CALL_ENDED) {
+      _hideOverlay();
+      _currentCaller = null;
+    }
+  }
+
   void stopListening() {
     _phoneStateSubscription?.cancel();
     _phoneStateSubscription = null;
     _isListening = false;
-    debugPrint('[CallerIdService] Listening stopped');
+    debugPrint('[CallerId] Listening stopped');
   }
 
-  Future<void> _showOverlay(CallerInfo info) async {
+  // -------------------- 오버레이 --------------------
+
+  Future<void> _showOverlay(CallerInfo info, OverlayMode mode) async {
     try {
+      // 기존 오버레이가 있다면 닫고 다시 띄움 (사이즈 변경 위해)
+      if (_overlayVisible) {
+        await FlutterOverlayWindow.closeOverlay();
+        _overlayVisible = false;
+      }
+
+      final isDetail = mode == OverlayMode.detail;
       await FlutterOverlayWindow.showOverlay(
-        height: 180,
+        height: isDetail ? 360 : 110,
         width: WindowSize.matchParent,
         alignment: OverlayAlignment.topCenter,
         enableDrag: true,
+        flag: OverlayFlag.defaultFlag,
+        overlayTitle: 'Mapae Caller ID',
       );
-      // 오버레이에 데이터 전달
+      _overlayVisible = true;
+
+      // 오버레이 isolate 가 listener 를 등록할 시간을 잠깐 줍니다.
+      await Future.delayed(const Duration(milliseconds: 250));
+
       await FlutterOverlayWindow.shareData({
+        'mode': isDetail ? 'detail' : 'banner',
         'name': info.name,
         'company': info.company ?? '',
         'position': info.position ?? '',
+        'department': info.department ?? '',
+        'email': info.email ?? '',
+        'imageUrl': info.imageUrl ?? '',
+        'memo': info.memo ?? '',
         'source': info.source,
       });
+      debugPrint('[CallerId] overlay shown mode=${mode.name} name=${info.name}');
     } catch (e) {
-      debugPrint('[CallerIdService] Overlay error: $e');
+      debugPrint('[CallerId] Overlay error: $e');
     }
   }
 
   Future<void> _hideOverlay() async {
     try {
-      await FlutterOverlayWindow.closeOverlay();
+      if (_overlayVisible) {
+        await FlutterOverlayWindow.closeOverlay();
+        _overlayVisible = false;
+        debugPrint('[CallerId] overlay closed');
+      }
     } catch (e) {
-      debugPrint('[CallerIdService] Hide overlay error: $e');
+      debugPrint('[CallerId] Hide overlay error: $e');
     }
   }
 }
+
+enum OverlayMode { banner, detail }

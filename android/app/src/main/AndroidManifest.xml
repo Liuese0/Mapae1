@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.READ_CALL_LOG"/>
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
 
     <application
         android:label="Mapae"
@@ -54,6 +56,28 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-6396556471310927~1698372543"/>
+
+        <!-- Caller ID — 앱이 종료된 상태에서도 수신 전화를 감지하기 위한
+             정적 BroadcastReceiver. 시스템이 PHONE_STATE 브로드캐스트를 보내면
+             앱 프로세스를 깨워 receiver 가 실행됩니다. -->
+        <receiver
+            android:name=".CallReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_PHONE_STATE">
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.PHONE_STATE"/>
+            </intent-filter>
+        </receiver>
+        <service
+            android:name=".CallerOverlayService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="caller_id_overlay"/>
+        </service>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

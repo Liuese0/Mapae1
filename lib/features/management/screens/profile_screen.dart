@@ -58,7 +58,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (user == null) return;
 
     final cards = await supabaseService.getCollectedCards(user.id, limit: 10000);
-    callerService.buildIndex(collectedCards: cards);
+    await callerService.buildIndex(collectedCards: cards);
   }
 
   Future<void> _toggleCallerId(bool value) async {

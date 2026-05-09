@@ -113,7 +113,7 @@ class _NameCardAppState extends ConsumerState<NameCardApp> {
     if (user == null) return;
 
     final cards = await supabaseService.getCollectedCards(user.id, limit: 10000);
-    callerService.buildIndex(collectedCards: cards);
+    await callerService.buildIndex(collectedCards: cards);
     await callerService.startListening();
   }
 
