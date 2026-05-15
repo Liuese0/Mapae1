@@ -118,5 +118,11 @@
   "favoritesOnly": "즐겨찾기만",
   "themeLight": "라이트",
   "themeDark": "다크",
-  "themeSystem": "시스템"
+  "themeSystem": "시스템",
+  "saveToContactsTitle": "연락처에 저장하시겠습니까?",
+  "saveToContactsBody": "이 명함을 휴대폰 연락처에도 저장합니다.",
+  "saveToContactsYes": "저장",
+  "saveToContactsNo": "안 함",
+  "saveToContactsSuccess": "연락처에 저장되었습니다",
+  "saveToContactsFailure": "연락처 저장 실패"
 }

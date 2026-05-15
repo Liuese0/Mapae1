@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/utils/save_to_contacts_dialog.dart';
 import '../../../core/utils/validators.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
@@ -257,6 +258,11 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).saved)),
         );
+
+        if (!mounted) return;
+        await promptSaveToContacts(context, ref, updated);
+        if (!mounted) return;
+
         context.pop();
       }
     } catch (e) {
