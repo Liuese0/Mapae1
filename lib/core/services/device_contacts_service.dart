@@ -34,14 +34,18 @@ class DeviceContactsService {
     }
   }
 
-  /// [extraNotes] 는 ContextTag 의 비표준 커스텀 필드를 "필드명: 값\n…" 으로
-  /// 직렬화한 문자열. CollectedCard.memo 와 합쳐서 하나의 Note 로 저장한다.
+  /// 네이티브 연락처 앱의 "새 연락처" 화면을 미리 채워서 띄운다.
   ///
-  /// 반환: 성공 시 null, 실패 시 에러 문자열 (스낵바에 표시하기 위함).
+  /// 직접 insert 를 호출하면 일부 OEM(삼성 등) 에서 계정 미지정 시 보이지 않는
+  /// "기기 전용" 계정으로 들어가 사용자가 못 찾는 문제가 있다.
+  /// 시스템 UI 를 띄우면 사용자가 계정을 선택해 본인이 보이는 곳에 저장하게 되어 가장 확실하다.
+  ///
+  /// 반환: 성공적으로 시스템 UI 를 띄웠으면 null, 실패 시 에러 문자열.
   Future<String?> saveToDeviceContacts(
       CollectedCard card, {
         String extraNotes = '',
       }) async {
+    debugPrint('[DeviceContacts] saveToDeviceContacts start name=${card.name}');
     try {
       final mergedNote = [
         if ((card.memo ?? '').trim().isNotEmpty) card.memo!.trim(),
@@ -60,6 +64,7 @@ class DeviceContactsService {
           (card.department ?? '').isNotEmpty ||
           mergedNote.isNotEmpty;
       if (!hasAnyContent) {
+        debugPrint('[DeviceContacts] empty card, abort');
         return 'empty card';
       }
 
@@ -99,12 +104,14 @@ class DeviceContactsService {
           if (mergedNote.isNotEmpty) Note(mergedNote),
         ];
 
-      final inserted = await FlutterContacts.insertContact(contact);
-      debugPrint('[DeviceContacts] inserted id=${inserted.id} '
-          'displayName=${inserted.displayName}');
+      debugPrint('[DeviceContacts] launching system insert UI '
+          'phones=${contact.phones.length} emails=${contact.emails.length} '
+          'addrs=${contact.addresses.length}');
+      await FlutterContacts.openExternalInsert(contact);
+      debugPrint('[DeviceContacts] system insert UI closed');
       return null;
     } catch (e, st) {
-      debugPrint('[DeviceContacts] insert failed: $e\n$st');
+      debugPrint('[DeviceContacts] openExternalInsert failed: $e\n$st');
       return e.toString();
     }
   }
