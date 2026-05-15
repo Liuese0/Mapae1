@@ -458,6 +458,14 @@ abstract class AppLocalizations {
   String get exportBusinessCards;
   String get exportCrmContacts;
   String get noDataToExport;
+
+  // ── Save to native contacts ──
+  String get saveToContactsTitle;
+  String get saveToContactsBody;
+  String get saveToContactsYes;
+  String get saveToContactsNo;
+  String get saveToContactsSuccess;
+  String get saveToContactsFailure;
 }
 
 class _AppLocalizationsDelegate
@@ -907,6 +915,14 @@ class AppLocalizationsKo extends AppLocalizations {
   @override String get exportBusinessCards => '명함 내보내기';
   @override String get exportCrmContacts => 'CRM 연락처 내보내기';
   @override String get noDataToExport => '내보낼 데이터가 없습니다';
+
+  // ── Save to native contacts ──
+  @override String get saveToContactsTitle => '연락처에 저장하시겠습니까?';
+  @override String get saveToContactsBody => '이 명함을 휴대폰 연락처에도 저장합니다.';
+  @override String get saveToContactsYes => '저장';
+  @override String get saveToContactsNo => '안 함';
+  @override String get saveToContactsSuccess => '연락처에 저장되었습니다';
+  @override String get saveToContactsFailure => '연락처 저장 실패';
 }
 
 // ──────────────── English ────────────────
@@ -1345,4 +1361,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override String get exportBusinessCards => 'Export business cards';
   @override String get exportCrmContacts => 'Export CRM contacts';
   @override String get noDataToExport => 'No data to export';
+
+  // ── Save to native contacts ──
+  @override String get saveToContactsTitle => 'Save to contacts?';
+  @override String get saveToContactsBody => "Also save this card to your phone's contacts.";
+  @override String get saveToContactsYes => 'Save';
+  @override String get saveToContactsNo => 'Not now';
+  @override String get saveToContactsSuccess => 'Saved to contacts';
+  @override String get saveToContactsFailure => 'Failed to save contact';
 }
