@@ -118,5 +118,11 @@
   "favoritesOnly": "仅收藏",
   "themeLight": "浅色",
   "themeDark": "深色",
-  "themeSystem": "系统"
+  "themeSystem": "系统",
+  "saveToContactsTitle": "是否保存到联系人?",
+  "saveToContactsBody": "也将此名片保存到手机联系人。",
+  "saveToContactsYes": "保存",
+  "saveToContactsNo": "暂不",
+  "saveToContactsSuccess": "已保存到联系人",
+  "saveToContactsFailure": "保存联系人失败"
 }
