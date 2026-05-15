@@ -1,5 +1,6 @@
 package com.namecard.mapae
 
+import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -23,6 +24,7 @@ class CallReceiver : BroadcastReceiver() {
         private const val PREFS = "FlutterSharedPreferences"
         private const val KEY_ENABLED = "flutter.caller_id_enabled"
         private const val KEY_LAST_NUMBER = "flutter.caller_id_last_number"
+        private const val KEY_APP_FOREGROUND = "flutter.caller_id_app_foreground"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -69,8 +71,21 @@ class CallReceiver : BroadcastReceiver() {
                     Log.d(TAG, "no card matched")
                     return
                 }
-                Log.d(TAG, "matched: ${info.optString("name")}")
-                startService(context, "banner", info.toString())
+
+                // 시스템 전화 UI 가 heads-up(상단 작은 띠) 인지, full-screen 인지에 따라
+                // 우리 띠 위치를 바꾼다.
+                //   - Mapae 앱 포그라운드 + 잠금 해제 + 화면 켜짐 → heads-up 으로 추정 → 하단 띠
+                //   - 그 외(백그라운드/잠금화면/화면 꺼짐)            → full-screen 으로 추정 → 상단 띠
+                val appForeground = prefs.getBoolean(KEY_APP_FOREGROUND, false)
+                val km = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+                val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                val isFullscreen = !appForeground || km.isKeyguardLocked || !pm.isInteractive
+                val mode = if (isFullscreen) "banner_top" else "banner"
+                Log.d(
+                    TAG,
+                    "matched: ${info.optString("name")} mode=$mode fg=$appForeground locked=${km.isKeyguardLocked} interactive=${pm.isInteractive}"
+                )
+                startService(context, mode, info.toString())
             }
             TelephonyManager.EXTRA_STATE_OFFHOOK -> {
                 // 발신은 RINGING 없이 OFFHOOK 으로 시작 — 그 경우는 표시하지 않음.

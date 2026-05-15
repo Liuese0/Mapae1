@@ -8,6 +8,7 @@ import 'core/services/ad_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
@@ -79,16 +80,36 @@ class NameCardApp extends ConsumerStatefulWidget {
   ConsumerState<NameCardApp> createState() => _NameCardAppState();
 }
 
-class _NameCardAppState extends ConsumerState<NameCardApp> {
+class _NameCardAppState extends ConsumerState<NameCardApp>
+    with WidgetsBindingObserver {
   late final AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // 앱 실행 직후엔 포그라운드 상태로 간주. 이후 라이프사이클 콜백에서 갱신.
+    _writeForegroundFlag(true);
     _appLinks = AppLinks();
     _initDeepLinks();
     _initCallerIdIfNeeded();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _writeForegroundFlag(state == AppLifecycleState.resumed);
+  }
+
+  /// 네이티브 CallReceiver 가 시스템 전화 UI 의 heads-up / full-screen 모드를
+  /// 추정해 우리 띠 위치를 결정할 때 참조한다. (key 는 native 측에서
+  /// `flutter.caller_id_app_foreground` 로 읽힘)
+  Future<void> _writeForegroundFlag(bool isForeground) async {
+    if (!Platform.isAndroid) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('caller_id_app_foreground', isForeground);
+    } catch (_) {}
   }
 
   Future<void> _initCallerIdIfNeeded() async {
@@ -142,6 +163,8 @@ class _NameCardAppState extends ConsumerState<NameCardApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _writeForegroundFlag(false);
     _linkSubscription?.cancel();
     super.dispose();
   }

@@ -30,8 +30,9 @@ import org.json.JSONObject
  *   • 텍스트는 검정, 강조(라벨/아바타/닫기)는 검정 배경 + 흰색 텍스트
  *
  * 위치:
- *   • banner (수신 중)  — 화면 맨 아래 (응답/거절 버튼 바로 위)
- *   • detail (통화 중)  — 화면 맨 위 (상태 표시줄 바로 아래)
+ *   • banner      (수신, 앱 foreground)        — 화면 맨 아래 (시스템 heads-up 띠와 공존)
+ *   • banner_top  (수신, 앱 background/잠금화면) — 화면 맨 위 (시스템 full-screen UI 의 응답/거절 버튼 회피)
+ *   • detail      (통화 중)                     — 화면 맨 위 (상태 표시줄 바로 아래)
  */
 class CallerOverlayService : Service() {
 
@@ -172,11 +173,13 @@ class CallerOverlayService : Service() {
         }
 
         // 모드별 위치/크기
-        //   banner (수신 중)  : 화면 맨 아래 (응답/거절 버튼 바로 위 빈 공간)
-        //   detail (통화 중)  : 화면 맨 위 (상태 표시줄 바로 아래)
+        //   banner      (수신 + 앱 foreground/heads-up) : 화면 맨 아래
+        //   banner_top  (수신 + 앱 background/full-screen) : 화면 맨 위
+        //   detail      (통화 중)                          : 화면 맨 위
         val isDetail = mode == "detail"
+        val isBannerTop = mode == "banner_top"
         val height = if (isDetail) dp(320) else dp(96)
-        val verticalGravity = if (isDetail) Gravity.TOP else Gravity.BOTTOM
+        val verticalGravity = if (isDetail || isBannerTop) Gravity.TOP else Gravity.BOTTOM
         val yOffset = dp(24)
 
         val params = WindowManager.LayoutParams(
@@ -195,7 +198,7 @@ class CallerOverlayService : Service() {
         try {
             windowManager?.addView(view, params)
             overlay = view
-            Log.d(TAG, "overlay added mode=$mode gravity=${if (isDetail) "TOP" else "BOTTOM"} y=$yOffset name=${info.optString("name")}")
+            Log.d(TAG, "overlay added mode=$mode gravity=${if (isDetail || isBannerTop) "TOP" else "BOTTOM"} y=$yOffset name=${info.optString("name")}")
         } catch (e: Exception) {
             Log.e(TAG, "addView failed: $e")
         }
