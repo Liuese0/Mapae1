@@ -1,5 +1,6 @@
 package com.namecard.mapae
 
+import android.app.ActivityManager
 import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -76,14 +77,21 @@ class CallReceiver : BroadcastReceiver() {
                 // 우리 띠 위치를 바꾼다.
                 //   - Mapae 앱 포그라운드 + 잠금 해제 + 화면 켜짐 → heads-up 으로 추정 → 하단 띠
                 //   - 그 외(백그라운드/잠금화면/화면 꺼짐)            → full-screen 으로 추정 → 상단 띠
-                val appForeground = prefs.getBoolean(KEY_APP_FOREGROUND, false)
+                //
+                // foreground 판정은 두 신호를 합산:
+                //   (1) MainActivity.onResume/onPause 가 동기 commit() 한 SharedPreferences 플래그
+                //   (2) ActivityManager.runningAppProcesses 의 importance — 실시간 신호.
+                // (2) 가 IMPORTANCE_FOREGROUND 가 아니면 실제로 포그라운드가 아니므로 무조건 false 로 본다.
+                val appForegroundFlag = prefs.getBoolean(KEY_APP_FOREGROUND, false)
+                val appForegroundLive = isOwnAppForeground(context)
+                val appForeground = appForegroundFlag && appForegroundLive
                 val km = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
                 val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
                 val isFullscreen = !appForeground || km.isKeyguardLocked || !pm.isInteractive
                 val mode = if (isFullscreen) "banner_top" else "banner"
                 Log.d(
                     TAG,
-                    "matched: ${info.optString("name")} mode=$mode fg=$appForeground locked=${km.isKeyguardLocked} interactive=${pm.isInteractive}"
+                    "matched: ${info.optString("name")} mode=$mode fgFlag=$appForegroundFlag fgLive=$appForegroundLive locked=${km.isKeyguardLocked} interactive=${pm.isInteractive}"
                 )
                 startService(context, mode, info.toString())
             }
@@ -107,6 +115,24 @@ class CallReceiver : BroadcastReceiver() {
                     context.stopService(Intent(context, CallerOverlayService::class.java))
                 }
             }
+        }
+    }
+
+    /**
+     * 우리 앱이 현재 포그라운드(사용자에게 보이는 활동) 인지 실시간으로 확인.
+     *
+     * `getRunningAppProcesses()` 는 Android 5+ 부터 자신의 패키지 process 만
+     * 반환하므로 외부 권한 없이도 우리 process 의 importance 를 안정적으로 확인할 수 있다.
+     */
+    private fun isOwnAppForeground(context: Context): Boolean {
+        return try {
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val procs = am.runningAppProcesses ?: return false
+            val ours = procs.firstOrNull { it.processName == context.packageName }
+                ?: return false
+            ours.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        } catch (_: Throwable) {
+            false
         }
     }
 

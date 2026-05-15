@@ -128,4 +128,28 @@ class MainActivity : FlutterActivity() {
             pendingResult = null
         }
     }
+
+    // ── App foreground 추적 ──
+    // Flutter WidgetsBindingObserver 는 이벤트 채널을 거쳐 비동기로 전달되어
+    // 수신 broadcast 보다 늦게 도착할 수 있다. Activity 라이프사이클에서 직접
+    // SharedPreferences 를 갱신하면 CallReceiver 가 즉시 최신 값을 읽는다.
+
+    override fun onResume() {
+        super.onResume()
+        writeForegroundFlag(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        writeForegroundFlag(false)
+    }
+
+    private fun writeForegroundFlag(isForeground: Boolean) {
+        try {
+            getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("flutter.caller_id_app_foreground", isForeground)
+                .commit() // 동기 — 다음 broadcast 까지 반드시 반영되도록
+        } catch (_: Throwable) {}
+    }
 }
