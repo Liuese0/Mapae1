@@ -22,9 +22,23 @@ class DeviceContactsService {
     await prefs.setStringList(_seenKey, [...list, id]);
   }
 
+  /// flutter_contacts 자체 권한 API 를 사용한다.
+  /// permission_handler 의 `Permission.contacts` 는 Android 에서 READ 만
+  /// 보장되는 경우가 있어 WRITE 가 빠져 insert 가 silent fail 한다.
+  Future<bool> requestPermission() async {
+    try {
+      return await FlutterContacts.requestPermission(readonly: false);
+    } catch (e) {
+      debugPrint('[DeviceContacts] requestPermission failed: $e');
+      return false;
+    }
+  }
+
   /// [extraNotes] 는 ContextTag 의 비표준 커스텀 필드를 "필드명: 값\n…" 으로
   /// 직렬화한 문자열. CollectedCard.memo 와 합쳐서 하나의 Note 로 저장한다.
-  Future<bool> saveToDeviceContacts(
+  ///
+  /// 반환: 성공 시 null, 실패 시 에러 문자열 (스낵바에 표시하기 위함).
+  Future<String?> saveToDeviceContacts(
       CollectedCard card, {
         String extraNotes = '',
       }) async {
@@ -33,6 +47,21 @@ class DeviceContactsService {
         if ((card.memo ?? '').trim().isNotEmpty) card.memo!.trim(),
         if (extraNotes.trim().isNotEmpty) extraNotes.trim(),
       ].join('\n');
+
+      final hasAnyContent = (card.name ?? '').isNotEmpty ||
+          (card.mobile ?? '').isNotEmpty ||
+          (card.phone ?? '').isNotEmpty ||
+          (card.fax ?? '').isNotEmpty ||
+          (card.email ?? '').isNotEmpty ||
+          (card.address ?? '').isNotEmpty ||
+          (card.website ?? '').isNotEmpty ||
+          (card.company ?? '').isNotEmpty ||
+          (card.position ?? '').isNotEmpty ||
+          (card.department ?? '').isNotEmpty ||
+          mergedNote.isNotEmpty;
+      if (!hasAnyContent) {
+        return 'empty card';
+      }
 
       final contact = Contact()
         ..name.first = card.name ?? ''
@@ -70,11 +99,13 @@ class DeviceContactsService {
           if (mergedNote.isNotEmpty) Note(mergedNote),
         ];
 
-      await contact.insert();
-      return true;
-    } catch (e) {
-      debugPrint('[DeviceContacts] insert failed: $e');
-      return false;
+      final inserted = await FlutterContacts.insertContact(contact);
+      debugPrint('[DeviceContacts] inserted id=${inserted.id} '
+          'displayName=${inserted.displayName}');
+      return null;
+    } catch (e, st) {
+      debugPrint('[DeviceContacts] insert failed: $e\n$st');
+      return e.toString();
     }
   }
 }

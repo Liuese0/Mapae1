@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../../features/shared/models/collected_card.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -44,8 +43,11 @@ Future<void> promptSaveToContacts(
 
   if (yes != true) return;
 
-  final status = await Permission.contacts.request();
-  if (!status.isGranted) {
+  // flutter_contacts 자체 권한 API — READ 와 WRITE 를 함께 요청한다.
+  // (permission_handler 의 Permission.contacts 만으로는 Android 에서 WRITE 가
+  //  빠져 insert 가 silent fail 하는 경우가 있음.)
+  final granted = await svc.requestPermission();
+  if (!granted) {
     messenger.showSnackBar(
       SnackBar(content: Text(l10n.saveToContactsFailure)),
     );
@@ -71,12 +73,15 @@ Future<void> promptSaveToContacts(
   }
   final extraNotes = extraLines.join('\n');
 
-  final ok = await svc.saveToDeviceContacts(card, extraNotes: extraNotes);
+  final error = await svc.saveToDeviceContacts(card, extraNotes: extraNotes);
   messenger.showSnackBar(
     SnackBar(
       content: Text(
-        ok ? l10n.saveToContactsSuccess : l10n.saveToContactsFailure,
+        error == null
+            ? l10n.saveToContactsSuccess
+            : '${l10n.saveToContactsFailure}: $error',
       ),
+      duration: const Duration(seconds: 5),
     ),
   );
 }
