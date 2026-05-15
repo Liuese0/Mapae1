@@ -30,8 +30,12 @@ import org.json.JSONObject
  *   • 텍스트는 검정, 강조(라벨/아바타/닫기)는 검정 배경 + 흰색 텍스트
  *
  * 위치:
- *   • banner (수신 중)  — 화면 최상단 (기존 통화 수신 화면의 발신자 정보 위)
- *   • detail (통화 중)  — 화면 상단 1/3 지점 (통화 화면 이름 영역 바로 아래)
+ *   • banner (수신 중)  — 화면 하단부 (수신 화면의 발신자 이름/번호 영역과
+ *                       응답/거절 버튼 사이의 빈 공간)
+ *   • detail (통화 중)  — 화면 중하단 (통화 화면 이름/아바타 아래)
+ *
+ * 위 두 모드 모두 시스템 통화 위젯(발신자 이름, 번호, 액션 버튼)을 가리지 않으면서
+ * 명함이 가려지지도 않도록 시스템 통화 UI가 비워두는 영역에 배치됩니다.
  */
 class CallerOverlayService : Service() {
 
@@ -149,11 +153,11 @@ class CallerOverlayService : Service() {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
-        // 모드별 위치/크기
-        //   banner: 화면 최상단 (status bar 아래) — 통화 수신 화면 발신자 정보보다 위
-        //   detail: 화면 상단 220dp 부근 — 통화 중 화면 이름 영역 바로 아래
+        // 모드별 위치/크기 — 시스템 통화 UI 와 겹치지 않도록 하단 기준으로 배치한다.
+        //   banner (수신 중) : 응답/거절 버튼(화면 하단 ~180dp) 위쪽 빈 공간
+        //   detail (통화 중) : 키패드/스피커/종료 버튼(화면 하단 ~140dp) 위쪽
         val height = if (mode == "detail") dp(320) else dp(96)
-        val yOffset = if (mode == "detail") dp(220) else dp(8)
+        val yOffset = if (mode == "detail") dp(160) else dp(220)
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -164,14 +168,14 @@ class CallerOverlayService : Service() {
                     WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             y = yOffset
         }
 
         try {
             windowManager?.addView(view, params)
             overlay = view
-            Log.d(TAG, "overlay added mode=$mode y=$yOffset name=${info.optString("name")}")
+            Log.d(TAG, "overlay added mode=$mode bottomY=$yOffset name=${info.optString("name")}")
         } catch (e: Exception) {
             Log.e(TAG, "addView failed: $e")
         }
