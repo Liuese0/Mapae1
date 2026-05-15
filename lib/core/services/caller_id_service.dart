@@ -60,6 +60,28 @@ class CallerIdService {
     }
   }
 
+  /// 배터리 최적화 면제 여부. true 면 Doze / OEM 배터리 절약에서 제외됨.
+  Future<bool> isIgnoringBatteryOptimizations() async {
+    try {
+      return (await _nativeChannel
+          .invokeMethod<bool>('isIgnoringBatteryOptimizations')) ??
+          false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 시스템 배터리 최적화 면제 다이얼로그를 띄운다. (best-effort)
+  Future<bool> requestIgnoreBatteryOptimizations() async {
+    try {
+      return (await _nativeChannel
+          .invokeMethod<bool>('requestIgnoreBatteryOptimizations')) ??
+          false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// 진단용: 임의의 번호로 오버레이 표시를 시뮬레이션합니다.
   /// 실제 전화 없이 표시 동작을 확인하기 위함.
   /// 반환: 정상적으로 시작되면 true, 캐시에 매칭되는 번호가 없으면 false.
@@ -234,6 +256,11 @@ class CallerIdService {
         debugPrint('[CallerId] Overlay permission denied');
         return false;
       }
+    }
+
+    // 배터리 최적화 면제는 best-effort — 거절해도 토글은 유지한다.
+    if (!await isIgnoringBatteryOptimizations()) {
+      await requestIgnoreBatteryOptimizations();
     }
     return true;
   }

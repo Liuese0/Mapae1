@@ -1,6 +1,7 @@
 package com.namecard.mapae
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -89,6 +90,26 @@ class MainActivity : FlutterActivity() {
                         }
                         result.success(true)
                     }
+                    "isIgnoringBatteryOptimizations" -> {
+                        val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                        result.success(pm.isIgnoringBatteryOptimizations(packageName))
+                    }
+                    "requestIgnoreBatteryOptimizations" -> {
+                        try {
+                            val i = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                                .setData(android.net.Uri.parse("package:$packageName"))
+                            startActivity(i)
+                            result.success(true)
+                        } catch (_: Throwable) {
+                            // 일부 OEM 에서는 위 인텐트가 막혀 있으므로 일반 설정 화면으로 fallback
+                            try {
+                                startActivity(Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                                result.success(true)
+                            } catch (e: Throwable) {
+                                result.error("NO_SETTINGS", e.message, null)
+                            }
+                        }
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -106,5 +127,29 @@ class MainActivity : FlutterActivity() {
             pendingResult?.success(granted)
             pendingResult = null
         }
+    }
+
+    // ── App foreground 추적 ──
+    // Flutter WidgetsBindingObserver 는 이벤트 채널을 거쳐 비동기로 전달되어
+    // 수신 broadcast 보다 늦게 도착할 수 있다. Activity 라이프사이클에서 직접
+    // SharedPreferences 를 갱신하면 CallReceiver 가 즉시 최신 값을 읽는다.
+
+    override fun onResume() {
+        super.onResume()
+        writeForegroundFlag(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        writeForegroundFlag(false)
+    }
+
+    private fun writeForegroundFlag(isForeground: Boolean) {
+        try {
+            getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("flutter.caller_id_app_foreground", isForeground)
+                .commit() // 동기 — 다음 broadcast 까지 반드시 반영되도록
+        } catch (_: Throwable) {}
     }
 }

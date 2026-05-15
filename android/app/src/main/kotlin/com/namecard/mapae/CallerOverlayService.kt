@@ -30,8 +30,9 @@ import org.json.JSONObject
  *   • 텍스트는 검정, 강조(라벨/아바타/닫기)는 검정 배경 + 흰색 텍스트
  *
  * 위치:
- *   • banner (수신 중)  — 화면 최상단 (기존 통화 수신 화면의 발신자 정보 위)
- *   • detail (통화 중)  — 화면 상단 1/3 지점 (통화 화면 이름 영역 바로 아래)
+ *   • banner      (수신, 앱 foreground)        — 화면 맨 아래 (시스템 heads-up 띠와 공존)
+ *   • banner_top  (수신, 앱 background/잠금화면) — 화면 맨 위 (시스템 full-screen UI 의 응답/거절 버튼 회피)
+ *   • detail      (통화 중)                     — 화면 맨 위 (상태 표시줄 바로 아래)
  */
 class CallerOverlayService : Service() {
 
@@ -64,7 +65,16 @@ class CallerOverlayService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForegroundCompat()
+        // Android 12+ : startForegroundService 로 시작된 서비스는 모든 진입 경로에서
+        // 반드시 5초 이내에 startForeground() 를 호출해야 한다. 위반 시
+        // ForegroundServiceDidNotStartInTimeException 이 발생하여 이후 FGS 시작이 차단될 수 있음.
+        try {
+            startForegroundCompat()
+        } catch (e: Throwable) {
+            Log.e(TAG, "startForeground failed: $e")
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         when (intent?.action) {
             ACTION_SHOW -> {
@@ -76,13 +86,24 @@ class CallerOverlayService : Service() {
             }
             ACTION_STOP -> {
                 removeOverlay()
+                stopForegroundCompat()
                 stopSelf()
             }
             else -> {
+                stopForegroundCompat()
                 stopSelf()
             }
         }
         return START_NOT_STICKY
+    }
+
+    private fun stopForegroundCompat() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
     }
 
     override fun onDestroy() {
@@ -96,10 +117,12 @@ class CallerOverlayService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (nm.getNotificationChannel(CHANNEL_ID) == null) {
+                // IMPORTANCE_LOW : Android 14+ 에서 알림이 표시되지 않는 FGS 는
+                //                  사용자가 인지하지 못한 서비스로 간주되어 더 빨리 종료될 수 있음.
                 val ch = NotificationChannel(
                     CHANNEL_ID,
                     "Caller ID",
-                    NotificationManager.IMPORTANCE_MIN
+                    NotificationManager.IMPORTANCE_LOW
                 ).apply {
                     description = "수신 전화 명함 표시"
                     setSound(null, null)
@@ -150,10 +173,14 @@ class CallerOverlayService : Service() {
         }
 
         // 모드별 위치/크기
-        //   banner: 화면 최상단 (status bar 아래) — 통화 수신 화면 발신자 정보보다 위
-        //   detail: 화면 상단 220dp 부근 — 통화 중 화면 이름 영역 바로 아래
-        val height = if (mode == "detail") dp(320) else dp(96)
-        val yOffset = if (mode == "detail") dp(220) else dp(8)
+        //   banner      (수신 + 앱 foreground/heads-up) : 화면 맨 아래
+        //   banner_top  (수신 + 앱 background/full-screen) : 화면 맨 위
+        //   detail      (통화 중)                          : 화면 맨 위
+        val isDetail = mode == "detail"
+        val isBannerTop = mode == "banner_top"
+        val height = if (isDetail) dp(320) else dp(96)
+        val verticalGravity = if (isDetail || isBannerTop) Gravity.TOP else Gravity.BOTTOM
+        val yOffset = dp(24)
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -164,14 +191,14 @@ class CallerOverlayService : Service() {
                     WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            gravity = verticalGravity or Gravity.CENTER_HORIZONTAL
             y = yOffset
         }
 
         try {
             windowManager?.addView(view, params)
             overlay = view
-            Log.d(TAG, "overlay added mode=$mode y=$yOffset name=${info.optString("name")}")
+            Log.d(TAG, "overlay added mode=$mode gravity=${if (isDetail || isBannerTop) "TOP" else "BOTTOM"} y=$yOffset name=${info.optString("name")}")
         } catch (e: Exception) {
             Log.e(TAG, "addView failed: $e")
         }
