@@ -178,7 +178,7 @@ class CallerOverlayService : Service() {
         //   detail      (통화 중)                          : 화면 맨 위
         val isDetail = mode == "detail"
         val isBannerTop = mode == "banner_top"
-        val height = if (isDetail) dp(320) else dp(96)
+        val height = if (isDetail) dp(260) else dp(96)
         val verticalGravity = if (isDetail || isBannerTop) Gravity.TOP else Gravity.BOTTOM
         val yOffset = dp(24)
 
@@ -296,7 +296,7 @@ class CallerOverlayService : Service() {
             orientation = LinearLayout.VERTICAL
             background = roundedBg(COLOR_BG, 18f, COLOR_FG, 3)
             elevation = dp(8).toFloat()
-            setPadding(dp(20), dp(20), dp(20), dp(20))
+            setPadding(dp(20), dp(14), dp(20), dp(14))
             gravity = Gravity.CENTER_HORIZONTAL
         }
 
@@ -308,12 +308,12 @@ class CallerOverlayService : Service() {
         labelRow.addView(makeBadge("Mapae", invert = true))
         card.addView(labelRow)
 
-        card.addView(spacer(12))
+        card.addView(spacer(8))
 
         // 검정 원형 아바타 (흰색 이니셜)
-        card.addView(makeAvatar(name, sizeDp = 60, fontDp = 24, invert = true))
+        card.addView(makeAvatar(name, sizeDp = 52, fontDp = 22, invert = true))
 
-        card.addView(spacer(10))
+        card.addView(spacer(8))
 
         // 이름
         card.addView(TextView(ctx).apply {
@@ -345,15 +345,15 @@ class CallerOverlayService : Service() {
         }
 
         if (email.isNotEmpty()) {
-            card.addView(spacer(12))
+            card.addView(spacer(8))
             card.addView(makeKeyValue("이메일", email))
         }
         if (memo.isNotEmpty()) {
-            card.addView(spacer(8))
+            card.addView(spacer(6))
             card.addView(makeKeyValue("메모", memo))
         }
 
-        card.addView(spacer(14))
+        card.addView(spacer(10))
 
         // 닫기 버튼 (검정 배경 + 흰색 텍스트)
         card.addView(TextView(ctx).apply {
@@ -361,7 +361,7 @@ class CallerOverlayService : Service() {
             setTextColor(COLOR_INVERT)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setPadding(dp(28), dp(10), dp(28), dp(10))
+            setPadding(dp(28), dp(8), dp(28), dp(8))
             background = roundedBg(COLOR_FG, 22f)
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(
