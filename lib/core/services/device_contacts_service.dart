@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,6 +10,8 @@ import '../../features/shared/models/collected_card.dart';
 /// 카드 ID 단위로 다이얼로그를 한 번만 노출하기 위한 추적 API 도 함께 제공한다.
 class DeviceContactsService {
   static const _seenKey = 'contacts_offered_card_ids';
+  static const _nativeChannel =
+      MethodChannel('com.namecard.mapae/permissions');
 
   Future<bool> hasBeenOffered(String id) async {
     final prefs = await SharedPreferences.getInstance();
@@ -34,13 +37,34 @@ class DeviceContactsService {
     }
   }
 
-  /// 네이티브 연락처 앱의 "새 연락처" 화면을 미리 채워서 띄운다.
+  /// 기존 연락처가 사용 중인 (계정 타입, 계정 이름) 목록.
+  /// Samsung 등에서 명시적 계정 없이 insert 하면 보이지 않는 "기기 전용" 계정으로
+  /// 들어가는 문제를 회피하기 위해 사용한다.
+  Future<List<Map<String, String>>> getContactAccounts() async {
+    try {
+      final raw = await _nativeChannel
+          .invokeMethod<List<dynamic>>('getContactAccounts');
+      if (raw == null) return const [];
+      return raw
+          .map((e) => Map<String, String>.from(e as Map))
+          .toList(growable: false);
+    } catch (e) {
+      debugPrint('[DeviceContacts] getContactAccounts failed: $e');
+      return const [];
+    }
+  }
+
+  /// 휴대폰 연락처에 명함 정보를 직접 insert 한다. (시스템 UI 안 띄움)
   ///
-  /// 직접 insert 를 호출하면 일부 OEM(삼성 등) 에서 계정 미지정 시 보이지 않는
-  /// "기기 전용" 계정으로 들어가 사용자가 못 찾는 문제가 있다.
-  /// 시스템 UI 를 띄우면 사용자가 계정을 선택해 본인이 보이는 곳에 저장하게 되어 가장 확실하다.
+  /// 계정 선택 로직 — 보이는 계정에 저장되도록:
+  ///   1) Google (`com.google`) 계정이 있으면 첫 번째 사용
+  ///   2) 없으면 Samsung (`com.osp.app.signin`) 등 비-기기 계정 사용
+  ///   3) 그래도 없으면 기기 기본 계정 (null) — 첫 명함 저장 시 가끔 발생
   ///
-  /// 반환: 성공적으로 시스템 UI 를 띄웠으면 null, 실패 시 에러 문자열.
+  /// [extraNotes] 는 ContextTag 의 비표준 커스텀 필드를 "필드명: 값\n…" 으로
+  /// 직렬화한 문자열. CollectedCard.memo 와 합쳐서 하나의 Note 로 저장한다.
+  ///
+  /// 반환: 성공 시 null, 실패 시 에러 문자열.
   Future<String?> saveToDeviceContacts(
       CollectedCard card, {
         String extraNotes = '',
@@ -104,14 +128,48 @@ class DeviceContactsService {
           if (mergedNote.isNotEmpty) Note(mergedNote),
         ];
 
-      debugPrint('[DeviceContacts] launching system insert UI '
+      // 계정 선택 — Google > 비-기기 계정 > 기본 순.
+      final accounts = await getContactAccounts();
+      debugPrint('[DeviceContacts] available accounts: $accounts');
+      Map<String, String>? picked;
+      for (final a in accounts) {
+        if ((a['type'] ?? '').startsWith('com.google')) {
+          picked = a;
+          break;
+        }
+      }
+      if (picked == null) {
+        for (final a in accounts) {
+          final t = a['type'] ?? '';
+          if (t.isNotEmpty &&
+              t != 'vnd.sec.contact.phone' /* Samsung 기기 전용 */ &&
+              t != 'vnd.huawei.account' /* Huawei 비슷한 케이스 */ &&
+              !t.contains('.phone')) {
+            picked = a;
+            break;
+          }
+        }
+      }
+      picked ??= accounts.isNotEmpty ? accounts.first : null;
+
+      if (picked != null) {
+        debugPrint('[DeviceContacts] using account: '
+            '${picked['type']}/${picked['name']}');
+        contact.accounts = [Account(picked['name']!, picked['type']!)];
+      } else {
+        debugPrint('[DeviceContacts] no account found, inserting with default');
+      }
+
+      debugPrint('[DeviceContacts] inserting contact: '
           'phones=${contact.phones.length} emails=${contact.emails.length} '
-          'addrs=${contact.addresses.length}');
-      await FlutterContacts.openExternalInsert(contact);
-      debugPrint('[DeviceContacts] system insert UI closed');
+          'addrs=${contact.addresses.length} '
+          'orgs=${contact.organizations.length}');
+      final inserted = await FlutterContacts.insertContact(contact);
+      debugPrint('[DeviceContacts] inserted id=${inserted.id} '
+          'displayName=${inserted.displayName}');
       return null;
     } catch (e, st) {
-      debugPrint('[DeviceContacts] openExternalInsert failed: $e\n$st');
+      debugPrint('[DeviceContacts] insert failed: $e\n$st');
       return e.toString();
     }
   }

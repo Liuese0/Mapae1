@@ -110,6 +110,36 @@ class MainActivity : FlutterActivity() {
                             }
                         }
                     }
+                    "getContactAccounts" -> {
+                        // 기존 연락처가 사용 중인 (account_type, account_name) 조합을 모은다.
+                        // GET_ACCOUNTS 권한 없이도 동작하도록 RawContacts 테이블 기반으로 조회.
+                        // Samsung Galaxy 등에서 명시적 계정 지정 없이 insert 하면 보이지 않는
+                        // "기기 전용" 계정으로 들어가는 문제를 회피하기 위함.
+                        try {
+                            val accounts = mutableListOf<Map<String, String>>()
+                            val seen = mutableSetOf<String>()
+                            contentResolver.query(
+                                android.provider.ContactsContract.RawContacts.CONTENT_URI,
+                                arrayOf(
+                                    android.provider.ContactsContract.RawContacts.ACCOUNT_TYPE,
+                                    android.provider.ContactsContract.RawContacts.ACCOUNT_NAME
+                                ),
+                                null, null, null
+                            )?.use { c ->
+                                while (c.moveToNext()) {
+                                    val type = c.getString(0) ?: continue
+                                    val name = c.getString(1) ?: continue
+                                    val key = "$type|$name"
+                                    if (seen.add(key)) {
+                                        accounts.add(mapOf("type" to type, "name" to name))
+                                    }
+                                }
+                            }
+                            result.success(accounts)
+                        } catch (e: Throwable) {
+                            result.error("ACCOUNT_QUERY_FAILED", e.message, null)
+                        }
+                    }
                     else -> result.notImplemented()
                 }
             }
