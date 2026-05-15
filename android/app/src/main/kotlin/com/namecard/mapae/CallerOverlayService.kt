@@ -64,7 +64,16 @@ class CallerOverlayService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForegroundCompat()
+        // Android 12+ : startForegroundService 로 시작된 서비스는 모든 진입 경로에서
+        // 반드시 5초 이내에 startForeground() 를 호출해야 한다. 위반 시
+        // ForegroundServiceDidNotStartInTimeException 이 발생하여 이후 FGS 시작이 차단될 수 있음.
+        try {
+            startForegroundCompat()
+        } catch (e: Throwable) {
+            Log.e(TAG, "startForeground failed: $e")
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         when (intent?.action) {
             ACTION_SHOW -> {
@@ -76,13 +85,24 @@ class CallerOverlayService : Service() {
             }
             ACTION_STOP -> {
                 removeOverlay()
+                stopForegroundCompat()
                 stopSelf()
             }
             else -> {
+                stopForegroundCompat()
                 stopSelf()
             }
         }
         return START_NOT_STICKY
+    }
+
+    private fun stopForegroundCompat() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
     }
 
     override fun onDestroy() {
@@ -96,10 +116,12 @@ class CallerOverlayService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (nm.getNotificationChannel(CHANNEL_ID) == null) {
+                // IMPORTANCE_LOW : Android 14+ 에서 알림이 표시되지 않는 FGS 는
+                //                  사용자가 인지하지 못한 서비스로 간주되어 더 빨리 종료될 수 있음.
                 val ch = NotificationChannel(
                     CHANNEL_ID,
                     "Caller ID",
-                    NotificationManager.IMPORTANCE_MIN
+                    NotificationManager.IMPORTANCE_LOW
                 ).apply {
                     description = "수신 전화 명함 표시"
                     setSound(null, null)

@@ -1,6 +1,7 @@
 package com.namecard.mapae
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -88,6 +89,26 @@ class MainActivity : FlutterActivity() {
                             stopService(Intent(this, CallerOverlayService::class.java))
                         }
                         result.success(true)
+                    }
+                    "isIgnoringBatteryOptimizations" -> {
+                        val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                        result.success(pm.isIgnoringBatteryOptimizations(packageName))
+                    }
+                    "requestIgnoreBatteryOptimizations" -> {
+                        try {
+                            val i = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                                .setData(android.net.Uri.parse("package:$packageName"))
+                            startActivity(i)
+                            result.success(true)
+                        } catch (_: Throwable) {
+                            // 일부 OEM 에서는 위 인텐트가 막혀 있으므로 일반 설정 화면으로 fallback
+                            try {
+                                startActivity(Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                                result.success(true)
+                            } catch (e: Throwable) {
+                                result.error("NO_SETTINGS", e.message, null)
+                            }
+                        }
                     }
                     else -> result.notImplemented()
                 }

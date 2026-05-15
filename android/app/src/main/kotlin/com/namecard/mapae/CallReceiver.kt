@@ -4,12 +4,18 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.PowerManager
 import android.telephony.TelephonyManager
 import android.util.Log
 
 /**
  * 시스템 PHONE_STATE 브로드캐스트를 받아 Caller ID 오버레이를 띄우는 receiver.
  * AndroidManifest 에 정적으로 등록되어 있어 앱이 종료된 상태에서도 호출됩니다.
+ *
+ * 백그라운드 신뢰성 확보를 위해:
+ *   • goAsync() 로 broadcast 예산(10s) 까지 실행을 연장한다.
+ *   • PARTIAL_WAKE_LOCK(8s) 을 잡아 Doze 중에도 CPU 가 깨어 있도록 한다.
+ *   • 모든 I/O / FGS 시작 작업은 worker thread 에서 수행한다.
  */
 class CallReceiver : BroadcastReceiver() {
     companion object {
@@ -24,6 +30,25 @@ class CallReceiver : BroadcastReceiver() {
         val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
         Log.d(TAG, "onReceive state=$state number=${number?.take(4)}***")
 
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Mapae:CallReceiver")
+        wl.setReferenceCounted(false)
+        wl.acquire(8_000L) // 10s broadcast 예산 아래
+
+        val pending = goAsync()
+        Thread {
+            try {
+                handle(context, state, number)
+            } catch (t: Throwable) {
+                Log.e(TAG, "handle failed: $t")
+            } finally {
+                if (wl.isHeld) try { wl.release() } catch (_: Throwable) {}
+                pending.finish()
+            }
+        }.start()
+    }
+
+    private fun handle(context: Context, state: String?, number: String?) {
         // 사용자가 기능을 꺼두었다면 무시.
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean(KEY_ENABLED, false)) {
@@ -58,7 +83,11 @@ class CallReceiver : BroadcastReceiver() {
                 val stop = Intent(context, CallerOverlayService::class.java)
                 stop.action = CallerOverlayService.ACTION_STOP
                 try {
-                    context.startService(stop)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(stop)
+                    } else {
+                        context.startService(stop)
+                    }
                 } catch (_: Exception) {
                     context.stopService(Intent(context, CallerOverlayService::class.java))
                 }

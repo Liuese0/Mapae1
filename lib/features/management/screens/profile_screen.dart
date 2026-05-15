@@ -100,6 +100,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
     setState(() => _callerIdEnabled = value);
     await service.setEnabled(value);
+
+    // 배터리 최적화가 켜져 있으면 OEM(삼성/샤오미 등)에서 백그라운드 broadcast 를
+    // 차단해 앱이 종료된 상태에서 명함이 안 뜰 수 있음 — 면제를 안내한다.
+    if (value && Platform.isAndroid) {
+      final ignoring = await service.isIgnoringBatteryOptimizations();
+      if (!mounted) return;
+      if (!ignoring) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 6),
+            content: Text(
+              isKo
+                  ? '앱이 종료된 상태에서도 발신자 정보를 표시하려면 배터리 최적화를 해제해야 합니다.'
+                  : 'Disable battery optimization to show caller info when the app is closed.',
+            ),
+            action: SnackBarAction(
+              label: isKo ? '설정' : 'Open',
+              onPressed: () => service.requestIgnoreBatteryOptimizations(),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override
