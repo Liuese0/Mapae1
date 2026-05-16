@@ -35,8 +35,9 @@ class DeviceContactsService {
   }
 
   /// 휴대폰 연락처에 명함 정보를 직접 insert 한다.
-  /// 계정 선택은 시스템 기본값에 맡긴다 — 사용자가 본인 연락처 앱의 보기 설정에서
-  /// 원하는 계정을 표시하면 된다.
+  /// 계정은 기기에 등록된 계정 중 Google → 그 외 → 로컬 순으로 자동 선택한다.
+  /// (account 지정 없이 insert 하면 로컬 "Phone storage" 로 저장돼 대부분의
+  /// 연락처 앱에서 숨겨지는 문제 회피.)
   ///
   /// [extraNotes] 는 ContextTag 의 비표준 커스텀 필드를 "필드명: 값\n…" 으로
   /// 직렬화한 문자열. CollectedCard.memo 와 합쳐서 하나의 Note 로 저장한다.
@@ -105,13 +106,43 @@ class DeviceContactsService {
           if (mergedNote.isNotEmpty) Note(mergedNote),
         ];
 
+      // Android: insert 시 account 를 지정하지 않으면 ContentProvider 가
+      // 연락처를 "Phone storage" (로컬 계정) 으로 저장하는데, Google Contacts /
+      // 삼성 연락처 등 대부분의 앱은 기본적으로 이 로컬 계정을 숨긴다.
+      // 결과적으로 insert 는 성공해도 사용자 눈에는 보이지 않는다.
+      // 동기화 가능한 계정(Google 우선) 을 골라 명시적으로 지정해 해결한다.
+      try {
+        final accounts = await FlutterContacts.getAccounts();
+        debugPrint('[DeviceContacts] available accounts: '
+            '${accounts.map((a) => '${a.type}/${a.name}').toList()}');
+        if (accounts.isNotEmpty) {
+          final preferred = accounts.firstWhere(
+            (a) => a.type == 'com.google',
+            orElse: () => accounts.firstWhere(
+              (a) => a.type != 'vnd.sec.contact.phone' &&
+                  a.type != 'com.android.contacts.local',
+              orElse: () => accounts.first,
+            ),
+          );
+          contact.accounts = [preferred];
+          debugPrint('[DeviceContacts] using account: '
+              '${preferred.type}/${preferred.name}');
+        } else {
+          debugPrint('[DeviceContacts] no accounts found, '
+              'will fall back to local phone storage');
+        }
+      } catch (e) {
+        debugPrint('[DeviceContacts] getAccounts failed: $e');
+      }
+
       debugPrint('[DeviceContacts] inserting contact: '
           'phones=${contact.phones.length} emails=${contact.emails.length} '
           'addrs=${contact.addresses.length} '
           'orgs=${contact.organizations.length}');
       final inserted = await FlutterContacts.insertContact(contact);
       debugPrint('[DeviceContacts] inserted id=${inserted.id} '
-          'displayName=${inserted.displayName}');
+          'displayName=${inserted.displayName} '
+          'accounts=${inserted.accounts.map((a) => '${a.type}/${a.name}').toList()}');
       return null;
     } catch (e, st) {
       debugPrint('[DeviceContacts] insert failed: $e\n$st');
