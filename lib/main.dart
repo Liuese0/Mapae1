@@ -12,6 +12,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/providers/app_providers.dart';
+import 'core/utils/root_messenger.dart';
 import 'core/utils/router.dart';
 import 'core/services/auto_login_service.dart';
 import 'features/caller_id/widgets/caller_id_overlay.dart';
@@ -155,6 +156,7 @@ class _NameCardAppState extends ConsumerState<NameCardApp> {
     return MaterialApp.router(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,

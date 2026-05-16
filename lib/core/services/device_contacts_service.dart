@@ -115,6 +115,7 @@ class DeviceContactsService {
       // flutter_contacts 1.1.x 에는 공개 getAccounts() API 가 없어서 기존
       // 연락처를 1건 정도 조회해 거기서 account 를 추출한다 (속성/사진은
       // 모두 false 로 가벼운 조회).
+      String accountLabel = 'none';
       try {
         final existing = await FlutterContacts.getContacts(
           withProperties: false,
@@ -125,27 +126,34 @@ class DeviceContactsService {
         final accountSet = <String, Account>{};
         for (final c in existing) {
           for (final a in c.accounts) {
+            if (a.type.isEmpty || a.name.isEmpty) continue;
             accountSet['${a.type}/${a.name}'] = a;
           }
         }
         final accounts = accountSet.values.toList();
         debugPrint('[DeviceContacts] available accounts: '
             '${accounts.map((a) => '${a.type}/${a.name}').toList()}');
-        if (accounts.isNotEmpty) {
-          final preferred = accounts.firstWhere(
+        // 로컬 전용 계정은 제외하고 sync 가능한 계정만 후보로.
+        final syncable = accounts
+            .where((a) =>
+                a.type != 'vnd.sec.contact.phone' &&
+                a.type != 'com.android.contacts.local' &&
+                a.type != 'local')
+            .toList();
+        Account? preferred;
+        if (syncable.isNotEmpty) {
+          preferred = syncable.firstWhere(
             (a) => a.type == 'com.google',
-            orElse: () => accounts.firstWhere(
-              (a) => a.type != 'vnd.sec.contact.phone' &&
-                  a.type != 'com.android.contacts.local',
-              orElse: () => accounts.first,
-            ),
+            orElse: () => syncable.first,
           );
+        }
+        if (preferred != null) {
           contact.accounts = [preferred];
-          debugPrint('[DeviceContacts] using account: '
-              '${preferred.type}/${preferred.name}');
+          accountLabel = '${preferred.type}/${preferred.name}';
+          debugPrint('[DeviceContacts] using account: $accountLabel');
         } else {
-          debugPrint('[DeviceContacts] no accounts found, '
-              'will fall back to local phone storage');
+          debugPrint('[DeviceContacts] no syncable account, '
+              'will fall back to device default storage');
         }
       } catch (e) {
         debugPrint('[DeviceContacts] account lookup failed: $e');
@@ -155,14 +163,43 @@ class DeviceContactsService {
           'phones=${contact.phones.length} emails=${contact.emails.length} '
           'addrs=${contact.addresses.length} '
           'orgs=${contact.organizations.length}');
-      final inserted = await FlutterContacts.insertContact(contact);
+      final Contact inserted;
+      try {
+        inserted = await FlutterContacts.insertContact(contact);
+      } catch (e, st) {
+        debugPrint('[DeviceContacts] insertContact threw: $e\n$st');
+        return '${e.runtimeType} @$accountLabel: $e';
+      }
       debugPrint('[DeviceContacts] inserted id=${inserted.id} '
           'displayName=${inserted.displayName} '
           'accounts=${inserted.accounts.map((a) => '${a.type}/${a.name}').toList()}');
+      if (inserted.id.isEmpty) {
+        return 'empty id returned @$accountLabel';
+      }
+      // 사후 검증: 정말 ContentProvider 에 row 가 들어갔는지 다시 fetch.
+      // flutter_contacts 가 platform 에서 silent 하게 reject 된 경우 잡힘.
+      try {
+        final refetched = await FlutterContacts.getContact(
+          inserted.id,
+          withProperties: false,
+          withPhoto: false,
+          withThumbnail: false,
+          withAccounts: true,
+        );
+        if (refetched == null) {
+          debugPrint('[DeviceContacts] refetch returned null for id=${inserted.id}');
+          return 'verify failed @$accountLabel (id=${inserted.id})';
+        }
+        debugPrint('[DeviceContacts] verified id=${refetched.id} '
+            'accounts=${refetched.accounts.map((a) => '${a.type}/${a.name}').toList()}');
+      } catch (e) {
+        debugPrint('[DeviceContacts] verify fetch threw: $e');
+        // verify 실패는 단순 로그만 — insert 자체는 성공으로 본다.
+      }
       return null;
     } catch (e, st) {
-      debugPrint('[DeviceContacts] insert failed: $e\n$st');
-      return e.toString();
+      debugPrint('[DeviceContacts] saveToDeviceContacts failed: $e\n$st');
+      return '${e.runtimeType}: $e';
     }
   }
 }

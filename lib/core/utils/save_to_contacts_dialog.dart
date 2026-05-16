@@ -5,6 +5,7 @@ import '../../features/shared/models/collected_card.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../providers/app_providers.dart';
 import '../services/device_contacts_service.dart';
+import 'root_messenger.dart';
 
 /// 명함이 저장된 직후, 휴대폰 네이티브 연락처에도 같이 저장할지 묻는 1번의
 /// Yes/No 다이얼로그. 같은 카드 ID 에 대해서는 한 번만 묻고 다시 묻지 않는다.
@@ -18,7 +19,9 @@ Future<void> promptSaveToContacts(
   if (!context.mounted) return;
 
   final l10n = AppLocalizations.of(context);
-  final messenger = ScaffoldMessenger.of(context);
+  // 로컬 ScaffoldMessenger 는 bottom sheet / dialog 가 pop 되면 dispose 되므로
+  // 글로벌 root messenger 를 사용해 어떤 경우에도 스낵바가 보이도록 한다.
+  final messenger = rootScaffoldMessengerKey.currentState;
 
   final yes = await showDialog<bool>(
     context: context,
@@ -46,7 +49,7 @@ Future<void> promptSaveToContacts(
   // flutter_contacts 자체 API 로 READ+WRITE 권한을 함께 요청한다.
   final granted = await svc.requestPermission();
   if (!granted) {
-    messenger.showSnackBar(
+    messenger?.showSnackBar(
       SnackBar(content: Text(l10n.saveToContactsFailure)),
     );
     return;
@@ -71,14 +74,14 @@ Future<void> promptSaveToContacts(
   final extraNotes = extraLines.join('\n');
 
   final error = await svc.saveToDeviceContacts(card, extraNotes: extraNotes);
-  messenger.showSnackBar(
+  messenger?.showSnackBar(
     SnackBar(
       content: Text(
         error == null
             ? l10n.saveToContactsSuccess
             : '${l10n.saveToContactsFailure}: $error',
       ),
-      duration: Duration(seconds: error == null ? 3 : 5),
+      duration: Duration(seconds: error == null ? 3 : 10),
     ),
   );
 }
