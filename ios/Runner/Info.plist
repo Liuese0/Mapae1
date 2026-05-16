@@ -56,5 +56,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSContactsUsageDescription</key>
+	<string>명함을 휴대폰 연락처에 저장하기 위해 사용됩니다. To save business cards to your phone's contacts.</string>
 </dict>
 </plist>

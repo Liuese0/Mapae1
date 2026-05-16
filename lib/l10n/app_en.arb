@@ -118,5 +118,11 @@
   "favoritesOnly": "Favorites only",
   "themeLight": "Light",
   "themeDark": "Dark",
-  "themeSystem": "System"
+  "themeSystem": "System",
+  "saveToContactsTitle": "Save to contacts?",
+  "saveToContactsBody": "Also save this card to your phone's contacts.",
+  "saveToContactsYes": "Save",
+  "saveToContactsNo": "Not now",
+  "saveToContactsSuccess": "Saved to contacts",
+  "saveToContactsFailure": "Failed to save contact"
 }

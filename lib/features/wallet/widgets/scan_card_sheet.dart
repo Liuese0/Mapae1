@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/services/ocr_service.dart';
+import '../../../core/utils/save_to_contacts_dialog.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
 import '../../shared/models/context_tag.dart';
@@ -313,6 +314,10 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10nCurrent.cardAdded)),
         );
+
+        if (!mounted) return;
+        await promptSaveToContacts(context, ref, savedCard);
+        if (!mounted) return;
 
         // Navigate to edit to review OCR results
         context.push('/card/${savedCard.id}/edit');

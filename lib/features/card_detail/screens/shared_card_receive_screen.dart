@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/utils/save_to_contacts_dialog.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/business_card.dart';
 import '../../shared/models/collected_card.dart';
@@ -58,7 +59,7 @@ class _SharedCardReceiveScreenState
     setState(() => _saving = true);
 
     try {
-      await service.addCollectedCard(
+      final saved = await service.addCollectedCard(
         CollectedCard(
           id: '',
           userId: user.id,
@@ -90,6 +91,9 @@ class _SharedCardReceiveScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.cardAdded)),
       );
+
+      if (!mounted) return;
+      await promptSaveToContacts(context, ref, saved);
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
