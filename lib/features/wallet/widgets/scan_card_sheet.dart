@@ -308,16 +308,17 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
 
       if (mounted) {
         final l10nCurrent = AppLocalizations.of(context);
+        // 다이얼로그 + 스낵바를 sheet 가 살아있는 동안 먼저 처리해야 messenger /
+        // dialog navigator 가 dispose 되지 않는다. pop 은 모든 후속 작업 후에.
+        await promptSaveToContacts(context, ref, savedCard);
+        if (!mounted) return;
+
         Navigator.of(context).pop();
         widget.onScanComplete?.call();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10nCurrent.cardAdded)),
         );
-
-        if (!mounted) return;
-        await promptSaveToContacts(context, ref, savedCard);
-        if (!mounted) return;
 
         // Navigate to edit to review OCR results
         context.push('/card/${savedCard.id}/edit');
