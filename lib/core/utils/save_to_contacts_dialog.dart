@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,8 +15,15 @@ Future<void> promptSaveToContacts(
     CollectedCard card,
     ) async {
   final svc = ref.read(deviceContactsServiceProvider);
-  if (await svc.hasBeenOffered(card.id)) return;
-  if (!context.mounted) return;
+  debugPrint('[promptSaveToContacts] called for card=${card.id} name=${card.name}');
+  if (await svc.hasBeenOffered(card.id)) {
+    debugPrint('[promptSaveToContacts] already offered for ${card.id}, skip');
+    return;
+  }
+  if (!context.mounted) {
+    debugPrint('[promptSaveToContacts] context unmounted, skip');
+    return;
+  }
 
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
@@ -37,11 +45,16 @@ Future<void> promptSaveToContacts(
       ],
     ),
   );
+  debugPrint('[promptSaveToContacts] user answer: $yes');
 
-  // 사용자가 어느 쪽을 눌렀든 (또는 dismiss 했든) 같은 카드에 대해선 다시 묻지 않는다.
+  if (yes != true) {
+    // No 나 dismiss 의 경우엔 다시 물어볼 수 있게 markOffered 하지 않는다.
+    return;
+  }
+
+  // Yes 누른 시점에만 "이 카드는 이미 다뤘다" 로 기록 — 저장 실패해도 다시 묻지 않음
+  // (다시 묻고 또 실패하면 짜증나니까).
   await svc.markOffered(card.id);
-
-  if (yes != true) return;
 
   // flutter_contacts 자체 API 로 READ+WRITE 권한을 함께 요청한다.
   final granted = await svc.requestPermission();

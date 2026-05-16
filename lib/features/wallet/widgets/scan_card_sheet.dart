@@ -9,7 +9,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/services/ocr_service.dart';
-import '../../../core/utils/save_to_contacts_dialog.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/models/collected_card.dart';
 import '../../shared/models/context_tag.dart';
@@ -315,9 +314,9 @@ class _ScanCardSheetState extends ConsumerState<ScanCardSheet> {
           SnackBar(content: Text(l10nCurrent.cardAdded)),
         );
 
-        if (!mounted) return;
-        await promptSaveToContacts(context, ref, savedCard);
-        if (!mounted) return;
+        // 연락처 저장 프롬프트는 edit 화면(아래의 push 도착지)에서 처리한다.
+        // 여기서 직접 띄우면 Navigator.pop() 이후 BuildContext 가 unmount 되어
+        // 다이얼로그가 표시되지 않는 경우가 있다.
 
         // Navigate to edit to review OCR results
         context.push('/card/${savedCard.id}/edit');
