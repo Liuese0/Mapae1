@@ -111,8 +111,24 @@ class DeviceContactsService {
       // 삼성 연락처 등 대부분의 앱은 기본적으로 이 로컬 계정을 숨긴다.
       // 결과적으로 insert 는 성공해도 사용자 눈에는 보이지 않는다.
       // 동기화 가능한 계정(Google 우선) 을 골라 명시적으로 지정해 해결한다.
+      //
+      // flutter_contacts 1.1.x 에는 공개 getAccounts() API 가 없어서 기존
+      // 연락처를 1건 정도 조회해 거기서 account 를 추출한다 (속성/사진은
+      // 모두 false 로 가벼운 조회).
       try {
-        final accounts = await FlutterContacts.getAccounts();
+        final existing = await FlutterContacts.getContacts(
+          withProperties: false,
+          withPhoto: false,
+          withThumbnail: false,
+          withAccounts: true,
+        );
+        final accountSet = <String, Account>{};
+        for (final c in existing) {
+          for (final a in c.accounts) {
+            accountSet['${a.type}/${a.name}'] = a;
+          }
+        }
+        final accounts = accountSet.values.toList();
         debugPrint('[DeviceContacts] available accounts: '
             '${accounts.map((a) => '${a.type}/${a.name}').toList()}');
         if (accounts.isNotEmpty) {
@@ -132,7 +148,7 @@ class DeviceContactsService {
               'will fall back to local phone storage');
         }
       } catch (e) {
-        debugPrint('[DeviceContacts] getAccounts failed: $e');
+        debugPrint('[DeviceContacts] account lookup failed: $e');
       }
 
       debugPrint('[DeviceContacts] inserting contact: '
